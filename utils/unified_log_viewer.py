@@ -1,0 +1,3059 @@
+"""
+Unified Log Viewer - Creates a professional dashboard showing both Admin and Recruiter logs
+with test results, screenshots, and impressive UI design.
+"""
+
+import os
+import re
+import json
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from html import escape
+
+
+# Valid Employer test case names from JnP_final.robot
+# These are the only test cases that should appear in the dashboard
+VALID_EMPLOYER_TEST_NAMES = {
+    # T1.xx tests
+    "T1.01 Home Page",
+    "T1.02 Home Page- Verify if jobs NOT coming from same company consecutively in 'Browse jobs'",
+    "T1.03 Home Page- Verify if jobs are matched with the searched company in 'Browse jobs'",
+    "T1.04 Home Page- Verify the job posting time",
+    "T1.05 Home Page- Verify 'Book Your Demo'",
+    "T1.06 Home Page- No repetition of jobs in 'Similar Jobs'",
+    # T2.xx tests
+    "T2.01 'Post a Job' verification and verification with Job-Id",
+    "T2.02 Verification of applicants and shortlisting in JS",
+    "T2.03 Verification of closing a job and checking with Job-Id",
+    "T2.04 Verification of AI Search with description",
+    "T2.06 Verification of AI search without description and verification of saving a resume",
+    "T2.12 Verification of sending email to Contacts in EMP-Contacts",
+    "T2.13 Verification of resumes details matched with posted jobs",
+    "T2.14 Verification of Advanced AI Semantic Search",
+    "T2.15 Verification of job posting by the employer is getting displayed in the JS dashboard or not with the job title in search bar",
+    "T2.16 Verification of job posting by the employer is getting displayed in the JS dashboard or not with the job id in search bar",
+    "T2.17 Verification of Hot list company daily update in hot list section",
+    "T2.18 Verification of Hot list company daily update with their candidate list verfication in hot list section",
+    "T2.19 Verification of Hot list company daily update with their candidate list verfication with job title search in hot list search results",
+    "T2.20 Verification of AI Search with description for the Boolean search working properly on resumes",
+    "T2.21 Verification of Boolean search working properly on resumes with help of initial search bar",
+    "T2.22 Verification of Hot list company daily update with their candidate list duplicate candidates checking in hot list section",
+}
+
+
+def is_valid_employer_test(test_name: str) -> bool:
+    """Check if a test name is a valid Employer test from JnP_final.robot"""
+    # Explicitly exclude invalid test names (not in JnP_final.robot)
+    invalid_patterns = [
+        'test_e1_01', 'test_e2_01', 'e1_01', 'e2_01',  # E1.01, E2.01 tests (not in JnP_final.robot)
+        'employer1_dashboard_verification', 'employer2_dashboard_verification',
+        'home_page_verify_recruiter', 'home_page_verification_of_recruiter',
+        'home_page_verification_of_custom', 'verification_of_employer_details',
+        'verification_of_hotlist', 'verification_of_changes_in_company',
+        'verification_of_jobs_under_company'
+    ]
+    
+    test_name_lower = test_name.lower()
+    for invalid_pattern in invalid_patterns:
+        if invalid_pattern.lower() in test_name_lower:
+            return False  # This is an invalid test, exclude it
+    
+    # Check exact match first
+    if test_name in VALID_EMPLOYER_TEST_NAMES:
+        return True
+    
+    # Check if test name contains any valid test identifier (T1.01, T1.02, T2.01, etc.)
+    # This handles pytest test names like "test_t1_01_home_page"
+    test_pattern = re.compile(r'T[12]\.\d+', re.IGNORECASE)
+    match = test_pattern.search(test_name)
+    if match:
+        test_id = match.group(0).upper()
+        # Check if this test ID exists in valid tests
+        for valid_name in VALID_EMPLOYER_TEST_NAMES:
+            if test_id in valid_name:
+                # Extract the test identifier from the test name
+                # e.g., "test_t1_01_home_page" -> "T1.01"
+                # Check if the test name matches the pattern
+                if test_id in test_name.upper() or any(
+                    word.lower() in test_name.lower() 
+                    for word in valid_name.split() 
+                    if len(word) > 3
+                ):
+                    return True
+    
+    # Check for pytest function name patterns
+    # e.g., "test_t1_01_home_page" should match "T1.01 Home Page"
+    for valid_name in VALID_EMPLOYER_TEST_NAMES:
+        # Extract key words from valid name
+        valid_words = [w.lower() for w in valid_name.split() if len(w) > 3 and w.lower() not in ['the', 'and', 'for', 'with', 'from', 'that', 'this']]
+        # Check if test name contains enough matching words
+        matching_words = sum(1 for word in valid_words if word in test_name_lower)
+        if matching_words >= 2:  # At least 2 key words match
+            return True
+    
+    return False
+
+
+def parse_test_results_from_log(log_file_path: str):
+    """Parse log file to extract test results with PASS/FAIL status."""
+    tests = []
+    current_test = None
+    
+    # Match patterns like:
+    # "TEST test_name: PASS" or "TEST test_name: FAIL" or "TEST test_name: SKIP"
+    # Also match "Status: PASS", "Status: FAIL", "Status: SKIP" on separate lines
+    test_pattern = re.compile(r'TEST\s+([^:]+):\s*(PASS|FAIL|SKIP)', re.IGNORECASE)
+    status_pattern = re.compile(r'^Status:\s*(PASS|FAIL|SKIP)', re.IGNORECASE)
+    elapsed_pattern = re.compile(
+        r"Start\s*/\s*End\s*/\s*Elapsed:\s*[^/]+/\s*[^/]+/\s*([0-9:.]+)",
+        re.IGNORECASE
+    )
+    runtime_seconds_pattern = re.compile(r"Runtime for .*?:\s*([0-9.]+)\s+seconds", re.IGNORECASE)
+    
+    # Also check for test statistics table format (fallback for collected but not executed tests)
+    stats_pattern = re.compile(r'(\d+)\s+tests?\s+total,\s+(\d+)\s+passed,\s+(\d+)\s+failed,\s+(\d+)\s+skipped', re.IGNORECASE)
+    total_tests_collected = None
+    actual_test_results_found = 0  # Count of actual "TEST <name>: PASS/FAIL/SKIP" entries
+    stats_tests_executed = 0
+    
+    try:
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            for line_no, line in enumerate(lines, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # Match test result lines like "TEST T1.01 Home Page: PASS" or "TEST test_t1_01_home_page: PASS"
+                # Also handle format where TEST and status are on separate lines
+                match = test_pattern.search(line)
+                if match:
+                    test_name = match.group(1).strip()
+                    status = match.group(2).upper()
+                    
+                    # Also check if there's a "Status: FAIL" line right after (within next 5 lines)
+                    # This handles cases where status is on a separate line
+                    if line_no < len(lines):
+                        for next_idx in range(line_no, min(line_no + 5, len(lines))):
+                            if next_idx < len(lines):
+                                next_line = lines[next_idx].strip()
+                                status_match = status_pattern.search(next_line)
+                                if status_match:
+                                    status = status_match.group(1).upper()
+                                    break
+                    
+                    # Skip invalid Employer tests (not in JnP_final.robot)
+                    # Filter out test_e1_01_employer1_dashboard_verification and similar invalid tests
+                    test_name_lower = test_name.lower()
+                    invalid_patterns = ['test_e1_01', 'test_e2_01', 'e1_01', 'e2_01', 
+                                       'employer1_dashboard_verification', 'employer2_dashboard_verification']
+                    if any(pattern in test_name_lower for pattern in invalid_patterns):
+                        continue  # Skip this invalid test
+                    
+                    actual_test_results_found += 1
+                    
+                    # Try to extract additional information from surrounding lines
+                    running_time = 'N/A'
+                    failure_message = ''
+                    failure_location = ''
+                    xpath = ''
+                    
+                    # Look ahead for elapsed/runtime + failure details + xpath hint (within next ~120 lines)
+                    # This is used for BOTH PASS and FAIL so runtime always shows in the right panel.
+                    for i in range(line_no, min(line_no + 120, len(lines))):
+                        if i < len(lines):
+                            next_line = lines[i].strip()
+                            # Stop if another test starts (don't consume next test's runtime)
+                            if i != line_no and test_pattern.search(next_line):
+                                break
+                            # Prefer the elapsed format from test_logger
+                            m_elapsed = elapsed_pattern.search(next_line)
+                            if m_elapsed and running_time == 'N/A':
+                                running_time = m_elapsed.group(1).strip()
+                            # Fallback: runtime seconds line from runtime measurement
+                            if running_time == 'N/A':
+                                m_rt = runtime_seconds_pattern.search(next_line)
+                                if m_rt:
+                                    running_time = f"{m_rt.group(1).strip()} seconds"
+
+                    if status == 'FAIL':
+                        # Prefer the "Message:" block written by the test logger / conftest hook.
+                        capture = []
+                        capture_started = False
+                        for i in range(line_no, min(line_no + 120, len(lines))):
+                            if i < len(lines):
+                                next_line = lines[i].strip()
+                                # Stop if another test starts
+                                if test_pattern.search(next_line):
+                                    break
+
+                                # Capture from "Message:" or "Error details:" onwards
+                                if ("Message:" in next_line) or ("Error details:" in next_line) or ("E   " in next_line) or ("Traceback" in next_line):
+                                    capture_started = True
+                                if capture_started:
+                                    # Strip noisy timestamp prefixes if present
+                                    cleaned = re.sub(r"^\d{4}-\d{2}-\d{2}.*?:\s*", "", next_line)
+                                    capture.append(cleaned)
+
+                                # Extract locator hint if available (we add this in BenchSale_Conftest)
+                                if not xpath:
+                                    m_hint = re.search(r"Locator/XPath hint:\s*(.+)$", next_line, re.IGNORECASE)
+                                    if m_hint:
+                                        xpath = m_hint.group(1).strip()
+                                if not xpath:
+                                    xpath_match = re.search(r"(xpath=[^\s]+)", next_line, re.IGNORECASE)
+                                    if xpath_match:
+                                        xpath = xpath_match.group(1).strip()
+
+                                # Extract failure location (first "file.py:line:" frame)
+                                if not failure_location:
+                                    loc_match = re.search(r"([A-Za-z0-9_\\./-]+\.py:\d+:\s+in\s+.+)$", next_line)
+                                    if loc_match:
+                                        failure_location = loc_match.group(1).strip()
+
+                        if capture:
+                            # Keep a readable multi-line failure message
+                            # Remove leading "Message:" label if present in first line
+                            if capture[0].lower().startswith("message:"):
+                                capture[0] = capture[0][len("message:"):].strip()
+                            failure_message = "\n".join(capture).strip()
+
+                    # Backward fallback (sometimes elapsed line appears just before TEST ...: PASS/FAIL)
+                    if running_time == 'N/A':
+                        for back in range(max(0, line_no - 50), line_no):
+                            prev = lines[back].strip()
+                            m_elapsed = elapsed_pattern.search(prev)
+                            if m_elapsed:
+                                running_time = m_elapsed.group(1).strip()
+                                break
+                            m_rt = runtime_seconds_pattern.search(prev)
+                            if m_rt:
+                                running_time = f"{m_rt.group(1).strip()} seconds"
+                                break
+                    
+                    tests.append({
+                        'name': test_name,
+                        'status': status,
+                        'line': line_no,
+                        'raw_line': line,
+                        'running_time': running_time,
+                        'failure_message': failure_message,
+                        'failure_location': failure_location,
+                        'xpath': xpath
+                    })
+                
+                # Check for test statistics to detect if tests were collected but not executed
+                stats_match = stats_pattern.search(line)
+                if stats_match:
+                    total_tests_collected = int(stats_match.group(1))
+                    passed = int(stats_match.group(2))
+                    failed = int(stats_match.group(3))
+                    skipped = int(stats_match.group(4))
+                    stats_tests_executed = passed + failed + skipped
+        
+        # Only show warning if NO actual test results were found AND statistics show 0 executed
+        # This prevents false warnings when tests were actually executed
+        if actual_test_results_found == 0 and total_tests_collected and total_tests_collected > 0:
+            # Check the last statistics line to see if tests were executed
+            if stats_tests_executed == 0:
+                tests.append({
+                    'name': f'⚠️ {total_tests_collected} tests collected but not executed. Please run the tests to see results.',
+                    'status': 'SKIP',
+                    'line': 0,
+                    'raw_line': f'Status: {total_tests_collected} tests total, 0 passed, 0 failed, 0 skipped'
+                })
+            
+    except Exception as e:
+        print(f"Error parsing log file {log_file_path}: {e}")
+    
+    return tests
+
+
+def find_screenshots_for_test(test_name: str, reports_dir: Path):
+    """Find screenshots associated with a test. Returns only the LATEST screenshot(s) for the test."""
+    screenshots = []
+    if not reports_dir.exists():
+        return screenshots
+    
+    # Clean test name for matching
+    clean_name = re.sub(r'[^\w\s-]', '', test_name).replace(' ', '_').lower()
+    
+    # Collect all matching PNG files with their modification times
+    matching_files = []
+    for png_file in reports_dir.glob('*.png'):
+        if clean_name in png_file.name.lower() or test_name.replace(' ', '_').lower() in png_file.name.lower():
+            # Extract timestamp from filename (format: test_name_YYYYMMDD_HHMMSS.png)
+            timestamp_match = re.search(r'_(\d{8}_\d{6})\.png$', png_file.name)
+            if timestamp_match:
+                # Use timestamp from filename for sorting (more reliable than file mtime)
+                timestamp_str = timestamp_match.group(1)
+                try:
+                    # Parse timestamp: YYYYMMDD_HHMMSS
+                    timestamp = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
+                    matching_files.append({
+                        'path': str(png_file),
+                        'url': f"file:///{str(png_file).replace(os.sep, '/')}",
+                        'name': png_file.name,
+                        'timestamp': timestamp,
+                        'mtime': png_file.stat().st_mtime  # Fallback to file modification time
+                    })
+                except ValueError:
+                    # If timestamp parsing fails, use file modification time
+                    matching_files.append({
+                        'path': str(png_file),
+                        'url': f"file:///{str(png_file).replace(os.sep, '/')}",
+                        'name': png_file.name,
+                        'timestamp': datetime.fromtimestamp(png_file.stat().st_mtime),
+                        'mtime': png_file.stat().st_mtime
+                    })
+            else:
+                # No timestamp in filename, use file modification time
+                matching_files.append({
+                    'path': str(png_file),
+                    'url': f"file:///{str(png_file).replace(os.sep, '/')}",
+                    'name': png_file.name,
+                    'timestamp': datetime.fromtimestamp(png_file.stat().st_mtime),
+                    'mtime': png_file.stat().st_mtime
+                })
+    
+    if not matching_files:
+        return screenshots
+    
+    # Sort by timestamp (most recent first)
+    matching_files.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    # Return only the LATEST screenshot (most recent run)
+    # This ensures only the latest test run's screenshot is shown in the dashboard
+    latest_file = matching_files[0]
+    screenshots.append({
+        'path': latest_file['path'],
+        'url': latest_file['url'],
+        'name': latest_file['name']
+    })
+    
+    return screenshots
+
+
+def find_failure_artifacts_for_test(test_name: str, reports_dir: Path):
+    """
+    Find the latest (screenshot, html, url.txt) artifacts for a test under reports/failures.
+    Returns dict with keys: screenshot_url, html_url, url_txt_url (any may be empty).
+    """
+    artifacts = {"screenshot_url": "", "html_url": "", "url_txt_url": ""}
+    if not reports_dir.exists():
+        return artifacts
+
+    clean_name = re.sub(r'[^\w\s-]', '', test_name).replace(' ', '_').lower()
+
+    # Find latest screenshot first (by timestamp if present)
+    candidates = []
+    for png_file in reports_dir.glob('*.png'):
+        if clean_name in png_file.name.lower() or test_name.replace(' ', '_').lower() in png_file.name.lower():
+            timestamp_match = re.search(r'_(\d{8}_\d{6})\.png$', png_file.name)
+            ts = None
+            if timestamp_match:
+                try:
+                    ts = datetime.strptime(timestamp_match.group(1), '%Y%m%d_%H%M%S')
+                except Exception:
+                    ts = None
+            candidates.append((ts or datetime.fromtimestamp(png_file.stat().st_mtime), png_file))
+
+    if not candidates:
+        return artifacts
+
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    latest_png = candidates[0][1]
+    artifacts["screenshot_url"] = f"file:///{str(latest_png).replace(os.sep, '/')}"
+
+    # If we have a timestamp in the filename, prefer matching html/url with same timestamp
+    ts_match = re.search(r'_(\d{8}_\d{6})\.png$', latest_png.name)
+    if ts_match:
+        ts_str = ts_match.group(1)
+        # Artifacts from BenchSale_Conftest: <safe_name>_<ts>.html and <safe_name>_<ts>.url.txt
+        html_candidates = list(reports_dir.glob(f"*_{ts_str}.html"))
+        url_candidates = list(reports_dir.glob(f"*_{ts_str}.url.txt"))
+        if html_candidates:
+            artifacts["html_url"] = f"file:///{str(html_candidates[0]).replace(os.sep, '/')}"
+        if url_candidates:
+            artifacts["url_txt_url"] = f"file:///{str(url_candidates[0]).replace(os.sep, '/')}"
+
+    return artifacts
+
+
+def discover_tests_from_code(project_root: Path):
+    """Discover all test cases from pytest test files automatically.
+    Returns a dict mapping test_name -> {'source': 'Employer'|'Admin'|'Recruiter', 'status': 'NOT_RUN'}"""
+    discovered_tests = {}
+    
+    # Method 1: Direct file parsing (more reliable than pytest collection)
+    try:
+        # Discover Employer tests
+        employer_test_file = project_root / 'tests' / 'employer' / 'test_employer_test_cases.py'
+        if employer_test_file.exists():
+            with open(employer_test_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Find all test function definitions
+                # Pattern: def test_t1_01_home_page( or def test_t2_03_verification_of_closing_a_job...
+                test_pattern = re.compile(r'def\s+(test_\w+)\(', re.MULTILINE)
+                for match in test_pattern.finditer(content):
+                    test_name = match.group(1)
+                    if is_valid_employer_test(test_name):
+                        discovered_tests[test_name] = {
+                            'name': test_name,
+                            'source': 'Employer',
+                            'status': 'NOT_RUN',
+                            'line': 0,
+                            'raw_line': f'Discovered from code: {employer_test_file}',
+                            'running_time': 'N/A',
+                            'failure_message': '',
+                            'failure_location': '',
+                            'xpath': ''
+                        }
+        
+        # Discover Admin tests
+        admin_test_file = project_root / 'tests' / 'benchsale' / 'test_benchsale_admin_test_cases.py'
+        if admin_test_file.exists():
+            with open(admin_test_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                test_pattern = re.compile(r'def\s+(test_\w+)\(', re.MULTILINE)
+                for match in test_pattern.finditer(content):
+                    test_name = match.group(1)
+                    discovered_tests[test_name] = {
+                        'name': test_name,
+                        'source': 'Admin',
+                        'status': 'NOT_RUN',
+                        'line': 0,
+                        'raw_line': f'Discovered from code: {admin_test_file}',
+                        'running_time': 'N/A',
+                        'failure_message': '',
+                        'failure_location': '',
+                        'xpath': ''
+                    }
+        
+        # Discover Recruiter tests
+        recruiter_test_file = project_root / 'tests' / 'benchsale' / 'test_benchsale_recruiter_test_cases.py'
+        if recruiter_test_file.exists():
+            with open(recruiter_test_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                test_pattern = re.compile(r'def\s+(test_\w+)\(', re.MULTILINE)
+                for match in test_pattern.finditer(content):
+                    test_name = match.group(1)
+                    discovered_tests[test_name] = {
+                        'name': test_name,
+                        'source': 'Recruiter',
+                        'status': 'NOT_RUN',
+                        'line': 0,
+                        'raw_line': f'Discovered from code: {recruiter_test_file}',
+                        'running_time': 'N/A',
+                        'failure_message': '',
+                        'failure_location': '',
+                        'xpath': ''
+                    }
+        
+        # Discover Job Seeker tests
+        jobseeker_test_file = project_root / 'tests' / 'jobseeker' / 'test_jobseeker_test_cases.py'
+        if jobseeker_test_file.exists():
+            with open(jobseeker_test_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                test_pattern = re.compile(r'def\s+(test_\w+)\(', re.MULTILINE)
+                for match in test_pattern.finditer(content):
+                    test_name = match.group(1)
+                    discovered_tests[test_name] = {
+                        'name': test_name,
+                        'source': 'Job Seeker',
+                        'status': 'NOT_RUN',
+                        'line': 0,
+                        'raw_line': f'Discovered from code: {jobseeker_test_file}',
+                        'running_time': 'N/A',
+                        'failure_message': '',
+                        'failure_location': '',
+                        'xpath': ''
+                    }
+    except Exception as e:
+        print(f"Warning: Could not discover tests from code: {e}")
+    
+    return discovered_tests
+
+
+def generate_unified_dashboard():
+    """Generate a unified dashboard HTML showing both Admin and Recruiter logs.
+    This function is called automatically after each test run to ensure latest results are shown.
+    """
+    project_root = Path(__file__).parent.parent
+    logs_dir = project_root / 'logs'
+    reports_dir = project_root / 'reports' / 'failures'
+    
+    admin_log = logs_dir / 'benchsale_admin.log'
+    recruiter_log = logs_dir / 'benchsale_recruiter.log'
+    employer_log = logs_dir / 'employer.log'
+    jobseeker_log = logs_dir / 'jobseeker.log'
+    main_log = logs_dir / 'benchsale_test.log'
+    
+    all_tests = []
+    
+    # Parse ALL log files to preserve all test results
+    # Admin log - always parse if exists
+    if admin_log.exists():
+        admin_tests = parse_test_results_from_log(str(admin_log))
+        all_tests.extend([{**t, 'source': 'Admin'} for t in admin_tests])
+    
+    # Recruiter log - always parse if exists
+    if recruiter_log.exists():
+        recruiter_tests = parse_test_results_from_log(str(recruiter_log))
+        all_tests.extend([{**t, 'source': 'Recruiter'} for t in recruiter_tests])
+    
+    # Employer log - always parse if exists
+    if employer_log.exists():
+        employer_tests = parse_test_results_from_log(str(employer_log))
+        all_tests.extend([{**t, 'source': 'Employer'} for t in employer_tests])
+    
+    # Job Seeker log - always parse if exists
+    if jobseeker_log.exists():
+        jobseeker_tests = parse_test_results_from_log(str(jobseeker_log))
+        all_tests.extend([{**t, 'source': 'Job Seeker'} for t in jobseeker_tests])
+    
+    # Main log - parse if exists (for any tests not in admin/recruiter/employer/jobseeker logs)
+    if main_log.exists():
+        main_tests = parse_test_results_from_log(str(main_log))
+        # Only add tests from main log that don't have a source yet
+        for t in main_tests:
+            if 'source' not in t:
+                t['source'] = 'Main'
+            all_tests.append(t)
+    
+    # Filter out warning messages (collected but not executed tests)
+    # Only keep actual test results
+    actual_tests = []
+    for test in all_tests:
+        # Skip warning messages about collected but not executed tests
+        if '⚠️' in test['name'] or 'collected but not executed' in test['name']:
+            continue
+        
+        # For Employer tests, only keep tests that are in JnP_final.robot
+        # Remove old test cases that are not in the Robot file (like test_e1_01_employer1_dashboard_verification)
+        if test.get('source') == 'Employer':
+            if not is_valid_employer_test(test['name']):
+                continue  # Skip this test - it's not in JnP_final.robot
+        
+        actual_tests.append(test)
+    
+    # Discover all tests from code (automatically sync with test files)
+    discovered_tests = discover_tests_from_code(project_root)
+    
+    # Deduplicate tests by (name, source) - keep ONLY the latest result (by line number)
+    # This ensures:
+    # 1. Admin, Recruiter, and Employer tests all show up (different sources)
+    # 2. If same test runs multiple times, only latest status is shown (update in place)
+    # 3. No duplicate entries for the same test
+    # 4. Old failed tests are automatically replaced by new results (update in place)
+    # 5. Only the most recent test result is shown (old results are discarded)
+    # 6. Tests discovered from code but not yet run will show as "NOT_RUN"
+    test_dict = {}
+    
+    # First, add all discovered tests from code (as NOT_RUN)
+    for test_name, test_info in discovered_tests.items():
+        test_key = (test_name, test_info['source'])
+        test_dict[test_key] = test_info
+    
+    # Then, update with actual test results from logs (overwrites NOT_RUN status)
+    for test in actual_tests:
+        test_key = (test['name'], test.get('source', 'Main'))
+        # Keep the test with the highest line number (latest in log file = most recent run)
+        # This automatically replaces old failed tests with new results
+        # If a test was FAIL before and now PASS, the PASS result replaces the FAIL
+        if test_key not in test_dict or test['line'] > test_dict[test_key].get('line', 0):
+            test_dict[test_key] = test
+
+    # Attach latest failure artifacts (screenshot/html/url) from reports/failures
+    # so the right-side details panel can open them.
+    for (tname, _source), tinfo in list(test_dict.items()):
+        try:
+            artifacts = find_failure_artifacts_for_test(tname, reports_dir)
+            # Keep existing screenshots logic, but also add html/url links
+            if artifacts.get("screenshot_url"):
+                tinfo.setdefault("screenshots", [])
+                # Do not duplicate
+                if not tinfo["screenshots"]:
+                    tinfo["screenshots"] = [artifacts["screenshot_url"]]
+            tinfo["artifacts"] = {
+                "html_url": artifacts.get("html_url", ""),
+                "url_txt_url": artifacts.get("url_txt_url", ""),
+            }
+            test_dict[(tname, _source)] = tinfo
+        except Exception:
+            pass
+    
+    # Remove tests that are no longer in code
+    # This ensures removed tests are automatically removed from dashboard
+    # The code is the source of truth - if a test function is deleted, it should be gone from report
+    
+    # Get all valid test names from code by source
+    employer_tests_in_code = {name for name, info in discovered_tests.items() if info['source'] == 'Employer'}
+    admin_tests_in_code = {name for name, info in discovered_tests.items() if info['source'] == 'Admin'}
+    recruiter_tests_in_code = {name for name, info in discovered_tests.items() if info['source'] == 'Recruiter'}
+    jobseeker_tests_in_code = {name for name, info in discovered_tests.items() if info['source'] == 'Job Seeker'}
+    
+    keys_to_remove = []
+    for test_key, test_info in test_dict.items():
+        test_name = test_key[0]
+        source = test_info.get('source')
+        
+        # Check Employer tests
+        if source == 'Employer':
+            if test_name not in employer_tests_in_code:
+                keys_to_remove.append(test_key)
+                
+        # Check Admin tests
+        elif source == 'Admin':
+            if test_name not in admin_tests_in_code:
+                keys_to_remove.append(test_key)
+                
+        # Check Recruiter tests
+        elif source == 'Recruiter':
+            if test_name not in recruiter_tests_in_code:
+                keys_to_remove.append(test_key)
+        
+        # Check Job Seeker tests
+        elif source == 'Job Seeker':
+            if test_name not in jobseeker_tests_in_code:
+                keys_to_remove.append(test_key)
+    
+    for key in keys_to_remove:
+        del test_dict[key]
+    
+    # Convert back to list - sorted by source then name for consistent display
+    all_tests = list(test_dict.values())
+    all_tests.sort(key=lambda x: (x.get('source', 'Main'), x['name']))
+    
+    # Calculate statistics
+    # For Employer: include NOT_RUN in total to show all tests
+    # For BenchSale: exclude NOT_RUN from totals for cleaner stats
+    # For Job Seeker: include NOT_RUN in total to show all tests
+    employer_tests = [t for t in all_tests if t.get('source') == 'Employer']
+    jobseeker_tests = [t for t in all_tests if t.get('source') == 'Job Seeker']
+    # BenchSale tests = Admin + Recruiter ONLY (exclude Employer, Job Seeker and Main)
+    benchsale_tests = [t for t in all_tests if t.get('source') in ['Admin', 'Recruiter']]
+    
+    # Employer stats (include NOT_RUN)
+    employer_total = len(employer_tests)
+    employer_passed = len([t for t in employer_tests if t['status'] == 'PASS'])
+    employer_failed = len([t for t in employer_tests if t['status'] == 'FAIL'])
+    employer_skipped = len([t for t in employer_tests if t['status'] == 'SKIP'])
+    employer_not_run = len([t for t in employer_tests if t.get('status') == 'NOT_RUN'])
+    
+    # Job Seeker stats (include NOT_RUN)
+    jobseeker_total = len(jobseeker_tests)
+    jobseeker_passed = len([t for t in jobseeker_tests if t['status'] == 'PASS'])
+    jobseeker_failed = len([t for t in jobseeker_tests if t['status'] == 'FAIL'])
+    jobseeker_skipped = len([t for t in jobseeker_tests if t['status'] == 'SKIP'])
+    jobseeker_not_run = len([t for t in jobseeker_tests if t.get('status') == 'NOT_RUN'])
+    
+    # BenchSale stats (exclude NOT_RUN and only count Admin + Recruiter)
+    benchsale_tests_for_stats = [t for t in benchsale_tests if t.get('status') != 'NOT_RUN']
+    total = len(benchsale_tests_for_stats)
+    passed = len([t for t in benchsale_tests_for_stats if t['status'] == 'PASS'])
+    failed = len([t for t in benchsale_tests_for_stats if t['status'] == 'FAIL'])
+    skipped = len([t for t in benchsale_tests_for_stats if t['status'] == 'SKIP'])
+    not_run = employer_not_run  # Only show NOT_RUN for Employer
+    
+    # Find screenshots for failed tests
+    for test in all_tests:
+        if test['status'] == 'FAIL':
+            test['screenshots'] = find_screenshots_for_test(test['name'], reports_dir)
+    
+    # Get last modified time of log files for "Last Updated" display
+    last_updated = datetime.now()
+    if admin_log.exists():
+        admin_mtime = datetime.fromtimestamp(admin_log.stat().st_mtime)
+        if admin_mtime > last_updated:
+            last_updated = admin_mtime
+    if recruiter_log.exists():
+        recruiter_mtime = datetime.fromtimestamp(recruiter_log.stat().st_mtime)
+        if recruiter_mtime > last_updated:
+            last_updated = recruiter_mtime
+    if employer_log.exists():
+        employer_mtime = datetime.fromtimestamp(employer_log.stat().st_mtime)
+        if employer_mtime > last_updated:
+            last_updated = employer_mtime
+    if jobseeker_log.exists():
+        jobseeker_mtime = datetime.fromtimestamp(jobseeker_log.stat().st_mtime)
+        if jobseeker_mtime > last_updated:
+            last_updated = jobseeker_mtime
+    if main_log.exists():
+        main_mtime = datetime.fromtimestamp(main_log.stat().st_mtime)
+        if main_mtime > last_updated:
+            last_updated = main_mtime
+    
+    # Generate HTML
+    html_content = generate_dashboard_html(
+        all_tests, total, passed, failed, skipped, 
+        employer_total, employer_passed, employer_failed, employer_skipped, employer_not_run,
+        jobseeker_total, jobseeker_passed, jobseeker_failed, jobseeker_skipped, jobseeker_not_run,
+        admin_log, recruiter_log, employer_log, jobseeker_log, main_log, last_updated
+    )
+    
+    # Write dashboard HTML (always overwrite to ensure latest content)
+    dashboard_path = logs_dir / 'index.html'
+    with open(dashboard_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    
+    return str(dashboard_path)
+
+
+def generate_dashboard_html(tests, total, passed, failed, skipped, 
+                            employer_total, employer_passed, employer_failed, employer_skipped, employer_not_run,
+                            jobseeker_total, jobseeker_passed, jobseeker_failed, jobseeker_skipped, jobseeker_not_run,
+                            admin_log, recruiter_log, employer_log, jobseeker_log, main_log, last_updated=None):
+    """Generate the HTML content for the unified dashboard."""
+    
+    if last_updated is None:
+        last_updated = datetime.now()
+    
+    generated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    last_updated_str = last_updated.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Group tests by source - separate BenchSale (Admin + Recruiter) from Employer and Job Seeker
+    admin_tests = [t for t in tests if t.get('source') == 'Admin']
+    recruiter_tests = [t for t in tests if t.get('source') == 'Recruiter']
+    employer_tests = [t for t in tests if t.get('source') == 'Employer']
+    jobseeker_tests = [t for t in tests if t.get('source') == 'Job Seeker']
+    main_tests = [t for t in tests if t.get('source') == 'Main' or not t.get('source')]
+    
+    # BenchSale tests = Admin + Recruiter ONLY (exclude Employer, Job Seeker and Main)
+    # Main tests are also excluded from BenchSale to keep it clean
+    benchsale_tests = [t for t in tests if t.get('source') in ['Admin', 'Recruiter']]
+    
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BenchSale Test Dashboard - Unified Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        :root {{
+            --primary: #F97316; /* Orange 500 */
+            --primary-dark: #C2410C; /* Orange 700 */
+            --primary-light: #FFEDD5; /* Orange 100 */
+            --secondary: #F59E0B; /* Amber 500 */
+            --accent: #EA580C; /* Orange 600 */
+            --dark: #1C1917; /* Stone 900 */
+            --light: #FFF7ED; /* Orange 50 */
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-hover: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-primary: #1C1917;
+            --text-secondary: #475569;
+            --success: #10B981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --danger: #EF4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --warning: #F59E0B;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --not-run: #94A3B8;
+            --not-run-bg: #E2E8F0;
+        }}
+
+        /* Smooth Scrolling */
+        html {{
+            scroll-behavior: smooth;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }}
+
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            font-feature-settings: "kern" 1;
+            font-kerning: normal;
+        }}
+        
+        body {{
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #FFEDD5 0%, #FFF7ED 50%, #FFEDD5 100%);
+            min-height: 100vh;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+            color: var(--text-primary);
+            font-size: 16px;
+            line-height: 1.6;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
+
+        /* Animated Bubble Background with HD Colors */
+        .background-bubbles {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }}
+
+        .bubble {{
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(245, 158, 11, 0.2));
+            filter: blur(50px);
+            animation: floatBubble 25s infinite ease-in-out;
+            opacity: 0.7;
+            box-shadow: 0 0 40px rgba(249, 115, 22, 0.1);
+        }}
+
+        .bubble:nth-child(1) {{ top: -10%; left: -10%; width: 700px; height: 700px; background: radial-gradient(circle, rgba(249, 115, 22, 0.25) 0%, rgba(0, 0, 0, 0) 70%); animation-duration: 35s; }}
+        .bubble:nth-child(2) {{ bottom: -10%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, rgba(0, 0, 0, 0) 70%); animation-duration: 40s; animation-delay: -5s; }}
+        .bubble:nth-child(3) {{ top: 40%; left: 40%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(234, 88, 12, 0.2) 0%, rgba(0, 0, 0, 0) 70%); animation-duration: 30s; animation-delay: -10s; }}
+        .bubble:nth-child(4) {{ bottom: 20%; left: 10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(251, 146, 60, 0.25) 0%, rgba(0, 0, 0, 0) 70%); animation-duration: 25s; animation-delay: -8s; }}
+
+        @keyframes floatBubble {{
+            0%, 100% {{ transform: translate(0, 0) scale(1) rotate(0deg); }}
+            33% {{ transform: translate(40px, -60px) scale(1.1) rotate(5deg); }}
+            66% {{ transform: translate(-30px, 30px) scale(0.95) rotate(-5deg); }}
+        }}
+        
+        .container {{
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px;
+            padding-top: 55px; /* Space for fixed header */
+            padding-bottom: 30px;
+        }}
+        
+        .back-btn-container {{
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            z-index: 1001;
+        }}
+        
+        /* Glassmorphism Header - Fixed at top */
+        .header {{
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(35px) saturate(180%);
+            -webkit-backdrop-filter: blur(35px) saturate(180%);
+            border-radius: 0 0 16px 16px;
+            padding: 4px 14px;
+            box-shadow: 
+                0 10px 40px -10px rgba(249, 115, 22, 0.25),
+                0 8px 20px -5px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--glass-border);
+            border-top: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }}
+        
+        .header-top {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }}
+        
+        .header-content {{
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0; /* Prevent overflow */
+            max-width: calc(100% - 160px); /* Reserve space for refresh button */
+        }}
+        
+        .dashboard-logo {{
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            position: relative;
+            filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.3));
+        }}
+        
+        .dashboard-logo.employer-logo {{
+            filter: drop-shadow(0 0 15px rgba(217, 119, 6, 0.4));
+        }}
+        
+        .dashboard-logo.jobseeker-logo {{
+            filter: drop-shadow(0 0 15px rgba(22, 163, 74, 0.4));
+        }}
+        
+        .dashboard-logo svg {{
+            width: 100%;
+            height: 100%;
+        }}
+        
+        .benchsale-logo-svg {{
+            animation: rocketPulse 2s ease-in-out infinite, rocketGlow 3s ease-in-out infinite;
+        }}
+        
+        .employer-logo-svg {{
+            animation: briefcasePulse 2s ease-in-out infinite, briefcaseGlow 3s ease-in-out infinite;
+        }}
+        
+        .jobseeker-logo-svg {{
+            animation: userPulse 2s ease-in-out infinite, userGlow 3s ease-in-out infinite;
+        }}
+        
+        @keyframes rocketPulse {{
+            0%, 100% {{
+                transform: scale(1) translateY(0);
+            }}
+            50% {{
+                transform: scale(1.1) translateY(-5px);
+            }}
+        }}
+        
+        @keyframes rocketGlow {{
+            0%, 100% {{
+                filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.8)) drop-shadow(0 0 20px rgba(249, 115, 22, 0.4));
+            }}
+            50% {{
+                filter: drop-shadow(0 0 20px rgba(249, 115, 22, 1)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.6)) drop-shadow(0 0 40px rgba(245, 158, 11, 0.4));
+            }}
+        }}
+        
+        @keyframes briefcasePulse {{
+            0%, 100% {{
+                transform: scale(1) rotate(0deg);
+            }}
+            50% {{
+                transform: scale(1.1) rotate(2deg);
+            }}
+        }}
+        
+        @keyframes briefcaseGlow {{
+            0%, 100% {{
+                filter: drop-shadow(0 0 10px rgba(217, 119, 6, 0.8)) drop-shadow(0 0 20px rgba(217, 119, 6, 0.4));
+            }}
+            50% {{
+                filter: drop-shadow(0 0 20px rgba(217, 119, 6, 1)) drop-shadow(0 0 30px rgba(217, 119, 6, 0.6)) drop-shadow(0 0 40px rgba(245, 158, 11, 0.4));
+            }}
+        }}
+        
+        @keyframes userPulse {{
+            0%, 100% {{
+                transform: scale(1) translateY(0);
+            }}
+            50% {{
+                transform: scale(1.1) translateY(-3px);
+            }}
+        }}
+        
+        @keyframes userGlow {{
+            0%, 100% {{
+                filter: drop-shadow(0 0 10px rgba(22, 163, 74, 0.8)) drop-shadow(0 0 20px rgba(22, 163, 74, 0.4));
+            }}
+            50% {{
+                filter: drop-shadow(0 0 20px rgba(22, 163, 74, 1)) drop-shadow(0 0 30px rgba(22, 163, 74, 0.6)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+            }}
+        }}
+        
+        .header h1 {{
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 1.35em;
+            font-weight: 700;
+            margin: 0;
+            margin-bottom: 0;
+            background: linear-gradient(135deg, #9a3412 0%, #EA580C 50%, #F59E0B 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            flex: 1;
+            min-width: 0; /* Prevent overflow */
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: "kern" 1, "liga" 1;
+        }}
+        
+        .header .subtitle {{
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-secondary);
+            font-size: 0.75em;
+            font-weight: 500;
+            opacity: 0.95;
+            margin: 0;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: 0.02em;
+        }}
+        
+         .header .last-updated {{
+            color: var(--primary-dark);
+            font-size: 0.65em;
+            margin-top: 0;
+            font-weight: 500;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: 0.01em;
+        }}
+        
+        /* Stats Grid */
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive */
+            gap: 12px;
+            margin-bottom: 8px;
+            margin-top: 15px;
+        }}
+        
+        .stat-card {{
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.06); 
+            border: 1px solid var(--glass-border);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px; /* Uniform Height */
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }}
+        
+        .stat-card:hover {{
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 30px 60px -12px rgba(249, 115, 22, 0.3);
+            background: var(--card-hover);
+            border-color: white;
+        }}
+        
+        .stat-card .number {{
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 2.6em; /* Bigger numbers */
+            font-weight: 700;
+            margin-bottom: 2px;
+            line-height: 1;
+            text-shadow: 0 5px 15px rgba(249, 115, 22, 0.15);
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: "tnum" 1;
+            letter-spacing: -0.02em;
+        }}
+        
+        .stat-card::before {{
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.4) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }}
+        
+        .stat-card:hover::before {{ opacity: 1; }}
+
+        .stat-card.total .number {{ color: var(--primary); }}
+        .stat-card.passed .number {{ color: var(--success); }}
+        .stat-card.failed .number {{ color: var(--danger); }}
+        .stat-card.skipped .number {{ color: var(--warning); }}
+        .stat-card.not-run-stat .number {{ color: var(--not-run); }}
+        
+        .stat-card .label {{
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 1.2px;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }}
+        
+        /* Active Filter Effect */
+        .stat-card.active-filter {{
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 30px 60px -12px rgba(249, 115, 22, 0.4);
+            border-color: var(--primary);
+            background: white;
+        }}
+        
+        .stat-card.active-filter::after {{
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            border: 3px solid var(--primary);
+            opacity: 0.5;
+            pointer-events: none;
+        }}
+        
+        /* Tabs */
+        .tabs {{
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            flex-wrap: wrap;
+            margin-bottom: 0;
+            justify-content: center; /* Center tabs */
+        }}
+        
+        .tab {{
+            padding: 10px 20px;
+            border: 2px solid rgba(249, 115, 22, 0.3);
+            background: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--primary-dark);
+            border-radius: 14px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+            position: relative;
+            overflow: hidden;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: 0.01em;
+        }}
+        
+        .tab::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }}
+        
+        .tab:hover::before {{
+            left: 100%;
+        }}
+        
+        .tab:hover {{
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--primary);
+            transform: translateY(-3px) scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+        }}
+        
+        .tab.active {{
+            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 12px 30px -4px rgba(249, 115, 22, 0.5);
+            font-weight: 700;
+            transform: translateY(-2px);
+        }}
+        
+        .tab.active:hover {{
+            background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px -4px rgba(249, 115, 22, 0.6);
+        }}
+        
+        /* Test List Container */
+        .test-section {{
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(35px);
+            border-radius: 28px;
+            padding: 35px;
+            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.05);
+            border: 1px solid var(--glass-border);
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }}
+        
+        .test-section-content {{
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }}
+        
+        .test-list-container {{
+            flex: 0 0 50%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 10px;
+            max-height: calc(100vh - 400px);
+            min-height: 500px;
+        }}
+        
+        .test-list-container::-webkit-scrollbar {{
+            width: 8px;
+        }}
+        
+        .test-list-container::-webkit-scrollbar-track {{
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }}
+        
+        .test-list-container::-webkit-scrollbar-thumb {{
+            background: rgba(249, 115, 22, 0.3);
+            border-radius: 10px;
+        }}
+        
+        .test-list-container::-webkit-scrollbar-thumb:hover {{
+            background: rgba(249, 115, 22, 0.5);
+        }}
+        
+        .test-details-panel {{
+            flex: 0 0 50%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(35px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+            overflow-y: visible;
+            overflow-x: hidden;
+            border: 1px solid rgba(249, 115, 22, 0.1);
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            max-height: calc(100vh - 400px);
+            display: flex;
+            flex-direction: column;
+        }}
+        
+        .test-details-panel.empty {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 1.1em;
+            text-align: center;
+            opacity: 0.6;
+        }}
+        
+        .test-details-header {{
+            border-bottom: 2px solid rgba(249, 115, 22, 0.2);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }}
+        
+        .test-details-title {{
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 10px;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.3;
+        }}
+        
+        .test-details-status {{
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }}
+        
+        .test-details-info {{
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }}
+        
+        .test-details-content {{
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 5px;
+            min-height: 0;
+        }}
+        
+        .test-details-content::-webkit-scrollbar {{
+            width: 6px;
+        }}
+        
+        .test-details-content::-webkit-scrollbar-track {{
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }}
+        
+        .test-details-content::-webkit-scrollbar-thumb {{
+            background: rgba(249, 115, 22, 0.3);
+            border-radius: 10px;
+        }}
+        
+        .test-details-content::-webkit-scrollbar-thumb:hover {{
+            background: rgba(249, 115, 22, 0.5);
+        }}
+        
+        .test-details-info-item {{
+            background: rgba(249, 115, 22, 0.05);
+            padding: 12px;
+            border-radius: 12px;
+            border-left: 3px solid var(--primary);
+        }}
+        
+        .test-details-info-label {{
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }}
+        
+        .test-details-info-value {{
+            font-size: 1em;
+            color: var(--text-primary);
+            font-weight: 600;
+        }}
+        
+        .test-details-screenshot {{
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }}
+        
+        .test-details-screenshot img {{
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.2);
+            border: 2px solid rgba(249, 115, 22, 0.2);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }}
+        
+        .test-details-screenshot img:hover {{
+            transform: scale(1.02);
+        }}
+        
+        .test-details-failure {{
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }}
+        
+        .test-details-failure-title {{
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }}
+        
+        .test-details-failure-content {{
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }}
+        
+        .test-details-location {{
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3B82F6;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }}
+        
+        .test-details-location-title {{
+            font-weight: 700;
+            color: #3B82F6;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }}
+        
+        .test-details-location-content {{
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            word-break: break-all;
+        }}
+        
+        .test-item.active {{
+            border-left-width: 6px;
+            background: linear-gradient(to right, rgba(249, 115, 22, 0.1), #FFFFFF);
+            box-shadow: 0 8px 25px -10px rgba(249, 115, 22, 0.3);
+        }}
+        
+        .test-item {{
+            cursor: pointer;
+        }}
+
+        .test-section h2 {{
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 2.1em;
+            color: var(--dark);
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(249, 115, 22, 0.1);
+            display: flex;
+            align-items: center;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            font-weight: 700;
+            gap: 12px;
+        }}
+        
+        /* Individual Test Items */
+        .test-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 12px; /* Reduced gap between testcases for better visual density */
+        }}
+        
+        .test-item {{
+            background: white;
+            border-radius: 16px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 
+                0 4px 6px -1px rgba(0,0,0,0.02),
+                0 2px 4px -1px rgba(0,0,0,0.02);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border-left: 4px solid transparent;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        .test-item:hover {{
+            transform: translateX(5px) scale(1.005);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08); /* Lift effect */
+            border-color: rgba(249, 115, 22, 0.3);
+            z-index: 2;
+        }}
+        
+        .test-item.active:hover {{
+            transform: translateX(5px) scale(1.005);
+        }}
+        
+        /* Color Coding */
+        .test-item.pass {{ border-left-color: var(--success); }}
+        .test-item.fail {{ border-left-color: var(--danger); background: linear-gradient(to right, #FFF5F5, #FFFFFF); }}
+        .test-item.skip {{ border-left-color: var(--warning); }}
+        .test-item.not-run {{ border-left-color: var(--not-run); opacity: 0.8; }}
+
+        .test-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }}
+        
+        .test-name {{
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 600;
+            font-size: 1.15em;
+            color: var(--text-primary);
+            flex: 1;
+            min-width: 300px;
+            line-height: 1.4;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: 0.01em;
+        }}
+        
+        .test-badge {{
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }}
+        
+        .test-badge.pass {{ background: var(--success-bg); color: var(--success); }}
+        .test-badge.fail {{ background: var(--danger-bg); color: red; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); border: 1px solid rgba(239, 68, 68, 0.2); }}
+        .test-badge.skip {{ background: var(--warning-bg); color: var(--warning); }}
+        .test-badge.not-run {{ background: var(--not-run-bg); color: var(--text-secondary); }}
+        
+        .test-source {{
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            font-weight: 500;
+            background: rgba(0,0,0,0.04);
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            align-self: flex-start;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            letter-spacing: 0.02em;
+        }}
+        
+        .test-actions {{
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            align-items: center;
+        }}
+        
+        .run-test-btn {{
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }}
+        
+        .run-test-btn:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+            background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+        }}
+        
+        .run-test-btn:active {{
+            transform: translateY(0);
+        }}
+        
+        .run-test-btn.running {{
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            cursor: not-allowed;
+            opacity: 0.8;
+        }}
+        
+        .run-test-btn.running:hover {{
+            transform: none;
+        }}
+        
+        /* Screenshots Section */
+        .screenshots {{
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0,0,0,0.06);
+        }}
+        
+        .screenshots h4 {{
+            margin-bottom: 8px;
+            color: var(--primary-dark);
+            font-size: 0.95em;
+        }}
+        
+        .screenshot-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Larger thumbnails */
+            gap: 15px;
+            margin-top: 10px;
+        }}
+        
+        .screenshot-item img {{
+            width: 100%;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            border: 3px solid white;
+        }}
+        
+        .screenshot-item img:hover {{
+            transform: scale(1.05) rotate(1deg);
+            box-shadow: 0 15px 35px rgba(249, 115, 22, 0.2);
+            z-index: 10;
+        }}
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {{
+            width: 12px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: linear-gradient(to bottom, #F97316, #EA580C);
+            border-radius: 10px;
+            border: 3px solid transparent;
+            background-clip: content-box;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{
+            background: #C2410C;
+            border: 3px solid transparent;
+            background-clip: content-box;
+        }}
+
+        /* Buttons */
+        .back-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--accent);
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9em;
+            border: 1px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }}
+        
+        .back-btn:hover {{
+            transform: translateY(-3px);
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 10px 25px rgba(249, 115, 22, 0.2);
+        }}
+
+        .refresh-btn-wrapper {{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            flex-shrink: 0;
+            min-width: 100px;
+            max-width: 130px;
+            justify-content: center;
+        }}
+        
+        .auto-refresh-indicator {{
+            font-size: 0.6em;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            text-align: right;
+            line-height: 1.2;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            letter-spacing: 0.01em;
+        }}
+        
+        .refresh-btn {{
+            display: inline-block;
+            padding: 5px 14px;
+            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            border: none;
+            box-shadow: 0 8px 20px -5px rgba(249, 115, 22, 0.5);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            font-size: 0.75em;
+            white-space: nowrap;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
+        
+        .refresh-btn:hover {{
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 30px -5px rgba(249, 115, 22, 0.6);
+            filter: brightness(1.1);
+        }}
+
+        /* Log Links Section */
+        .log-links {{
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(35px);
+            border-radius: 28px;
+            padding: 30px;
+            box-shadow: 0 20px 50px -15px rgba(0,0,0,0.05);
+            border: 1px solid var(--glass-border);
+            margin-top: 30px;
+        }}
+        
+        .log-links h3 {{
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5em;
+            color: var(--dark);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }}
+        
+        .log-link {{
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 8px;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(234, 88, 12, 0.1) 100%);
+            color: var(--primary-dark);
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            border: 2px solid rgba(249, 115, 22, 0.2);
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }}
+        
+        .log-link:hover {{
+            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+        }}
+
+        /* Responsive Improvements */
+        @media (max-width: 1200px) {{
+            .container {{ width: 95%; }}
+            .stats-grid {{ grid-template-columns: repeat(2, 1fr); }}
+        }}
+        
+        @media (max-width: 768px) {{
+            .container {{ padding: 15px; gap: 20px; }}
+            .header {{ padding: 25px; text-align: center; }}
+            .header-top {{ flex-direction: column; gap: 20px; }}
+            .header h1 {{ font-size: 2.2em; }}
+            .stats-grid {{ grid-template-columns: 1fr; }}
+            .test-item {{ padding: 20px; }}
+            .test-header {{ flex-direction: column; align-items: flex-start; gap: 12px; }}
+            .test-badge {{ align-self: flex-start; }}
+            .test-section {{ padding: 20px; }}
+            .test-name {{ font-size: 1.1em; }}
+        }}
+        /* Modal Styles */
+        .modal {{
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(15, 23, 42, 0.85); /* Darker, sleek slate tone */
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+
+        .modal-content {{
+            max-width: 80%; /* Not too big as requested */
+            max-height: 85vh;
+            border-radius: 16px;
+            box-shadow: 
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            object-fit: contain;
+        }}
+
+        .close-modal {{
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 2001;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }}
+
+        .close-modal:hover {{
+            background: rgba(249, 115, 22, 0.9);
+            transform: rotate(90deg) scale(1.1);
+            border-color: transparent;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }}
+        
+        .close-modal svg {{
+            width: 24px;
+            height: 24px;
+            stroke-width: 2.5;
+        }}
+
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
+        }}
+
+        @keyframes zoomIn {{
+            from {{ transform: scale(0.95); opacity: 0; }}
+            to {{ transform: scale(1); opacity: 1; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="background-bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+    <div class="back-btn-container">
+        <a href="../dashboard_home.html" class="back-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Home</span>
+        </a>
+    </div>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <div class="header-content">
+                    <div class="dashboard-logo" id="dashboard-logo">
+                        <!-- BenchSale Logo (default) -->
+                        <svg class="benchsale-logo-svg" id="benchsale-logo" xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4.5 16.5c-1-1.5-1-4 0-5.5m5.5 0c1.5-1 4-1 5.5 0m0 0c1 1.5 1 4 0 5.5m-5.5 0c-1.5 1-4 1-5.5 0" stroke="#F97316" fill="rgba(249, 115, 22, 0.1)"/>
+                            <path d="M12 2L8 6h8l-4-4z" fill="#F97316" opacity="0.9">
+                                <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
+                            </path>
+                            <circle cx="12" cy="12" r="2" fill="#F97316">
+                                <animate attributeName="r" values="2;3;2" dur="2s" repeatCount="indefinite"/>
+                                <animate attributeName="opacity" values="1;0.7;1" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <path d="M12 6v6m0 0v6" stroke="#F59E0B" stroke-width="1.5">
+                                <animate attributeName="stroke-dasharray" values="0,6;3,3;0,6" dur="2s" repeatCount="indefinite"/>
+                            </path>
+                            <circle cx="8" cy="8" r="1" fill="#F97316" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/>
+                                <animateTransform attributeName="transform" type="translate" values="0,0; -2,-2; 0,0" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="16" cy="8" r="1" fill="#F59E0B" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s" repeatCount="indefinite"/>
+                                <animateTransform attributeName="transform" type="translate" values="0,0; 2,-2; 0,0" dur="2.2s" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                        <!-- Employer Logo (hidden by default) -->
+                        <svg class="employer-logo-svg" id="employer-logo" style="display: none;" xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="7" width="18" height="14" rx="2" ry="2" fill="rgba(217, 119, 6, 0.1)" stroke="#D97706">
+                                <animate attributeName="stroke-width" values="2.5;3;2.5" dur="2s" repeatCount="indefinite"/>
+                            </rect>
+                            <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#D97706" fill="rgba(217, 119, 6, 0.2)">
+                                <animate attributeName="opacity" values="1;0.8;1" dur="1.5s" repeatCount="indefinite"/>
+                            </path>
+                            <line x1="12" y1="11" x2="12" y2="17" stroke="#F59E0B" stroke-width="2">
+                                <animate attributeName="stroke-dasharray" values="0,6;3,3;0,6" dur="2s" repeatCount="indefinite"/>
+                            </line>
+                            <circle cx="12" cy="14" r="1.5" fill="#D97706">
+                                <animate attributeName="r" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <line x1="6" y1="10" x2="18" y2="10" stroke="#F59E0B" stroke-width="1" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+                                <animate attributeName="stroke-width" values="1;1.5;1" dur="2s" repeatCount="indefinite"/>
+                            </line>
+                            <path d="M3 7 L12 7 L12 9 L3 9 Z" fill="rgba(255, 255, 255, 0.3)">
+                                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.5s" repeatCount="indefinite"/>
+                            </path>
+                        </svg>
+                        <!-- Job Seeker Logo (hidden by default) -->
+                        <svg class="jobseeker-logo-svg" id="jobseeker-logo" style="display: none;" xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <!-- Animated User/Job Seeker Logo -->
+                            <circle cx="12" cy="8" r="5" fill="rgba(22, 163, 74, 0.1)" stroke="#16A34A">
+                                <animate attributeName="stroke-width" values="2.5;3;2.5" dur="2s" repeatCount="indefinite"/>
+                                <animate attributeName="r" values="5;5.5;5" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#16A34A" fill="rgba(22, 163, 74, 0.1)">
+                                <animate attributeName="opacity" values="1;0.8;1" dur="1.5s" repeatCount="indefinite"/>
+                            </path>
+                            <!-- Glowing particles -->
+                            <circle cx="8" cy="6" r="1.5" fill="#16A34A" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/>
+                                <animateTransform attributeName="transform" type="translate" values="0,0; -2,-2; 0,0" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="16" cy="6" r="1.5" fill="#22C55E" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s" repeatCount="indefinite"/>
+                                <animateTransform attributeName="transform" type="translate" values="0,0; 2,-2; 0,0" dur="2.2s" repeatCount="indefinite"/>
+                            </circle>
+                            <!-- Shine effect on user -->
+                            <path d="M12 3 L12 8 L9 6 Z" fill="rgba(255, 255, 255, 0.3)">
+                                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.5s" repeatCount="indefinite"/>
+                            </path>
+                        </svg>
+                    </div>
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;">
+                        <h1 id="dashboard-title">BenchSale Test Dashboard</h1>
+                        <div class="subtitle">Unified Test Report • Generated: {generated_at}</div>
+                        <div class="last-updated">Last Updated: {last_updated_str}</div>
+                    </div>
+                </div>
+                <div class="refresh-btn-wrapper">
+                    <button class="refresh-btn" onclick="refreshDashboard()">Refresh</button>
+                    <span class="auto-refresh-indicator" id="refreshStatus">Auto-updates after each test run</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-grid" id="stats-grid">
+            <!-- Dynamic stats (shown for BenchSale - updates based on active tab) -->
+            <div class="stat-card total benchsale-stat" id="stat-total-card" onclick="filterByStatus('all')">
+                <div class="number" id="stat-total">0</div>
+                <div class="label">Total Tests</div>
+            </div>
+            <div class="stat-card passed benchsale-stat" id="stat-passed-card" onclick="filterByStatus('pass')">
+                <div class="number" id="stat-passed">0</div>
+                <div class="label">Passed</div>
+            </div>
+            <div class="stat-card failed benchsale-stat" id="stat-failed-card" onclick="filterByStatus('fail')">
+                <div class="number" id="stat-failed">0</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="stat-card skipped benchsale-stat" id="stat-skipped-card" onclick="filterByStatus('skip')">
+                <div class="number" id="stat-skipped">0</div>
+                <div class="label">Skipped</div>
+            </div>
+            <div class="stat-card total benchsale-stat not-run-stat" id="stat-not-run-card" onclick="filterByStatus('not-run')">
+                <div class="number" id="stat-not-run">0</div>
+                <div class="label">Not Run</div>
+            </div>
+            <!-- Employer stats (shown when filter=employer) -->
+            <div class="stat-card total employer-stat" id="stat-employer-total" style="display: none;" onclick="filterByStatus('all')">
+                <div class="number" id="stat-employer-total-num">{employer_total}</div>
+                <div class="label">Total Tests</div>
+            </div>
+            <div class="stat-card passed employer-stat" id="stat-employer-passed" style="display: none;" onclick="filterByStatus('pass')">
+                <div class="number" id="stat-employer-passed-num">{employer_passed}</div>
+                <div class="label">Passed</div>
+            </div>
+            <div class="stat-card failed employer-stat" id="stat-employer-failed" style="display: none;" onclick="filterByStatus('fail')">
+                <div class="number" id="stat-employer-failed-num">{employer_failed}</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="stat-card skipped employer-stat" id="stat-employer-skipped" style="display: none;" onclick="filterByStatus('skip')">
+                <div class="number" id="stat-employer-skipped-num">{employer_skipped}</div>
+                <div class="label">Skipped</div>
+            </div>
+            <div class="stat-card total employer-stat not-run-stat" id="stat-employer-not-run" style="display: none;" onclick="filterByStatus('not-run')">
+                <div class="number" id="stat-employer-not-run-num">{employer_not_run}</div>
+                <div class="label">Not Run</div>
+            </div>
+            <!-- Job Seeker stats (shown when filter=jobseeker) -->
+            <div class="stat-card total jobseeker-stat" id="stat-jobseeker-total" style="display: none;" onclick="filterByStatus('all')">
+                <div class="number" id="stat-jobseeker-total-num">{jobseeker_total}</div>
+                <div class="label">Total Tests</div>
+            </div>
+            <div class="stat-card passed jobseeker-stat" id="stat-jobseeker-passed" style="display: none;" onclick="filterByStatus('pass')">
+                <div class="number" id="stat-jobseeker-passed-num">{jobseeker_passed}</div>
+                <div class="label">Passed</div>
+            </div>
+            <div class="stat-card failed jobseeker-stat" id="stat-jobseeker-failed" style="display: none;" onclick="filterByStatus('fail')">
+                <div class="number" id="stat-jobseeker-failed-num">{jobseeker_failed}</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="stat-card skipped jobseeker-stat" id="stat-jobseeker-skipped" style="display: none;" onclick="filterByStatus('skip')">
+                <div class="number" id="stat-jobseeker-skipped-num">{jobseeker_skipped}</div>
+                <div class="label">Skipped</div>
+            </div>
+            <div class="stat-card total jobseeker-stat not-run-stat" id="stat-jobseeker-not-run" style="display: none;" onclick="filterByStatus('not-run')">
+                <div class="number" id="stat-jobseeker-not-run-num">{jobseeker_not_run}</div>
+                <div class="label">Not Run</div>
+            </div>
+        </div>
+        
+        <div class="tabs" id="tabs-container">
+            <!-- BenchSale tabs (shown when filter=all or no filter) -->
+            <button class="tab benchsale-tab active" id="tab-all" onclick="showSection('all')">All Tests</button>
+            <button class="tab benchsale-tab" id="tab-admin" onclick="showSection('admin')">Admin Tests ({len(admin_tests)})</button>
+            <button class="tab benchsale-tab" id="tab-recruiter" onclick="showSection('recruiter')">Recruiter Tests ({len(recruiter_tests)})</button>
+            <!-- Employer tab (shown when filter=employer) -->
+            <button class="tab employer-tab" id="tab-employer" onclick="showSection('employer')" style="display: none;">Employer Tests ({len(employer_tests)})</button>
+            <!-- Job Seeker tab (shown when filter=jobseeker) -->
+            <button class="tab jobseeker-tab" id="tab-jobseeker" onclick="showSection('jobseeker')" style="display: none;">Job Seeker Tests ({len(jobseeker_tests)})</button>
+        </div>
+        
+        <div id="all-tests" class="test-section active">
+            <h2>All Test Results (BenchSale Only - Admin + Recruiter)</h2>
+            <div class="test-section-content">
+                <div class="test-list-container">
+                    {generate_test_list_html(benchsale_tests)}
+                </div>
+                <div class="test-details-panel empty">
+                    <div>Click on a test case to view details</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="admin-tests" class="test-section">
+            <h2>Admin Test Results</h2>
+            <div class="test-section-content">
+                <div class="test-list-container">
+                    {generate_test_list_html(admin_tests)}
+                </div>
+                <div class="test-details-panel empty">
+                    <div>Click on a test case to view details</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="recruiter-tests" class="test-section">
+            <h2>Recruiter Test Results</h2>
+            <div class="test-section-content">
+                <div class="test-list-container">
+                    {generate_test_list_html(recruiter_tests)}
+                </div>
+                <div class="test-details-panel empty">
+                    <div>Click on a test case to view details</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="employer-tests" class="test-section">
+            <h2>Employer Test Results</h2>
+            <div class="test-section-content">
+                <div class="test-list-container">
+                    {generate_test_list_html(employer_tests)}
+                </div>
+                <div class="test-details-panel empty">
+                    <div>Click on a test case to view details</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="jobseeker-tests" class="test-section">
+            <h2>Job Seeker Test Results</h2>
+            <div class="test-section-content">
+                <div class="test-list-container">
+                    {generate_test_list_html(jobseeker_tests)}
+                </div>
+                <div class="test-details-panel empty">
+                    <div>Click on a test case to view details</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="log-links" id="log-links-section">
+            <h3>📋 Detailed Log Files</h3>
+            <div id="log-links-content">
+                {generate_log_links_html(admin_log, recruiter_log, employer_log, jobseeker_log, main_log)}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <div class="close-modal" onclick="closeModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </div>
+        <img class="modal-content" id="modalImage" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        // Global filter state
+        let currentStatusFilter = 'all';
+
+        function filterByStatus(status) {{
+            currentStatusFilter = status;
+            
+            // 1. Update Visuals on Cards
+            // Remove active class from all
+            document.querySelectorAll('.stat-card').forEach(card => {{
+                card.classList.remove('active-filter');
+            }});
+            
+            // Add active class to clicked card(s) matching the status
+            let selector = '';
+            if (status === 'all') selector = '.stat-card.total:not(.not-run-stat)';
+            else if (status === 'pass') selector = '.stat-card.passed';
+            else if (status === 'fail') selector = '.stat-card.failed';
+            else if (status === 'skip') selector = '.stat-card.skipped';
+            else if (status === 'not-run') selector = '.stat-card.not-run-stat';
+            
+            // Only highlight visible cards
+            document.querySelectorAll(selector).forEach(card => {{
+                if (window.getComputedStyle(card).display !== 'none') {{
+                    card.classList.add('active-filter');
+                }}
+            }});
+
+            // 2. Filter Test Items in current active section
+            const activeSection = document.querySelector('.test-section.active');
+            if (activeSection) {{
+                const items = activeSection.querySelectorAll('.test-item');
+                let visibleCount = 0;
+                
+                items.forEach(item => {{
+                    let shouldShow = false;
+                    
+                    if (status === 'all') {{
+                        shouldShow = true;
+                    }} else if (status === 'pass' && item.classList.contains('pass')) {{
+                        shouldShow = true;
+                    }} else if (status === 'fail' && item.classList.contains('fail')) {{
+                        shouldShow = true;
+                    }} else if (status === 'skip' && item.classList.contains('skip')) {{
+                        shouldShow = true;
+                    }} else if (status === 'not-run' && (item.classList.contains('not-run') || item.classList.contains('not_run'))) {{
+                        shouldShow = true;
+                    }}
+                    
+                    item.style.display = shouldShow ? 'flex' : 'none';
+                    if (shouldShow) visibleCount++;
+                }});
+                
+                // Show/Hide "No tests" message
+                let noTestsMsg = activeSection.querySelector('.no-tests-message');
+                if (visibleCount === 0) {{
+                    if (!noTestsMsg) {{
+                        noTestsMsg = document.createElement('div');
+                        noTestsMsg.className = 'no-tests-message';
+                        noTestsMsg.style.textAlign = 'center';
+                        noTestsMsg.style.padding = '40px';
+                        noTestsMsg.style.color = 'var(--text-secondary)';
+                        noTestsMsg.style.fontSize = '1.2em';
+                        activeSection.appendChild(noTestsMsg);
+                    }}
+                    noTestsMsg.textContent = status === 'all' ? 'No tests found in this section.' : 'No ' + status + ' tests found.';
+                    noTestsMsg.style.display = 'block';
+                }} else {{
+                    if (noTestsMsg) noTestsMsg.style.display = 'none';
+                }}
+            }}
+        }}
+
+        function updateStatistics(section) {{
+            let visibleTests = [];
+            if (section === 'all') {{
+                const allSection = document.getElementById('all-tests');
+                if (allSection) {{
+                    // Search recursively for test items (they're inside .test-list-container)
+                    visibleTests = Array.from(allSection.querySelectorAll('.test-item'));
+                }}
+            }} else {{
+                const sectionId = section + '-tests';
+                const sectionElement = document.getElementById(sectionId);
+                if (sectionElement) {{
+                    // Search recursively for test items
+                    visibleTests = Array.from(sectionElement.querySelectorAll('.test-item'));
+                }}
+            }}
+            
+            let total = visibleTests.length;
+            let passed = 0;
+            let failed = 0;
+            let skipped = 0;
+            let notRun = 0;
+            
+            visibleTests.forEach(test => {{
+                if (test.classList.contains('pass')) passed++;
+                else if (test.classList.contains('fail')) failed++;
+                else if (test.classList.contains('skip')) skipped++;
+                else if (test.classList.contains('not-run') || test.classList.contains('not_run')) notRun++;
+            }});
+            
+            const statsGrid = document.getElementById('stats-grid');
+            if (section === 'employer') {{
+                // Hide BenchSale tabs and stats, show only Employer
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
+                document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'none');
+                // Hide all BenchSale and Job Seeker test sections completely
+                document.getElementById('all-tests').style.display = 'none';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                document.getElementById('jobseeker-tests').style.display = 'none';
+                // Show only Employer test section
+                document.getElementById('employer-tests').style.display = 'block';
+                // Update Employer statistics
+                const employerSection = document.getElementById('employer-tests');
+                if (employerSection) {{
+                    const employerTests = Array.from(employerSection.querySelectorAll('.test-item'));
+                    const employerTotal = employerTests.length;
+                    const employerPassed = employerTests.filter(t => t.classList.contains('pass')).length;
+                    const employerFailed = employerTests.filter(t => t.classList.contains('fail')).length;
+                    const employerSkipped = employerTests.filter(t => t.classList.contains('skip')).length;
+                    const employerNotRun = employerTests.filter(t => t.classList.contains('not-run') || t.classList.contains('not_run')).length;
+                    document.getElementById('stat-employer-total-num').textContent = employerTotal;
+                    document.getElementById('stat-employer-passed-num').textContent = employerPassed;
+                    document.getElementById('stat-employer-failed-num').textContent = employerFailed;
+                    document.getElementById('stat-employer-skipped-num').textContent = employerSkipped;
+                    document.getElementById('stat-employer-not-run-num').textContent = employerNotRun;
+                }}
+                if (statsGrid) statsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
+            }} else if (section === 'jobseeker') {{
+                // Hide BenchSale tabs and stats, show only Job Seeker
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
+                document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'block');
+                // Hide all BenchSale and Employer test sections completely
+                document.getElementById('all-tests').style.display = 'none';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                document.getElementById('employer-tests').style.display = 'none';
+                // Show only Job Seeker test section
+                document.getElementById('jobseeker-tests').style.display = 'block';
+                // Update Job Seeker statistics
+                const jobseekerSection = document.getElementById('jobseeker-tests');
+                if (jobseekerSection) {{
+                    const jobseekerTests = Array.from(jobseekerSection.querySelectorAll('.test-item'));
+                    const jobseekerTotal = jobseekerTests.length;
+                    const jobseekerPassed = jobseekerTests.filter(t => t.classList.contains('pass')).length;
+                    const jobseekerFailed = jobseekerTests.filter(t => t.classList.contains('fail')).length;
+                    const jobseekerSkipped = jobseekerTests.filter(t => t.classList.contains('skip')).length;
+                    const jobseekerNotRun = jobseekerTests.filter(t => t.classList.contains('not-run') || t.classList.contains('not_run')).length;
+                    document.getElementById('stat-jobseeker-total-num').textContent = jobseekerTotal;
+                    document.getElementById('stat-jobseeker-passed-num').textContent = jobseekerPassed;
+                    document.getElementById('stat-jobseeker-failed-num').textContent = jobseekerFailed;
+                    document.getElementById('stat-jobseeker-skipped-num').textContent = jobseekerSkipped;
+                    document.getElementById('stat-jobseeker-not-run-num').textContent = jobseekerNotRun;
+                }}
+                if (statsGrid) statsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
+            }} else {{
+                // Show BenchSale tabs and stats, hide Employer and Job Seeker
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'block');
+                document.getElementById('tab-employer').style.display = 'none';
+                document.getElementById('tab-jobseeker').style.display = 'none';
+                document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'none');
+                // Hide Employer and Job Seeker test sections completely
+                document.getElementById('employer-tests').style.display = 'none';
+                document.getElementById('jobseeker-tests').style.display = 'none';
+                
+                // Update BenchSale stats based on active section
+                // Use the already calculated values from the top of the function
+                const statTotal = document.getElementById('stat-total');
+                const statPassed = document.getElementById('stat-passed');
+                const statFailed = document.getElementById('stat-failed');
+                const statSkipped = document.getElementById('stat-skipped');
+                const statNotRun = document.getElementById('stat-not-run');
+                
+                if (statTotal) statTotal.textContent = total;
+                if (statPassed) statPassed.textContent = passed;
+                if (statFailed) statFailed.textContent = failed;
+                if (statSkipped) statSkipped.textContent = skipped;
+                if (statNotRun) statNotRun.textContent = notRun;
+                if (statsGrid) statsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
+            }}
+            
+            const titleElement = document.getElementById('dashboard-title');
+            const urlParams = new URLSearchParams(window.location.search);
+            const filter = urlParams.get('filter');
+            
+            // Update logo and title based on section
+            const benchsaleLogo = document.getElementById('benchsale-logo');
+            const employerLogo = document.getElementById('employer-logo');
+            const jobseekerLogo = document.getElementById('jobseeker-logo');
+            const logoContainer = document.getElementById('dashboard-logo');
+            
+            if (filter === 'employer' || section === 'employer') {{
+                titleElement.textContent = 'Employer Test Dashboard';
+                if (benchsaleLogo) benchsaleLogo.style.display = 'none';
+                if (employerLogo) employerLogo.style.display = 'block';
+                if (jobseekerLogo) jobseekerLogo.style.display = 'none';
+                if (logoContainer) logoContainer.className = 'dashboard-logo employer-logo';
+            }} else if (filter === 'jobseeker' || section === 'jobseeker') {{
+                titleElement.textContent = 'Job Seeker Test Dashboard';
+                if (benchsaleLogo) benchsaleLogo.style.display = 'none';
+                if (employerLogo) employerLogo.style.display = 'none';
+                if (jobseekerLogo) jobseekerLogo.style.display = 'block';
+                if (logoContainer) logoContainer.className = 'dashboard-logo jobseeker-logo';
+            }} else {{
+                titleElement.textContent = 'BenchSale Test Dashboard';
+                if (benchsaleLogo) benchsaleLogo.style.display = 'block';
+                if (employerLogo) employerLogo.style.display = 'none';
+                if (jobseekerLogo) jobseekerLogo.style.display = 'none';
+                if (logoContainer) logoContainer.className = 'dashboard-logo';
+            }}
+        }}
+        
+        function showSection(section, clickedElement) {{
+            // Reset filter when switching sections
+            filterByStatus('all');
+            
+            // Hide/Show tabs and sections based on section
+            if (section === 'employer') {{
+                // Hide BenchSale tabs when showing Employer
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
+                document.getElementById('tab-employer').style.display = 'block';
+                document.getElementById('tab-jobseeker').style.display = 'none';
+                // Hide all BenchSale and Job Seeker test sections completely
+                document.getElementById('all-tests').style.display = 'none';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                document.getElementById('jobseeker-tests').style.display = 'none';
+                // Show only Employer test section
+                document.getElementById('employer-tests').style.display = 'block';
+                // Show Employer log link, hide BenchSale and Job Seeker log links
+                const logLinks = document.getElementById('log-links-content');
+                if (logLinks) {{
+                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    if (employerLogLink) employerLogLink.style.display = 'inline-block';
+                    logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
+                }}
+            }} else if (section === 'jobseeker') {{
+                // Hide BenchSale tabs when showing Job Seeker
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
+                document.getElementById('tab-employer').style.display = 'none';
+                document.getElementById('tab-jobseeker').style.display = 'block';
+                // Hide all BenchSale and Employer test sections completely
+                document.getElementById('all-tests').style.display = 'none';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                document.getElementById('employer-tests').style.display = 'none';
+                // Show only Job Seeker test section
+                document.getElementById('jobseeker-tests').style.display = 'block';
+                // Show Job Seeker log link, hide BenchSale and Employer log links
+                const logLinks = document.getElementById('log-links-content');
+                if (logLinks) {{
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    if (jobseekerLogLink) jobseekerLogLink.style.display = 'inline-block';
+                    logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
+                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    if (employerLogLink) employerLogLink.style.display = 'none';
+                }}
+            }} else {{
+                // Show BenchSale tabs, hide Employer and Job Seeker tabs
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'block');
+                document.getElementById('tab-employer').style.display = 'none';
+                document.getElementById('tab-jobseeker').style.display = 'none';
+                // Hide Employer and Job Seeker test sections completely
+                document.getElementById('employer-tests').style.display = 'none';
+                document.getElementById('jobseeker-tests').style.display = 'none';
+                
+                // Hide Employer and Job Seeker log links in BenchSale dashboard
+                const logLinks = document.getElementById('log-links-content');
+                if (logLinks) {{
+                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    if (employerLogLink) employerLogLink.style.display = 'none';
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
+                    
+                    // Show/hide BenchSale log links based on selected section
+                    const adminLogLink = logLinks.querySelector('a[href*="benchsale_admin"]');
+                    const recruiterLogLink = logLinks.querySelector('a[href*="benchsale_recruiter"]');
+                    const mainLogLink = logLinks.querySelector('a[href*="benchsale_test"]');
+                    
+                    if (section === 'all') {{
+                        // Show all BenchSale log links
+                        if (adminLogLink) adminLogLink.style.display = 'inline-block';
+                        if (recruiterLogLink) recruiterLogLink.style.display = 'inline-block';
+                        if (mainLogLink) mainLogLink.style.display = 'inline-block';
+                    }} else if (section === 'admin') {{
+                        // Show only Admin log link
+                        if (adminLogLink) adminLogLink.style.display = 'inline-block';
+                        if (recruiterLogLink) recruiterLogLink.style.display = 'none';
+                        if (mainLogLink) mainLogLink.style.display = 'none';
+                    }} else if (section === 'recruiter') {{
+                        // Show only Recruiter log link
+                        if (adminLogLink) adminLogLink.style.display = 'none';
+                        if (recruiterLogLink) recruiterLogLink.style.display = 'inline-block';
+                        if (mainLogLink) mainLogLink.style.display = 'none';
+                    }} else {{
+                        // Default: show all BenchSale log links
+                        if (adminLogLink) adminLogLink.style.display = 'inline-block';
+                        if (recruiterLogLink) recruiterLogLink.style.display = 'inline-block';
+                        if (mainLogLink) mainLogLink.style.display = 'inline-block';
+                    }}
+                }}
+                
+                // Show/hide BenchSale sections based on selected section
+                if (section === 'all') {{
+                    // Show only "All Tests" section
+                    document.getElementById('all-tests').style.display = 'block';
+                    document.getElementById('admin-tests').style.display = 'none';
+                    document.getElementById('recruiter-tests').style.display = 'none';
+                }} else if (section === 'admin') {{
+                    // Show only "Admin Tests" section
+                    document.getElementById('all-tests').style.display = 'none';
+                    document.getElementById('admin-tests').style.display = 'block';
+                    document.getElementById('recruiter-tests').style.display = 'none';
+                }} else if (section === 'recruiter') {{
+                    // Show only "Recruiter Tests" section
+                    document.getElementById('all-tests').style.display = 'none';
+                    document.getElementById('admin-tests').style.display = 'none';
+                    document.getElementById('recruiter-tests').style.display = 'block';
+                }} else {{
+                    // Default: show all BenchSale sections
+                    document.getElementById('all-tests').style.display = 'block';
+                    document.getElementById('admin-tests').style.display = 'block';
+                    document.getElementById('recruiter-tests').style.display = 'block';
+                }}
+            }}
+
+            document.querySelectorAll('.test-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            const sectionId = section === 'all' ? 'all-tests' : section + '-tests';
+            const sectionElement = document.getElementById(sectionId);
+            if (sectionElement) {{
+                sectionElement.classList.add('active');
+            }}
+            
+            // Update logo and title based on section
+            const titleElement = document.getElementById('dashboard-title');
+            const benchsaleLogo = document.getElementById('benchsale-logo');
+            const employerLogo = document.getElementById('employer-logo');
+            const jobseekerLogo = document.getElementById('jobseeker-logo');
+            const logoContainer = document.getElementById('dashboard-logo');
+            
+            if (section === 'employer') {{
+                if (titleElement) titleElement.textContent = 'Employer Test Dashboard';
+                if (benchsaleLogo) benchsaleLogo.style.display = 'none';
+                if (employerLogo) employerLogo.style.display = 'block';
+                if (jobseekerLogo) jobseekerLogo.style.display = 'none';
+                if (logoContainer) logoContainer.className = 'dashboard-logo employer-logo';
+            }} else if (section === 'jobseeker') {{
+                if (titleElement) titleElement.textContent = 'Job Seeker Test Dashboard';
+                if (benchsaleLogo) benchsaleLogo.style.display = 'none';
+                if (employerLogo) employerLogo.style.display = 'none';
+                if (jobseekerLogo) jobseekerLogo.style.display = 'block';
+                if (logoContainer) logoContainer.className = 'dashboard-logo jobseeker-logo';
+            }} else {{
+                if (titleElement) titleElement.textContent = 'BenchSale Test Dashboard';
+                if (benchsaleLogo) benchsaleLogo.style.display = 'block';
+                if (employerLogo) employerLogo.style.display = 'none';
+                if (jobseekerLogo) jobseekerLogo.style.display = 'none';
+                if (logoContainer) logoContainer.className = 'dashboard-logo';
+            }}
+            
+            if (clickedElement) {{
+                clickedElement.classList.add('active');
+            }} else {{
+                const buttons = document.querySelectorAll('.tab');
+                buttons.forEach(btn => {{
+                    const onclickAttr = btn.getAttribute('onclick') || '';
+                    const btnText = btn.textContent || '';
+                    let shouldActivate = false;
+                    if (section === 'all') {{
+                        shouldActivate = onclickAttr.includes("'all'") || btnText.includes('All Tests');
+                    }} else if (section === 'admin') {{
+                        shouldActivate = onclickAttr.includes("'admin'") || btnText.includes('Admin Tests');
+                    }} else if (section === 'recruiter') {{
+                        shouldActivate = onclickAttr.includes("'recruiter'") || btnText.includes('Recruiter Tests');
+                    }} else if (section === 'employer') {{
+                        shouldActivate = onclickAttr.includes("'employer'") || btnText.includes('Employer Tests');
+                    }} else if (section === 'jobseeker') {{
+                        shouldActivate = onclickAttr.includes("'jobseeker'") || btnText.includes('Job Seeker Tests');
+                    }}
+                    
+                    if (shouldActivate) {{
+                        btn.classList.add('active');
+                    }}
+                }});
+            }}
+            
+            setTimeout(() => {{
+                updateStatistics(section);
+            }}, 100);
+            
+            try {{
+                const url = new URL(window.location);
+                url.searchParams.set('filter', section);
+                window.history.pushState({{filter: section}}, '', url);
+            }} catch(e) {{
+                console.log('URL update failed:', e);
+            }}
+        }}
+        
+        function showTestDetails(testItem) {{
+            // Remove active class from all test items
+            document.querySelectorAll('.test-item').forEach(item => {{
+                item.classList.remove('active');
+            }});
+            
+            // Add active class to clicked item
+            testItem.classList.add('active');
+            
+            // Get test data from data attribute
+            const testDataJson = testItem.getAttribute('data-test-info');
+            if (!testDataJson) return;
+            
+            let testData;
+            try {{
+                testData = JSON.parse(testDataJson);
+            }} catch(e) {{
+                console.error('Error parsing test data:', e);
+                return;
+            }}
+            
+            // Find the details panel in the same section
+            const testSection = testItem.closest('.test-section');
+            const detailsPanel = testSection ? testSection.querySelector('.test-details-panel') : null;
+            if (!detailsPanel) return;
+            
+            // Build details HTML
+            const status = testData.status || 'NOT_RUN';
+            const statusLower = status.toLowerCase().replace('_', '-');
+            const statusDisplay = status.replace('_', ' ');
+            
+            let detailsHTML = `
+                <div class="test-details-header">
+                    <div class="test-details-title">${{testData.name || 'Test Case'}}</div>
+                    <div class="test-details-status test-badge ${{statusLower}}">${{statusDisplay}}</div>
+                </div>
+                
+                <div class="test-details-info">
+                    <div class="test-details-info-item">
+                        <div class="test-details-info-label">Source</div>
+                        <div class="test-details-info-value">${{testData.source || 'N/A'}}</div>
+                    </div>
+                    <div class="test-details-info-item">
+                        <div class="test-details-info-label">Running Time</div>
+                        <div class="test-details-info-value">${{testData.running_time || 'N/A'}}</div>
+                    </div>
+                </div>
+                
+                <div class="test-details-content">
+            `;
+            
+            // Add screenshot if available
+            if (testData.screenshots && testData.screenshots.length > 0) {{
+                const screenshotUrl = testData.screenshots[0];
+                detailsHTML += `
+                    <div class="test-details-screenshot">
+                        <h4 style="margin-bottom: 10px; font-weight: 600; color: var(--text-primary);">📸 Screenshot</h4>
+                        <img src="${{screenshotUrl}}" alt="Test Screenshot" 
+                             onerror="this.parentElement.style.display='none'"
+                             onclick="openModal(this.src)">
+                    </div>
+                `;
+            }}
+
+            // Add artifact links if available (HTML snapshot + URL text)
+            if (testData.artifacts && (testData.artifacts.html_url || testData.artifacts.url_txt_url)) {{
+                detailsHTML += `
+                    <div class="test-details-location">
+                        <div class="test-details-location-title">🧾 Failure Artifacts</div>
+                        <div class="test-details-location-content">
+                            ${{testData.artifacts.html_url ? `<a href="${{testData.artifacts.html_url}}" target="_blank">Open HTML snapshot</a>` : ''}}
+                            ${{testData.artifacts.html_url && testData.artifacts.url_txt_url ? ' | ' : ''}}
+                            ${{testData.artifacts.url_txt_url ? `<a href="${{testData.artifacts.url_txt_url}}" target="_blank">Open URL file</a>` : ''}}
+                        </div>
+                    </div>
+                `;
+            }}
+            
+            // Add failure details if test failed
+            if (status === 'FAIL' || status === 'FAILED') {{
+                if (testData.failure_message) {{
+                    detailsHTML += `
+                        <div class="test-details-failure">
+                            <div class="test-details-failure-title">❌ Failure Message</div>
+                            <div class="test-details-failure-content">${{escapeHtml(testData.failure_message)}}</div>
+                        </div>
+                    `;
+                }}
+                
+                if (testData.failure_location) {{
+                    detailsHTML += `
+                        <div class="test-details-location">
+                            <div class="test-details-location-title">📍 Failure Location</div>
+                            <div class="test-details-location-content">${{escapeHtml(testData.failure_location)}}</div>
+                        </div>
+                    `;
+                }}
+                
+                if (testData.xpath) {{
+                    detailsHTML += `
+                        <div class="test-details-location">
+                            <div class="test-details-location-title">🔗 XPath / Element Location</div>
+                            <div class="test-details-location-content">${{escapeHtml(testData.xpath)}}</div>
+                        </div>
+                    `;
+                }}
+            }}
+            
+            // Close the content div
+            detailsHTML += '</div>';
+            
+            // Update details panel
+            detailsPanel.innerHTML = detailsHTML;
+            detailsPanel.classList.remove('empty');
+            
+            // Scroll details content to top
+            const contentDiv = detailsPanel.querySelector('.test-details-content');
+            if (contentDiv) {{
+                contentDiv.scrollTop = 0;
+            }}
+        }}
+        
+        function escapeHtml(text) {{
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }}
+        
+        document.addEventListener('DOMContentLoaded', function() {{
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {{
+                const onclickAttr = tab.getAttribute('onclick');
+                if (onclickAttr) {{
+                    const match = onclickAttr.match(/showSection\('([^']+)'\)/);
+                    if (match) {{
+                        const section = match[1];
+                        tab.removeAttribute('onclick');
+                        tab.addEventListener('click', function(e) {{
+                            e.preventDefault();
+                            showSection(section, this);
+                        }});
+                    }}
+                }}
+            }});
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const filter = urlParams.get('filter');
+            
+            if (filter === 'employer') {{
+                // Hide all BenchSale tabs (All Tests, Admin Tests, Recruiter Tests)
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
+                // Hide BenchSale stats
+                document.querySelectorAll('.benchsale-stat').forEach(stat => stat.style.display = 'none');
+                document.querySelectorAll('.jobseeker-stat').forEach(stat => stat.style.display = 'none');
+                // Show only Employer tab
+                document.getElementById('tab-employer').style.display = 'block';
+                document.getElementById('tab-employer').classList.add('active');
+                document.getElementById('tab-jobseeker').style.display = 'none';
+                // Hide all BenchSale and Job Seeker test sections completely (not just inactive)
+                document.getElementById('all-tests').style.display = 'none';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                document.getElementById('jobseeker-tests').style.display = 'none';
+                // Show only Employer test section
+                document.getElementById('employer-tests').style.display = 'block';
+                document.getElementById('employer-tests').classList.add('active');
+                // Show Employer log link
+                const logLinks = document.getElementById('log-links-content');
+                if (logLinks) {{
+                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    if (employerLogLink) employerLogLink.style.display = 'inline-block';
+                    // Hide BenchSale and Job Seeker log links
+                    logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
+                }}
+            }} else if (filter === 'jobseeker') {{
+                // Hide all BenchSale tabs (All Tests, Admin Tests, Recruiter Tests)
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
+                // Hide BenchSale stats
+                document.querySelectorAll('.benchsale-stat').forEach(stat => stat.style.display = 'none');
+                document.querySelectorAll('.employer-stat').forEach(stat => stat.style.display = 'none');
+                // Show only Job Seeker tab
+                document.getElementById('tab-jobseeker').style.display = 'block';
+                document.getElementById('tab-jobseeker').classList.add('active');
+                document.getElementById('tab-employer').style.display = 'none';
+                // Hide all BenchSale and Employer test sections completely (not just inactive)
+                document.getElementById('all-tests').style.display = 'none';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                document.getElementById('employer-tests').style.display = 'none';
+                // Show only Job Seeker test section
+                document.getElementById('jobseeker-tests').style.display = 'block';
+                document.getElementById('jobseeker-tests').classList.add('active');
+                // Show Job Seeker log link
+                const logLinks = document.getElementById('log-links-content');
+                if (logLinks) {{
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    if (jobseekerLogLink) jobseekerLogLink.style.display = 'inline-block';
+                    // Hide BenchSale and Employer log links
+                    logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
+                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    if (employerLogLink) employerLogLink.style.display = 'none';
+                }}
+            }} else {{
+                // Show all BenchSale tabs
+                document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'block');
+                // Show BenchSale stats
+                document.querySelectorAll('.benchsale-stat').forEach(stat => stat.style.display = 'block');
+                // Hide Employer and Job Seeker tabs
+                document.getElementById('tab-employer').style.display = 'none';
+                document.getElementById('tab-jobseeker').style.display = 'none';
+                // Hide Employer and Job Seeker test sections completely
+                document.getElementById('employer-tests').style.display = 'none';
+                document.getElementById('employer-tests').classList.remove('active');
+                document.getElementById('jobseeker-tests').style.display = 'none';
+                document.getElementById('jobseeker-tests').classList.remove('active');
+                // Initially show only "All Tests" section (will be updated by showSection if filter is set)
+                document.getElementById('all-tests').style.display = 'block';
+                document.getElementById('admin-tests').style.display = 'none';
+                document.getElementById('recruiter-tests').style.display = 'none';
+                // Hide Employer and Job Seeker log links in BenchSale dashboard
+                const logLinks = document.getElementById('log-links-content');
+                if (logLinks) {{
+                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    if (employerLogLink) employerLogLink.style.display = 'none';
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
+                    
+                    // Show all BenchSale log links by default (for "All Tests" view)
+                    const adminLogLink = logLinks.querySelector('a[href*="benchsale_admin"]');
+                    const recruiterLogLink = logLinks.querySelector('a[href*="benchsale_recruiter"]');
+                    const mainLogLink = logLinks.querySelector('a[href*="benchsale_test"]');
+                    if (adminLogLink) adminLogLink.style.display = 'inline-block';
+                    if (recruiterLogLink) recruiterLogLink.style.display = 'inline-block';
+                    if (mainLogLink) mainLogLink.style.display = 'inline-block';
+                }}
+            }}
+            
+            if (filter && ['admin', 'recruiter', 'employer', 'jobseeker', 'all'].includes(filter)) {{
+                setTimeout(function() {{
+                    showSection(filter);
+                    setTimeout(function() {{
+                    updateStatistics(filter);
+                    }}, 100);
+                }}, 200);
+            }} else {{
+                showSection('all');
+                setTimeout(function() {{
+                updateStatistics('all');
+                }}, 300);
+            }}
+        }});
+        
+        document.addEventListener('click', function(e) {{
+            if (e.target.tagName === 'IMG' && e.target.closest('.screenshot-item')) {{
+                openModal(e.target.src);
+            }}
+        }});
+        
+        function refreshDashboard() {{
+            const statusEl = document.getElementById('refreshStatus');
+            if (statusEl) {{
+                statusEl.textContent = 'Refreshing...';
+                statusEl.style.background = 'rgba(255, 204, 0, 0.2)';
+                statusEl.style.color = '#ed8936';
+            }}
+            setTimeout(function() {{
+                location.reload();
+            }}, 500);
+        }}
+        
+        document.addEventListener('DOMContentLoaded', function() {{
+            console.log('Dashboard loaded. Last updated: {last_updated_str}');
+            console.log('Dashboard auto-updates after each test run.');
+        }});
+        // Modal Functions
+        function openModal(src) {{
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'flex';
+            modalImg.src = src;
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }}
+
+        function closeModal() {{
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }}
+
+        document.addEventListener('keydown', function(event) {{
+            if (event.key === "Escape") {{
+                closeModal();
+            }}
+        }});
+        
+        // Run test function
+        function runTest(testName) {{
+            // Find the button that was clicked
+            const buttons = document.querySelectorAll('.run-test-btn');
+            let clickedButton = null;
+            buttons.forEach(btn => {{
+                if (btn.textContent.includes('Run Test') || btn.textContent.includes('Running')) {{
+                    const testItem = btn.closest('.test-item');
+                    if (testItem && testItem.getAttribute('data-test-info')) {{
+                        try {{
+                            const testData = JSON.parse(testItem.getAttribute('data-test-info'));
+                            if (testData.name === testName) {{
+                                clickedButton = btn;
+                            }}
+                        }} catch(e) {{
+                            // Ignore
+                        }}
+                    }}
+                }}
+            }});
+            
+            if (!clickedButton) {{
+                // Fallback: find button by test name in parent
+                document.querySelectorAll('.run-test-btn').forEach(btn => {{
+                    const onclickAttr = btn.getAttribute('onclick') || '';
+                    if (onclickAttr.includes(testName)) {{
+                        clickedButton = btn;
+                    }}
+                }});
+            }}
+            
+            if (clickedButton) {{
+                clickedButton.classList.add('running');
+                clickedButton.textContent = '⏳ Running...';
+                clickedButton.disabled = true;
+            }}
+            
+            // Try to run via HTTP server endpoint (if available)
+            // Use localhost:8765 as default server port
+            const serverUrl = 'http://localhost:8765/run-test';
+            fetch(serverUrl, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }},
+                body: JSON.stringify({{ testName: testName }})
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    if (clickedButton) {{
+                        clickedButton.textContent = '✅ Running';
+                        clickedButton.style.background = 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)';
+                    }}
+                    // Show notification
+                    alert('Test "' + testName + '" is running in the background.\\n\\nCheck the terminal or refresh the dashboard after it completes.');
+                    // Auto-refresh after 5 seconds
+                    setTimeout(() => {{
+                        if (clickedButton) {{
+                            clickedButton.classList.remove('running');
+                            clickedButton.textContent = '▶ Run Test';
+                            clickedButton.disabled = false;
+                        }}
+                    }}, 5000);
+                }} else {{
+                    throw new Error(data.error || 'Failed to run test');
+                }}
+            }})
+            .catch(error => {{
+                // If HTTP server is not available, show command to copy
+                const command = `python -m pytest -k "${{testName}}" -s -vv`;
+                const message = `To run this test, execute the following command in your terminal:\\n\\n${{command}}\\n\\n\\nOr copy the command and run it manually.`;
+                
+                // Try to copy to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {{
+                    navigator.clipboard.writeText(command).then(() => {{
+                        alert(message + '\\n\\n✅ Command copied to clipboard!');
+                    }}).catch(() => {{
+                        alert(message);
+                    }});
+                }} else {{
+                    // Fallback: show prompt with command
+                    const userCommand = prompt(message + '\\n\\nCommand:', command);
+                    if (userCommand) {{
+                        alert('Please run this command in your terminal:\\n\\n' + userCommand);
+                    }}
+                }}
+                
+                if (clickedButton) {{
+                    clickedButton.classList.remove('running');
+                    clickedButton.textContent = '▶ Run Test';
+                    clickedButton.disabled = false;
+                }}
+            }});
+        }}
+    </script>
+</body>
+</html>"""
+    
+    return html
+
+
+def shorten_test_name(name: str) -> str:
+    """Shorten test name for display by removing 'test_' prefix and converting underscores to spaces."""
+    # Remove 'test_' prefix if present
+    if name.startswith('test_'):
+        name = name[5:]
+    # Convert underscores to spaces and capitalize words
+    name = name.replace('_', ' ')
+    # Capitalize first letter of each word
+    words = name.split()
+    name = ' '.join(word.capitalize() for word in words)
+    return name
+
+
+def generate_test_list_html(tests):
+    """Generate HTML for test list."""
+    try:
+        if not tests:
+            return '<div class="no-tests">No tests found</div>'
+        
+        html_items = []
+        for test in tests:
+            status = test.get('status', 'NOT_RUN').upper()
+            # Normalize status for CSS class
+            status_lower = status.lower().replace('_', '-')
+            # Shorten test name for cleaner display
+            original_name = test['name']
+            display_name = shorten_test_name(original_name)
+            name = escape(display_name)
+            source = test.get('source', 'Main')
+            
+            # Get test data for details panel
+            running_time = test.get('running_time', 'N/A')
+            failure_message = test.get('failure_message', '')
+            failure_location = test.get('failure_location', '')
+            xpath = test.get('xpath', '')
+            screenshots = test.get('screenshots', [])
+            artifacts = test.get('artifacts', {}) or {}
+            
+            # Ensure screenshots is a list
+            if not isinstance(screenshots, list):
+                screenshots = []
+            
+            # Prepare data attributes (escape JSON for HTML)
+            import json
+            try:
+                test_data = {
+                    'name': original_name,
+                    'status': status,
+                    'source': source,
+                    'running_time': str(running_time) if running_time else 'N/A',
+                    'failure_message': str(failure_message) if failure_message else '',
+                    'failure_location': str(failure_location) if failure_location else '',
+                    'xpath': str(xpath) if xpath else '',
+                    'screenshots': [s.get('url', s) if isinstance(s, dict) else str(s) for s in screenshots] if screenshots else [],
+                    'artifacts': {
+                        'html_url': artifacts.get('html_url', ''),
+                        'url_txt_url': artifacts.get('url_txt_url', '')
+                    }
+                }
+                test_data_json = escape(json.dumps(test_data))
+                # Escape quotes in JSON for HTML attribute
+                test_data_json_escaped = test_data_json.replace('"', '&quot;')
+            except Exception as e:
+                # If JSON encoding fails, use minimal data
+                print(f"Warning: Failed to encode test data for {original_name}: {e}")
+                test_data_json_escaped = escape(json.dumps({'name': original_name, 'status': status, 'source': source}))
+            
+            # Display status text (replace NOT_RUN with "Not Run")
+            status_display = status.replace('_', ' ')
+            
+            # Escape the original test name for use in JavaScript
+            original_name_escaped = escape(original_name).replace("'", "\\'")
+            
+            html_items.append(f'''
+                <div class="test-item {status_lower}" data-test-info="{test_data_json_escaped}" onclick="showTestDetails(this)">
+                <div class="test-header">
+                    <div class="test-name">{name}</div>
+                    <div class="test-badge {status_lower}">{status_display}</div>
+                </div>
+                <div class="test-source">Source: {source}</div>
+                <div class="test-actions">
+                    <button class="run-test-btn" onclick="event.stopPropagation(); runTest('{original_name_escaped}')" title="Run this test">
+                        ▶ Run Test
+                    </button>
+                </div>
+            </div>
+            ''')
+        
+        return f'<div class="test-list">{"".join(html_items)}</div>'
+    except Exception as e:
+        print(f"Error generating test list HTML: {e}")
+        import traceback
+        traceback.print_exc()
+        return f'<div class="no-tests">Error loading tests: {str(e)}</div>'
+
+
+def generate_log_links_html(admin_log, recruiter_log, employer_log, jobseeker_log, main_log):
+    """Generate HTML for log file links."""
+    links = []
+    
+    if admin_log and admin_log.exists():
+        admin_html = admin_log.parent / 'benchsale_admin.html'
+        if admin_html.exists():
+            links.append(f'<a href="benchsale_admin.html" class="log-link" target="_blank">📊 Admin Log</a>')
+    
+    if recruiter_log and recruiter_log.exists():
+        recruiter_html = recruiter_log.parent / 'benchsale_recruiter.html'
+        if recruiter_html.exists():
+            links.append(f'<a href="benchsale_recruiter.html" class="log-link" target="_blank">📊 Recruiter Log</a>')
+    
+    if employer_log and employer_log.exists():
+        links.append(f'<a href="employer.log" class="log-link" target="_blank">📊 Employer Log</a>')
+    
+    if jobseeker_log and jobseeker_log.exists():
+        links.append(f'<a href="jobseeker.log" class="log-link" target="_blank">📊 Job Seeker Log</a>')
+    
+    if main_log and main_log.exists():
+        main_html = main_log.parent / 'benchsale_test.html'
+        if main_html.exists():
+            links.append(f'<a href="benchsale_test.html" class="log-link" target="_blank">📊 Main Test Log</a>')
+    
+    return ''.join(links) if links else '<p>No log files available</p>'
+
+
+if __name__ == '__main__':
+    dashboard_path = generate_unified_dashboard()
+    print(f"Unified dashboard generated: {dashboard_path}")

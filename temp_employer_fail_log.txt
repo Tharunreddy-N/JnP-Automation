@@ -1,0 +1,500 @@
+﻿Session end time: 2026-01-09 14:36:13
+Exit status: 1
+Total tests executed: 18
+
+RUNTIME SUMMARY:
+--------------------------------------------------------------------------------
+  T1.05 Home Page- Verify 'Book Your Demo': 17.19 seconds
+--------------------------------------------------------------------------------
+================================================================================
+
+Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_test.html
+Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+================================================================================
+ðŸ§  SMART FRAMEWORK: Admin test file detected - auto-filtering recruiter tests
+   âœ“ Admin tests: 11, âœ— Recruiter tests filtered: 0
+================================================================================
+âœ“ Final test execution: 34 tests (Admin: 11, Recruiter: 0)
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 14:54:04.119 / 20260109 14:54:04.349 / 00:00:00.230
+Status: 34 tests total, 0 passed, 0 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+All Tests                                                    34       0        0        0        00:00:00.000   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 14:54:04
+Exit status: 2
+Total tests executed: 34
+================================================================================
+
+Test summary written to: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Admin HTML log viewer generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///c:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+====================================================================================================
+SUITE JnP benchSale
+Full Name: JnP benchSale
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+Start: 20260109 14:56:34.843
+====================================================================================================
+âœ“ Final test execution: 1 tests (Admin: 0, Recruiter: 0)
+Using proactor: IocpProactor
+
+====================================================================================================
+TEST test_t1_01_home_page
+Full Name: test_t1_01_home_page
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\employer\test_employer_test_cases.py
+Start: 20260109 14:56:35.466
+====================================================================================================
+Creating employer1_page fixture for test: test_t1_01_home_page
+Attempting to maximize employer1 browser window...
+Attempt 1/8: Found 0 Chrome windows, retrying...
+Attempt 2/8: Found 0 Chrome windows, retrying...
+Attempt 3/8: Found 0 Chrome windows, retrying...
+Attempt 4/8: Found 0 Chrome windows, retrying...
+Attempt 5/8: Found 0 Chrome windows, retrying...
+Attempt 6/8: Found 0 Chrome windows, retrying...
+Attempt 7/8: Found 0 Chrome windows, retrying...
+Trying foreground window maximize fallback (employer1)
+âœ“ Browser maximized via foreground window method (employer1)
+================================================================================
+Started runtime measurement for: T1.01 Home Page
+Start time: 2026-01-09 14:57:04
+================================================================================
+Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+Network check elapsed: 0.624s
+00:00:00.625KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+
+Full Name: test_t1_01_home_page
+Start / End / Elapsed: 20260109 14:56:35.461 / 20260109 14:57:16.042 / 00:00:11.778
+Status: FAIL
+Message: tests\employer\test_employer_test_cases.py:175: in test_t1_01_home_page
+    header.wait_for(state="visible", timeout=10000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:17843: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_locator.py:679: in wait_for
+    await self._frame.wait_for_selector(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:323: in wait_for_selector
+    await self._channel.send("waitForSelector", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("text=Find Your Dream Job") to be visible
+
+Locator/XPath hint: text=Find Your Dream Job
+TEST test_t1_01_home_page: FAIL
+Error details:
+tests\employer\test_employer_test_cases.py:175: in test_t1_01_home_page
+    header.wait_for(state="visible", timeout=10000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:17843: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_locator.py:679: in wait_for
+    await self._frame.wait_for_selector(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:323: in wait_for_selector
+    await self._channel.send("waitForSelector", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("text=Find Your Dream Job") to be visible
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 14:56:34.843 / 20260109 14:57:17.402 / 00:00:42.559
+Status: 1 tests total, 0 passed, 1 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+test_t1_01_home_page                                         1        0        1        0        00:00:11.778   
+----------------------------------------------------------------------------------------------------
+All Tests                                                    1        0        1        0        00:00:11.778   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 14:57:17
+Exit status: 1
+Total tests executed: 1
+================================================================================
+
+Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_test.html
+Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+====================================================================================================
+SUITE JnP benchSale
+Full Name: JnP benchSale
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+Start: 20260109 15:02:03.674
+====================================================================================================
+âœ“ Final test execution: 1 tests (Admin: 0, Recruiter: 0)
+Using proactor: IocpProactor
+
+====================================================================================================
+TEST test_t1_04_home_page_verify_job_posting_time
+Full Name: test_t1_04_home_page_verify_job_posting_time
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\employer\test_employer_test_cases.py
+Start: 20260109 15:02:04.240
+====================================================================================================
+Creating employer1_page fixture for test: test_t1_04_home_page_verify_job_posting_time
+================================================================================
+Started runtime measurement for: T1.04 Home Page- Verify job posting time
+Start time: 2026-01-09 15:02:12
+================================================================================
+Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+Network check elapsed: 0.639s
+00:00:00.641KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+================================================================================
+Runtime for 'T1.04 Home Page- Verify job posting time': 6.72 seconds
+End time: 2026-01-09 15:02:19
+================================================================================
+
+Full Name: test_t1_04_home_page_verify_job_posting_time
+Start / End / Elapsed: 20260109 15:02:04.235 / 20260109 15:02:19.588 / 00:00:06.722
+Status: PASS
+TEST test_t1_04_home_page_verify_job_posting_time: PASS
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 15:02:03.674 / 20260109 15:02:20.894 / 00:00:17.220
+Status: 1 tests total, 1 passed, 0 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+test_t1_04_home_page_verify_job_posting_time                 1        1        0        0        00:00:06.722   
+----------------------------------------------------------------------------------------------------
+All Tests                                                    1        1        0        0        00:00:06.722   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 15:02:20
+Exit status: 0
+Total tests executed: 1
+
+RUNTIME SUMMARY:
+--------------------------------------------------------------------------------
+  T1.04 Home Page- Verify job posting time: 6.72 seconds
+--------------------------------------------------------------------------------
+================================================================================
+
+Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_test.html
+Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+====================================================================================================
+SUITE JnP benchSale
+Full Name: JnP benchSale
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+Start: 20260109 15:02:51.335
+====================================================================================================
+âœ“ Final test execution: 1 tests (Admin: 0, Recruiter: 0)
+Using proactor: IocpProactor
+
+====================================================================================================
+TEST test_t1_05_home_page_verify_book_your_demo
+Full Name: test_t1_05_home_page_verify_book_your_demo
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\employer\test_employer_test_cases.py
+Start: 20260109 15:02:52.070
+====================================================================================================
+Creating employer1_page fixture for test: test_t1_05_home_page_verify_book_your_demo
+================================================================================
+Started runtime measurement for: T1.05 Home Page- Verify 'Book Your Demo'
+Start time: 2026-01-09 15:03:01
+================================================================================
+Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+Network check elapsed: 0.558s
+00:00:00.561KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+
+Full Name: test_t1_05_home_page_verify_book_your_demo
+Start / End / Elapsed: 20260109 15:02:52.068 / 20260109 15:03:10.729 / 00:00:09.556
+Status: PASS
+TEST test_t1_05_home_page_verify_book_your_demo: PASS
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 15:02:51.335 / 20260109 15:03:15.241 / 00:00:23.906
+Status: 1 tests total, 1 passed, 0 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+test_t1_05_home_page_verify_book_your_demo                   1        1        0        0        00:00:09.556   
+----------------------------------------------------------------------------------------------------
+All Tests                                                    1        1        0        0        00:00:09.556   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 15:03:15
+Exit status: 0
+Total tests executed: 1
+================================================================================
+
+Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_test.html
+Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+====================================================================================================
+SUITE JnP benchSale
+Full Name: JnP benchSale
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+Start: 20260109 15:03:50.026
+====================================================================================================
+âœ“ Final test execution: 1 tests (Admin: 0, Recruiter: 0)
+Using proactor: IocpProactor
+
+====================================================================================================
+TEST test_t2_01_post_a_job_verification_and_verification_with_job_id
+Full Name: test_t2_01_post_a_job_verification_and_verification_with_job_id
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\employer\test_employer_test_cases.py
+Start: 20260109 15:03:50.742
+====================================================================================================
+Creating employer1_page fixture for test: test_t2_01_post_a_job_verification_and_verification_with_job_id
+================================================================================
+Started runtime measurement for: T2.01 Post a Job verification and verification with Job-Id
+Start time: 2026-01-09 15:03:59
+================================================================================
+Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+Network check elapsed: 0.607s
+00:00:00.607KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+
+Full Name: test_t2_01_post_a_job_verification_and_verification_with_job_id
+Start / End / Elapsed: 20260109 15:03:50.738 / 20260109 15:04:38.284 / 00:00:38.409
+Status: FAIL
+Message: tests\employer\test_employer_test_cases.py:1026: in test_t2_01_post_a_job_verification_and_verification_with_job_id
+    post_job_btn.wait_for(state="visible", timeout=30000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:17843: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_locator.py:679: in wait_for
+    await self._frame.wait_for_selector(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:323: in wait_for_selector
+    await self._channel.send("waitForSelector", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+E   Call log:
+E     - waiting for locator("//*[@id='root']/div[2]/main/div[2]/div[2]/div/div[2]/div/div/div/div/button") to be visible
+
+Locator/XPath hint: //*[@id='root']/div[2]/main/div[2]/div[2]/div/div[2]/div/div/div/div/button
+TEST test_t2_01_post_a_job_verification_and_verification_with_job_id: FAIL
+Error details:
+tests\employer\test_employer_test_cases.py:1026: in test_t2_01_post_a_job_verification_and_verification_with_job_id
+    post_job_btn.wait_for(state="visible", timeout=30000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:17843: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_locator.py:679: in wait_for
+    await self._frame.wait_for_selector(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:323: in wait_for_selector
+    await self._channel.send("waitForSelector", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+E   Call log:
+E     - waiting for locator("//*[@id='root']/div[2]/main/div[2]/div[2]/div/div[2]/div/div/div/div/button") to be visible
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 15:03:50.026 / 20260109 15:04:39.576 / 00:00:49.550
+Status: 1 tests total, 0 passed, 1 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+test_t2_01_post_a_job_verification_and_verification_with_job_id 1        0        1        0        00:00:38.409   
+----------------------------------------------------------------------------------------------------
+All Tests                                                    1        0        1        0        00:00:38.409   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 15:04:39
+Exit status: 1
+Total tests executed: 1
+================================================================================
+
+Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_test.html
+Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+================================================================================
+ðŸ§  SMART FRAMEWORK: Admin test file detected - auto-filtering recruiter tests
+   âœ“ Admin tests: 11, âœ— Recruiter tests filtered: 0
+================================================================================
+âœ“ Final test execution: 34 tests (Admin: 11, Recruiter: 0)
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 15:07:53.066 / 20260109 15:07:53.308 / 00:00:00.242
+Status: 34 tests total, 0 passed, 0 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+All Tests                                                    34       0        0        0        00:00:00.000   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 15:07:53
+Exit status: 2
+Total tests executed: 34
+================================================================================
+
+Test summary written to: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Admin HTML log viewer generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: c:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///c:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+====================================================================================================
+SUITE JnP benchSale
+Full Name: JnP benchSale
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+Start: 20260109 15:08:44.666
+====================================================================================================
+âœ“ Final test execution: 1 tests (Admin: 0, Recruiter: 0)
+Using proactor: IocpProactor
+
+====================================================================================================
+TEST test_t2_01_post_a_job_verification_and_verification_with_job_id
+Full Name: test_t2_01_post_a_job_verification_and_verification_with_job_id
+Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\employer\test_employer_test_cases.py
+Start: 20260109 15:08:45.268
+====================================================================================================
+Creating employer1_page fixture for test: test_t2_01_post_a_job_verification_and_verification_with_job_id
+Attempting to maximize employer1 browser window...
+Attempt 1/8: Found 0 Chrome windows, retrying...
+Attempt 2/8: Found 0 Chrome windows, retrying...
+Attempt 3/8: Found 0 Chrome windows, retrying...
+Attempt 4/8: Found 0 Chrome windows, retrying...
+Attempt 5/8: Found 0 Chrome windows, retrying...
+Attempt 6/8: Found 0 Chrome windows, retrying...
+Attempt 7/8: Found 0 Chrome windows, retrying...
+Trying foreground window maximize fallback (employer1)
+âœ“ Browser maximized via foreground window method (employer1)
+================================================================================
+Started runtime measurement for: T2.01 Post a Job verification and verification with Job-Id
+Start time: 2026-01-09 15:09:15
+================================================================================
+Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+Network check elapsed: 0.589s
+00:00:00.589KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+
+Full Name: test_t2_01_post_a_job_verification_and_verification_with_job_id
+Start / End / Elapsed: 20260109 15:08:45.261 / 20260109 15:09:52.951 / 00:00:37.158
+Status: FAIL
+Message: tests\employer\test_employer_test_cases.py:1065: in test_t2_01_post_a_job_verification_and_verification_with_job_id
+    post_job_btn.wait_for(state="visible", timeout=30000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:17843: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_locator.py:679: in wait_for
+    await self._frame.wait_for_selector(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:323: in wait_for_selector
+    await self._channel.send("waitForSelector", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+E   Call log:
+E     - waiting for locator("//*[@id='root']/div[2]/main/div[2]/div[2]/div/div[2]/div/div/div/div/button") to be visible
+
+Locator/XPath hint: //*[@id='root']/div[2]/main/div[2]/div[2]/div/div[2]/div/div/div/div/button
+TEST test_t2_01_post_a_job_verification_and_verification_with_job_id: FAIL
+Error details:
+tests\employer\test_employer_test_cases.py:1065: in test_t2_01_post_a_job_verification_and_verification_with_job_id
+    post_job_btn.wait_for(state="visible", timeout=30000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:17843: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_locator.py:679: in wait_for
+    await self._frame.wait_for_selector(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:323: in wait_for_selector
+    await self._channel.send("waitForSelector", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+E   Call log:
+E     - waiting for locator("//*[@id='root']/div[2]/main/div[2]/div[2]/div/div[2]/div/div/div/div/button") to be visible
+
+====================================================================================================
+Full Name: JnP benchSale
+Start / End / Elapsed: 20260109 15:08:44.666 / 20260109 15:09:54.240 / 00:01:09.573
+Status: 1 tests total, 0 passed, 1 failed, 0 skipped
+====================================================================================================
+
+Test Statistics
+----------------------------------------------------------------------------------------------------
+Test                                                         Total    Pass     Fail     Skip     Elapsed        
+----------------------------------------------------------------------------------------------------
+test_t2_01_post_a_job_verification_and_verification_with_job_id 1        0        1        0        00:00:37.158   
+----------------------------------------------------------------------------------------------------
+All Tests                                                    1        0        1        0        00:00:37.158   
+----------------------------------------------------------------------------------------------------
+
+================================================================================
+TEST SESSION FINISHED
+Session end time: 2026-01-09 15:09:54
+Exit status: 1
+Total tests executed: 1
+================================================================================
+
+Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_test.html
+Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
