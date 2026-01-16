@@ -1599,6 +1599,104 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             transform: none;
         }}
         
+        /* Notification Banner */
+        .notification-banner {{
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 500px;
+            animation: slideInRight 0.3s ease-out;
+            border-left: 4px solid;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }}
+        
+        .notification-banner.show {{
+            display: flex;
+        }}
+        
+        .notification-banner.success {{
+            border-left-color: #16A34A;
+            background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%);
+        }}
+        
+        .notification-banner.info {{
+            border-left-color: #3B82F6;
+            background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+        }}
+        
+        .notification-banner.warning {{
+            border-left-color: #F59E0B;
+            background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%);
+        }}
+        
+        .notification-banner.error {{
+            border-left-color: #EF4444;
+            background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%);
+        }}
+        
+        .notification-icon {{
+            font-size: 24px;
+            flex-shrink: 0;
+        }}
+        
+        .notification-content {{
+            flex: 1;
+        }}
+        
+        .notification-title {{
+            font-weight: 600;
+            font-size: 0.95em;
+            color: #1F2937;
+            margin-bottom: 4px;
+        }}
+        
+        .notification-message {{
+            font-size: 0.85em;
+            color: #6B7280;
+            line-height: 1.4;
+        }}
+        
+        .notification-close {{
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #9CA3AF;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }}
+        
+        .notification-close:hover {{
+            background: rgba(0,0,0,0.05);
+            color: #374151;
+        }}
+        
+        @keyframes slideInRight {{
+            from {{
+                transform: translateX(100%);
+                opacity: 0;
+            }}
+            to {{
+                transform: translateX(0);
+                opacity: 1;
+            }}
+        }}
+        
         /* Screenshots Section */
         .screenshots {{
             margin-top: 12px;
@@ -1876,6 +1974,16 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             <span>Home</span>
         </a>
     </div>
+    <!-- Notification Banner -->
+    <div id="notificationBanner" class="notification-banner">
+        <div class="notification-icon" id="notificationIcon">ℹ️</div>
+        <div class="notification-content">
+            <div class="notification-title" id="notificationTitle">Notification</div>
+            <div class="notification-message" id="notificationMessage"></div>
+        </div>
+        <button class="notification-close" onclick="hideNotification()">×</button>
+    </div>
+    
     <div class="container">
         <div class="header">
             <div class="header-top">
@@ -2119,6 +2227,52 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
     </div>
 
     <script>
+        // Auto-start server when dashboard loads
+        (function autoStartServer() {{
+            // Check if main server is running by checking status endpoint
+            fetch('http://localhost:8767/status')
+            .then(response => response.json())
+            .then(data => {{
+                if (data.running) {{
+                    console.log('✅ Test server is already running');
+                }} else {{
+                    // Server not running - try to start it via helper
+                    console.log('Starting test server...');
+                    fetch('http://localhost:8767/start')
+                    .then(response => response.json())
+                    .then(data => {{
+                        if (data.success) {{
+                            console.log('✅ Server started successfully!');
+                            showNotification('success', 'Server Started', 'Test server is now running. You can run tests now.', 3000);
+                        }} else {{
+                            console.log('Server is starting...');
+                            showNotification('info', 'Starting Server', 'Test server is starting in the background. Please wait a moment before running tests.', 4000);
+                        }}
+                    }})
+                    .catch(() => {{
+                        console.log('Helper server not available. Please run AUTO_START_ALL.bat first.');
+                        showNotification('warning', 'Server Not Running', 'Please run AUTO_START_ALL.bat to start the test server system.', 5000);
+                    }});
+                }}
+            }})
+            .catch(() => {{
+                // Helper server not running - try to start main server directly
+                console.log('Helper server not available. Attempting direct start...');
+                fetch('http://localhost:8767/start')
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.success) {{
+                        showNotification('success', 'Server Started', 'Test server is now running.', 3000);
+                    }} else {{
+                        showNotification('warning', 'Server Not Running', 'Please run AUTO_START_ALL.bat to start the test server system.', 5000);
+                    }}
+                }})
+                .catch(() => {{
+                    showNotification('warning', 'Server Not Running', 'Please run AUTO_START_ALL.bat once to start the test server system. Then dashboard will work automatically.', 6000);
+                }});
+            }});
+        }})();
+        
         // Global filter state
         let currentStatusFilter = 'all';
 
@@ -2828,6 +2982,54 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             }}
         }});
         
+        // Notification functions
+        function showNotification(type, title, message, duration = 5000) {{
+            const banner = document.getElementById('notificationBanner');
+            if (!banner) {{
+                console.warn('Notification banner not found in DOM');
+                return;
+            }}
+            
+            const icon = document.getElementById('notificationIcon');
+            const titleEl = document.getElementById('notificationTitle');
+            const messageEl = document.getElementById('notificationMessage');
+            
+            if (!icon || !titleEl || !messageEl) {{
+                console.warn('Notification elements not found');
+                return;
+            }}
+            
+            // Remove all type classes
+            banner.classList.remove('success', 'info', 'warning', 'error');
+            banner.classList.add(type);
+            
+            // Set icon based on type
+            const icons = {{
+                'success': '✅',
+                'info': 'ℹ️',
+                'warning': '⚠️',
+                'error': '❌'
+            }};
+            icon.textContent = icons[type] || 'ℹ️';
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            banner.classList.add('show');
+            
+            // Auto-hide after duration
+            if (duration > 0) {{
+                setTimeout(() => {{
+                    hideNotification();
+                }}, duration);
+            }}
+        }}
+        
+        function hideNotification() {{
+            const banner = document.getElementById('notificationBanner');
+            banner.classList.remove('show');
+        }}
+        
         // Run test function
         function runTest(testName) {{
             // Find the button that was clicked
@@ -2865,9 +3067,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 clickedButton.disabled = true;
             }}
             
-            // Try to run via HTTP server endpoint (if available)
-            // Use localhost:8765 as default server port
-            const serverUrl = 'http://localhost:8765/run-test';
+            // Try to run via always-on server first (port 8766)
+            // Falls back to regular server (port 8765) if needed
+            let serverUrl = 'http://localhost:8766/add-test';
+            let isAlwaysOnServer = true;
             fetch(serverUrl, {{
                 method: 'POST',
                 headers: {{
@@ -2882,8 +3085,8 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                         clickedButton.textContent = '✅ Running';
                         clickedButton.style.background = 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)';
                     }}
-                    // Show notification
-                    alert('Test "' + testName + '" is running in the background.\\n\\nCheck the terminal or refresh the dashboard after it completes.');
+                    // Show notification (no popup)
+                    showNotification('success', 'Test Started', 'Test "' + testName + '" is running in the background. Check terminal or refresh dashboard after completion.', 4000);
                     // Auto-refresh after 5 seconds
                     setTimeout(() => {{
                         if (clickedButton) {{
@@ -2897,29 +3100,83 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 }}
             }})
             .catch(error => {{
-                // If HTTP server is not available, show command to copy
-                const command = `python -m pytest -k "${{testName}}" -s -vv`;
-                const message = `To run this test, execute the following command in your terminal:\\n\\n${{command}}\\n\\n\\nOr copy the command and run it manually.`;
-                
-                // Try to copy to clipboard
-                if (navigator.clipboard && navigator.clipboard.writeText) {{
-                    navigator.clipboard.writeText(command).then(() => {{
-                        alert(message + '\\n\\n✅ Command copied to clipboard!');
-                    }}).catch(() => {{
-                        alert(message);
+                // If always-on server failed, try regular server as fallback
+                if (isAlwaysOnServer) {{
+                    isAlwaysOnServer = false;
+                    serverUrl = 'http://localhost:8765/run-test';
+                    
+                    // Retry with regular server
+                    fetch(serverUrl, {{
+                        method: 'POST',
+                        headers: {{
+                            'Content-Type': 'application/json',
+                        }},
+                        body: JSON.stringify({{ testName: testName }})
+                    }})
+                    .then(response => response.json())
+                    .then(data => {{
+                        if (data.success) {{
+                            if (clickedButton) {{
+                                clickedButton.textContent = '✅ Running';
+                                clickedButton.style.background = 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)';
+                            }}
+                            showNotification('success', 'Test Started', 'Test "' + testName + '" is running in the background. Check terminal or refresh dashboard after completion.', 4000);
+                            setTimeout(() => {{
+                                if (clickedButton) {{
+                                    clickedButton.classList.remove('running');
+                                    clickedButton.textContent = '▶ Run Test';
+                                    clickedButton.disabled = false;
+                                }}
+                            }}, 5000);
+                        }} else {{
+                            throw new Error(data.error || 'Failed to run test');
+                        }}
+                    }})
+                    .catch(() => {{
+                        // Both servers failed - show notification
+                        const command = 'python -m pytest -k "' + testName + '" -s -vv';
+                        
+                        // Try to copy command to clipboard silently
+                        if (navigator.clipboard && navigator.clipboard.writeText) {{
+                            navigator.clipboard.writeText(command).catch(() => {{}});
+                        }}
+                        
+                        // Show notification banner
+                        showNotification(
+                            'warning',
+                            'Test Runner Not Available',
+                            'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat (or run: python utils/always_on_server.py). Command copied to clipboard.',
+                            6000
+                        );
+                        
+                        if (clickedButton) {{
+                            clickedButton.classList.remove('running');
+                            clickedButton.textContent = '▶ Run Test';
+                            clickedButton.disabled = false;
+                        }}
                     }});
                 }} else {{
-                    // Fallback: show prompt with command
-                    const userCommand = prompt(message + '\\n\\nCommand:', command);
-                    if (userCommand) {{
-                        alert('Please run this command in your terminal:\\n\\n' + userCommand);
+                    // Both servers failed - show notification
+                    const command = 'python -m pytest -k "' + testName + '" -s -vv';
+                    
+                    // Try to copy command to clipboard silently
+                    if (navigator.clipboard && navigator.clipboard.writeText) {{
+                        navigator.clipboard.writeText(command).catch(() => {{}});
                     }}
-                }}
-                
-                if (clickedButton) {{
-                    clickedButton.classList.remove('running');
-                    clickedButton.textContent = '▶ Run Test';
-                    clickedButton.disabled = false;
+                    
+                    // Show notification banner
+                    showNotification(
+                        'warning',
+                        'Test Runner Not Available',
+                        'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat (or run: python utils/always_on_server.py). Command copied to clipboard.',
+                        6000
+                    );
+                    
+                    if (clickedButton) {{
+                        clickedButton.classList.remove('running');
+                        clickedButton.textContent = '▶ Run Test';
+                        clickedButton.disabled = false;
+                    }}
                 }}
             }});
         }}

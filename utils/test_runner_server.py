@@ -1,9 +1,14 @@
 """
-Simple HTTP server to run pytest tests from the dashboard.
-Run this server to enable the "Run Test" button functionality in the dashboard.
+Test Runner Server - Runs pytest tests from dashboard via HTTP or file queue.
+This server supports both HTTP requests and file-based queue system.
 
 Usage:
     python utils/test_runner_server.py
+
+The server will:
+1. Accept HTTP POST requests to /run-test
+2. Watch for test requests in .test_queue.json file
+3. Run tests automatically when requested
 
 Then open the dashboard HTML file in a browser and click "Run Test" buttons.
 """
@@ -16,9 +21,130 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 import threading
 import os
+import time
+from datetime import datetime
 
 # Get the project root directory
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+QUEUE_FILE = PROJECT_ROOT / '.test_queue.json'
+LOCK_FILE = PROJECT_ROOT / '.test_queue.lock'
+
+
+def read_queue():
+    """Read test queue from file."""
+    if not QUEUE_FILE.exists():
+        return []
+    
+    try:
+        with open(QUEUE_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('queue', [])
+    except (json.JSONDecodeError, IOError):
+        return []
+
+
+def write_queue(queue):
+    """Write test queue to file."""
+    try:
+        with open(QUEUE_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'queue': queue, 'last_updated': datetime.now().isoformat()}, f, indent=2)
+    except IOError:
+        pass
+
+
+def add_to_queue(test_name):
+    """Add test to queue file."""
+    queue = read_queue()
+    if test_name not in queue:
+        queue.append(test_name)
+        write_queue(queue)
+
+
+def is_locked():
+    """Check if queue is currently being processed."""
+    if not LOCK_FILE.exists():
+        return False
+    try:
+        lock_age = time.time() - LOCK_FILE.stat().st_mtime
+        if lock_age > 300:  # 5 minutes - stale lock
+            LOCK_FILE.unlink()
+            return False
+        return True
+    except OSError:
+        return False
+
+
+def set_lock():
+    """Set lock file."""
+    try:
+        LOCK_FILE.touch()
+    except OSError:
+        pass
+
+
+def remove_lock():
+    """Remove lock file."""
+    try:
+        if LOCK_FILE.exists():
+            LOCK_FILE.unlink()
+    except OSError:
+        pass
+
+
+def run_test_command(test_name):
+    """Run a pytest test command."""
+    try:
+        os.chdir(PROJECT_ROOT)
+        cmd = [
+            sys.executable,
+            '-m', 'pytest',
+            '-k', test_name,
+            '-s', '-vv'
+        ]
+        
+        print(f"\n{'='*60}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Running test: {test_name}")
+        print(f"Command: {' '.join(cmd)}")
+        print(f"{'='*60}\n")
+        
+        result = subprocess.run(
+            cmd,
+            cwd=PROJECT_ROOT,
+            capture_output=False,
+            text=True
+        )
+        
+        print(f"\n{'='*60}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Test '{test_name}' completed with exit code: {result.returncode}")
+        print(f"{'='*60}\n")
+        
+        return result.returncode == 0
+    except Exception as e:
+        print(f"Error running test '{test_name}': {e}", file=sys.stderr)
+        return False
+
+
+def process_queue():
+    """Process test queue from file."""
+    if is_locked():
+        return
+    
+    queue = read_queue()
+    if not queue:
+        return
+    
+    set_lock()
+    
+    try:
+        while queue:
+            test_name = queue.pop(0)
+            if test_name:
+                run_test_command(test_name)
+            write_queue(queue)
+            if queue:
+                time.sleep(1)
+    finally:
+        remove_lock()
 
 
 class TestRunnerHandler(BaseHTTPRequestHandler):
@@ -46,39 +172,11 @@ class TestRunnerHandler(BaseHTTPRequestHandler):
                     self.send_error_response(400, 'Test name is required')
                     return
                 
-                # Run the test in a separate thread
+                # Add to queue and run in background thread
+                add_to_queue(test_name)
+                
                 def run_test():
-                    try:
-                        # Change to project root directory
-                        os.chdir(PROJECT_ROOT)
-                        
-                        # Build pytest command
-                        cmd = [
-                            sys.executable,
-                            '-m', 'pytest',
-                            '-k', test_name,
-                            '-s', '-vv'
-                        ]
-                        
-                        print(f"\n{'='*60}")
-                        print(f"Running test: {test_name}")
-                        print(f"Command: {' '.join(cmd)}")
-                        print(f"{'='*60}\n")
-                        
-                        # Run pytest
-                        result = subprocess.run(
-                            cmd,
-                            cwd=PROJECT_ROOT,
-                            capture_output=False,  # Show output in real-time
-                            text=True
-                        )
-                        
-                        print(f"\n{'='*60}")
-                        print(f"Test '{test_name}' completed with exit code: {result.returncode}")
-                        print(f"{'='*60}\n")
-                        
-                    except Exception as e:
-                        print(f"Error running test: {e}", file=sys.stderr)
+                    run_test_command(test_name)
                 
                 # Start test in background thread
                 thread = threading.Thread(target=run_test, daemon=True)
@@ -142,18 +240,40 @@ class TestRunnerHandler(BaseHTTPRequestHandler):
         print(f"[{self.address_string()}] {format % args}")
 
 
+def watch_queue_loop():
+    """Background thread to watch file queue."""
+    while True:
+        try:
+            process_queue()
+            time.sleep(0.5)  # Check queue every 0.5 seconds
+        except Exception as e:
+            print(f"Error in queue watcher: {e}", file=sys.stderr)
+            time.sleep(1)
+
+
 def run_server(port=8765):
     """Run the test runner server."""
     server_address = ('', port)
     httpd = HTTPServer(server_address, TestRunnerHandler)
+    
+    # Start file queue watcher in background thread
+    queue_watcher = threading.Thread(target=watch_queue_loop, daemon=True)
+    queue_watcher.start()
     
     print(f"""
 {'='*60}
 Test Runner Server
 {'='*60}
 Server running on http://localhost:{port}
+File queue watcher: Active
+Queue file: {QUEUE_FILE}
+
 Open your dashboard HTML file in a browser.
 Click "Run Test" buttons to execute tests.
+
+The server supports both:
+- HTTP requests (via dashboard)
+- File queue (via .test_queue.json)
 
 Press Ctrl+C to stop the server.
 {'='*60}
@@ -164,6 +284,7 @@ Press Ctrl+C to stop the server.
     except KeyboardInterrupt:
         print("\n\nShutting down server...")
         httpd.shutdown()
+        remove_lock()
         print("Server stopped.")
 
 

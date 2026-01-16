@@ -2522,7 +2522,7 @@ def test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_par
         goto_fast(page, f"{BASE_URL}my-resumes")
         page.wait_for_load_state("domcontentloaded", timeout=30000)
         page.wait_for_timeout(2000)
-
+        
         # Ensure we are on resumes page
         page.locator("text=My Resumes").first.wait_for(state="visible", timeout=30000)
         
@@ -2810,7 +2810,7 @@ def test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_par
             pass  # No loading indicator, that's fine
         
         # Wait Until Page Contains Element css:.col-md-7 180 # the form (matching Robot Framework)
-        page.locator(".col-md-7").wait_for(state="visible", timeout=180000)
+            page.locator(".col-md-7").wait_for(state="visible", timeout=180000)
         
         # Wait Until Page Contains Element css:.col-md-5 180 # the resume
         page.locator(".col-md-5").wait_for(state="visible", timeout=180000)

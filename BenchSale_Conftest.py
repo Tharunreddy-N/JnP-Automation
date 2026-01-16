@@ -6,6 +6,7 @@ import time
 import logging
 import os
 import sys
+import threading
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -19,6 +20,54 @@ from typing import Optional, Dict, List
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from playwright.sync_api import Page as PWPage
 import re
+
+# GLOBAL PYTEST LOCK - Prevent multiple pytest processes from running
+_PYTEST_LOCK_FILE = os.path.join(os.path.dirname(__file__), '.pytest_running.lock')
+
+def _check_pytest_lock():
+    """Check if another pytest process is running - FAIL if yes."""
+    if os.path.exists(_PYTEST_LOCK_FILE):
+        try:
+            with open(_PYTEST_LOCK_FILE, 'r') as f:
+                lock_pid = int(f.read().strip())
+            # Check if process exists
+            if sys.platform == 'win32':
+                import subprocess
+                result = subprocess.run(
+                    ['tasklist', '/FI', f'PID eq {lock_pid}'],
+                    capture_output=True,
+                    text=True
+                )
+                if str(lock_pid) in result.stdout:
+                    error_msg = f"❌ Another pytest process (PID: {lock_pid}) is already running! Only one test can run at a time."
+                    print(error_msg)
+                    raise RuntimeError(error_msg)
+        except (ValueError, FileNotFoundError):
+            # Stale lock, remove it
+            try:
+                os.unlink(_PYTEST_LOCK_FILE)
+            except:
+                pass
+    
+    # Create lock file
+    try:
+        with open(_PYTEST_LOCK_FILE, 'w') as f:
+            f.write(str(os.getpid()))
+    except Exception as e:
+        print(f"Warning: Could not create pytest lock file: {e}")
+
+def _remove_pytest_lock():
+    """Remove pytest lock file."""
+    try:
+        if os.path.exists(_PYTEST_LOCK_FILE):
+            with open(_PYTEST_LOCK_FILE, 'r') as f:
+                if f.read().strip() == str(os.getpid()):
+                    os.unlink(_PYTEST_LOCK_FILE)
+    except Exception:
+        pass
+
+# Check lock at module import time - PREVENT MULTIPLE PYTEST PROCESSES
+_check_pytest_lock()
 
 # Configure logging
 def _detect_run_scope() -> str:
@@ -351,38 +400,151 @@ def wait(driver):
 
 
 # -----------------------------
-# Playwright fixtures
+# Playwright fixtures - SINGLETON BROWSER PATTERN
 # -----------------------------
+# Global variables to ensure only one browser instance exists
+_global_playwright = None
+_global_browser = None
+_browser_lock = threading.Lock()  # Lock to prevent concurrent browser creation
+_BROWSER_LOCK_FILE = os.path.join(os.path.dirname(__file__), '.browser_lock')
+
 @pytest.fixture(scope="session")
 def playwright_instance():
-    """Start Playwright"""
-    p = sync_playwright().start()
-    yield p
-    p.stop()
+    """Start Playwright - singleton pattern to ensure only one instance"""
+    global _global_playwright
+    if _global_playwright is None:
+        _global_playwright = sync_playwright().start()
+    yield _global_playwright
+    # Don't stop here - let it persist for browser reuse
+    # Only stop when browser is closed
 
+
+def _acquire_browser_lock(timeout=30):
+    """Acquire file-based lock to prevent multiple browsers across processes."""
+    import time
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            if not os.path.exists(_BROWSER_LOCK_FILE):
+                # Create lock file with process ID
+                with open(_BROWSER_LOCK_FILE, 'w') as f:
+                    f.write(str(os.getpid()))
+                time.sleep(0.2)  # Small delay to ensure file is written
+                # Verify we still own the lock
+                if os.path.exists(_BROWSER_LOCK_FILE):
+                    with open(_BROWSER_LOCK_FILE, 'r') as f:
+                        if f.read().strip() == str(os.getpid()):
+                            logger.info(f"Acquired browser lock (PID: {os.getpid()})")
+                            return True
+            else:
+                # Check if lock is stale - if file is old (>60 seconds), consider it stale
+                try:
+                    file_age = time.time() - os.path.getmtime(_BROWSER_LOCK_FILE)
+                    if file_age > 60:
+                        # Stale lock, remove it
+                        logger.warning(f"Removing stale browser lock (age: {file_age:.1f}s)")
+                        os.unlink(_BROWSER_LOCK_FILE)
+                        continue
+                    else:
+                        # Lock is held by another process, wait
+                        time.sleep(0.5)
+                        continue
+                except (ValueError, OSError):
+                    # Invalid lock, remove it
+                    try:
+                        os.unlink(_BROWSER_LOCK_FILE)
+                    except:
+                        pass
+                    continue
+        except Exception as e:
+            logger.debug(f"Error acquiring lock: {e}")
+            time.sleep(0.5)
+    logger.warning("Could not acquire browser lock within timeout")
+    return False
+
+def _release_browser_lock():
+    """Release file-based lock."""
+    try:
+        if os.path.exists(_BROWSER_LOCK_FILE):
+            with open(_BROWSER_LOCK_FILE, 'r') as f:
+                lock_pid = f.read().strip()
+            if lock_pid == str(os.getpid()):
+                os.unlink(_BROWSER_LOCK_FILE)
+    except Exception:
+        pass
 
 @pytest.fixture(scope="session")
-def pw_browser(playwright_instance):
-    """Launch Chrome browser for Playwright tests (visible, not headless)"""
-    args = []
-    if MAXIMIZE_BROWSER:
-        args.append("--start-maximized")
-    else:
-        # If size/pos are provided, apply them; otherwise keep a normal window
-        # so Windows Snap (Win+Left/Right) can dock it beside the editor.
-        if PW_WINDOW_SIZE:
-            args.append(f"--window-size={PW_WINDOW_SIZE}")
-        if PW_WINDOW_POS:
-            args.append(f"--window-position={PW_WINDOW_POS}")
-    # Use Chrome channel instead of Chromium for better compatibility
-    # This will use the actual Chrome browser installed on the system
-    browser = playwright_instance.chromium.launch(
-        channel="chrome",  # Use Chrome instead of Chromium
-        headless=False,     # Make browser visible
-        args=args
-    )
-    yield browser
-    browser.close()
+def pw_browser(playwright_instance, request):
+    """Launch Chrome browser for Playwright tests - SINGLETON: only one browser instance across ALL processes"""
+    global _global_browser, _global_playwright, _browser_lock
+    
+    # STRICT: Use file-based lock to prevent multiple browsers across processes
+    # If we can't acquire lock, FAIL - don't create browser
+    if not _acquire_browser_lock(timeout=30):
+        error_msg = f"❌ CRITICAL: Could not acquire browser lock! Another browser may be running. PID: {os.getpid()}"
+        logger.error(error_msg)
+        pytest.fail(error_msg)
+    
+    # Use thread lock to ensure only one browser is created at a time within this process
+    with _browser_lock:
+        # Check if browser already exists and is connected
+        if _global_browser is not None:
+            try:
+                # Check if browser is still connected
+                if _global_browser.is_connected():
+                    logger.info("Reusing existing browser instance")
+                    return _global_browser
+            except Exception:
+                # Browser was closed, reset it
+                logger.info("Browser was closed, creating new instance")
+                _global_browser = None
+        
+        # Create new browser only if one doesn't exist
+        logger.info("Creating new browser instance (only one will be created across all processes)")
+        args = []
+        if MAXIMIZE_BROWSER:
+            args.append("--start-maximized")
+        else:
+            # If size/pos are provided, apply them; otherwise keep a normal window
+            # so Windows Snap (Win+Left/Right) can dock it beside the editor.
+            if PW_WINDOW_SIZE:
+                args.append(f"--window-size={PW_WINDOW_SIZE}")
+            if PW_WINDOW_POS:
+                args.append(f"--window-position={PW_WINDOW_POS}")
+        
+        # Use Chrome channel instead of Chromium for better compatibility
+        # This will use the actual Chrome browser installed on the system
+        _global_browser = playwright_instance.chromium.launch(
+            channel="chrome",  # Use Chrome instead of Chromium
+            headless=False,     # Make browser visible
+            args=args
+        )
+        
+        # Register finalizer to close browser at end of session
+        def close_browser():
+            global _global_browser, _global_playwright
+            with _browser_lock:
+                if _global_browser is not None:
+                    try:
+                        logger.info("Closing browser instance")
+                        _global_browser.close()
+                    except Exception as e:
+                        logger.warning(f"Error closing browser: {e}")
+                    finally:
+                        _global_browser = None
+                if _global_playwright is not None:
+                    try:
+                        _global_playwright.stop()
+                    except Exception:
+                        pass
+                    finally:
+                        _global_playwright = None
+                _release_browser_lock()
+                _remove_pytest_lock()  # Remove pytest lock when browser closes
+        
+        request.addfinalizer(close_browser)
+    
+    yield _global_browser
 
 
 @pytest.fixture(scope="function")
