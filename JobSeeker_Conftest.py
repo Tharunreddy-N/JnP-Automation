@@ -90,6 +90,17 @@ RB_PROJECT_ROLES_1 = os.getenv("RB_PROJECT_ROLES_1", "Created Stored Procedures,
 # Get the absolute path to ensure it works from any directory
 _project_root = Path(__file__).parent.absolute()
 DEFAULT_RESUME_PATH = str(_project_root / "Deepika Kashni.pdf")
+
+# Verify the file exists, if not try alternative locations
+if not os.path.exists(DEFAULT_RESUME_PATH):
+    # Try one level up (in case conftest is in a subdirectory)
+    alt_path = _project_root.parent / "Deepika Kashni.pdf"
+    if os.path.exists(str(alt_path)):
+        DEFAULT_RESUME_PATH = str(alt_path)
+        print(f"Found Deepika Kashni.pdf at alternative location: {DEFAULT_RESUME_PATH}")
+    else:
+        print(f"WARNING: Deepika Kashni.pdf not found at {DEFAULT_RESUME_PATH} or {alt_path}")
+
 # Allow overriding from environment. Tests may generate a resume dynamically at runtime.
 RESUME_PATH = os.getenv("RESUME_PATH", DEFAULT_RESUME_PATH)
 
@@ -158,38 +169,109 @@ def login_jobseeker_pw(page, user_id=JS_EMAIL, password=JS_PASSWORD):
             "id=theme-button",
             "button[type='submit']",
             "xpath=//button[contains(text(),'Sign')]",
+            "xpath=//button[contains(text(),'Sign in')]",
+            "xpath=//button[contains(text(),'Login')]",
         ]
         for sel in button_selectors:
             try:
                 login_button = page.locator(sel)
                 if login_button.is_visible(timeout=5000):
+                    # Scroll into view if needed
+                    login_button.scroll_into_view_if_needed()
+                    page.wait_for_timeout(300)
+                    # Wait for button to be enabled
+                    login_button.wait_for(state="attached", timeout=2000)
                     login_button.click()
+                    print(f"Clicked login button using selector: {sel}")
+                    break
+            except Exception as e:
+                print(f"Login button selector {sel} failed: {e}")
+                continue
+        if not login_button:
+            raise PWTimeoutError("Login button not found with any selector")
+        
+        # Wait for navigation after click
+        page.wait_for_timeout(2000)
+        
+        # IMPROVED: Better login verification with multiple checks
+        login_success = False
+        max_wait = 30000  # 30 seconds
+        start_wait = time.time()
+        
+        while (time.time() - start_wait) * 1000 < max_wait:
+            current_url = page.url or ""
+            
+            # Check if URL changed away from Login
+            if "Login" not in current_url:
+                login_success = True
+                print(f"Login successful - URL changed to: {current_url}")
+                break
+            
+            # Check for dashboard elements (alternative success indicator)
+            try:
+                dashboard_indicators = [
+                    ".css-1livart",  # Sidebar elements
+                    "xpath=//div[@aria-label='Dashboard']",
+                    ".MuiDrawer-paper",
+                    "xpath=//main",
+                ]
+                for indicator in dashboard_indicators:
+                    if page.locator(indicator).count() > 0:
+                        login_success = True
+                        print(f"Login successful - Dashboard element found: {indicator}")
+                        break
+                if login_success:
                     break
             except Exception:
-                continue
-        if not login_button or not login_button.is_visible():
-            raise PWTimeoutError("Login button not found")
-        page.wait_for_timeout(1500)
-
-        # Verify login actually succeeded (sometimes click returns but session stays on Login).
-        # Accept either URL change away from /Login or dashboard navigation presence.
-        try:
-            page.wait_for_url(lambda url: "Login" not in url, timeout=20000)
-        except Exception:
-            pass
-        try:
-            # If we are still on login, surface any visible error/toast before failing.
-            if "Login" in (page.url or ""):
-                err = ""
+                pass
+            
+            # Check for error messages
+            try:
+                error_selectors = [
+                    ".Toastify",
+                    "[class*='Toastify']",
+                    "[class*='error']",
+                    "[class*='Error']",
+                    "text=/invalid|incorrect|failed|error/i",
+                ]
+                for err_sel in error_selectors:
+                    try:
+                        err_elem = page.locator(err_sel).first
+                        if err_elem.count() > 0 and err_elem.is_visible(timeout=500):
+                            err_text = err_elem.inner_text() or ""
+                            if err_text.strip():
+                                print(f"Error message found: {err_text}")
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            
+            page.wait_for_timeout(1000)
+        
+        # Final verification
+        if not login_success:
+            err = ""
+            try:
+                toast = page.locator(".Toastify, [class*='Toastify']").first
+                if toast.count() > 0 and toast.is_visible(timeout=1000):
+                    err = (toast.inner_text() or "").strip()
+            except Exception:
+                pass
+            
+            # Try to get any visible error text
+            if not err:
                 try:
-                    toast = page.locator(".Toastify, [class*='Toastify']").first
-                    if toast.count() > 0 and toast.is_visible(timeout=1000):
-                        err = (toast.inner_text() or "").strip()
+                    error_elem = page.locator("[class*='error'], [class*='Error'], text=/invalid|incorrect|failed/i").first
+                    if error_elem.count() > 0:
+                        err = (error_elem.inner_text() or "").strip()
                 except Exception:
                     pass
-                raise PWTimeoutError(f"Login did not complete; still on {page.url}. {('Toast: ' + err) if err else ''}".strip())
-        except Exception:
-            raise
+            
+            raise PWTimeoutError(
+                f"Login did not complete after {max_wait/1000:.0f} seconds. "
+                f"Still on: {page.url}. "
+                f"{('Error: ' + err) if err else 'No error message found.'}"
+            )
 
         try:
             page.on("dialog", lambda dialog: dialog.accept())
@@ -445,3 +527,186 @@ def jobseeker_page(pw_browser, request):
             time.sleep(0.2)
         except Exception as e:
             logger.debug(f"Error closing context: {e}")
+
+
+def _refresh_dashboard_after_test(test_name: str, outcome: str):
+    """Refresh dashboard after each test completes to show latest status.
+    This runs after EVERY test (passed/failed/skipped) regardless of how the test was run.
+    """
+    try:
+        # Import here to avoid circular imports
+        import subprocess
+        import sys
+        import time
+        from pathlib import Path
+        
+        # Longer delay to ensure log files are fully flushed and written to disk
+        # This is critical for dashboard to show accurate status
+        time.sleep(5.0)  # Increased to 5 seconds to ensure log files are fully flushed and latest status is captured
+        
+        # Force log file flush by importing logging and flushing all handlers
+        import logging
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers:
+            if hasattr(handler, 'flush'):
+                handler.flush()
+        
+        project_root = Path(__file__).parent
+        refresh_script = project_root / 'refresh_dashboard.py'
+        
+        if refresh_script.exists():
+            # Run refresh - don't capture output so we can see any errors
+            try:
+                logger.info(f"Refreshing dashboard after test: {test_name} ({outcome})")
+                result = subprocess.run(
+                    [sys.executable, str(refresh_script)],
+                    cwd=project_root,
+                    timeout=60,  # Increased timeout to 60 seconds for large dashboards
+                    capture_output=True,  # Capture to check for errors
+                    text=True
+                )
+                if result.returncode == 0:
+                    logger.info(f"✓ Dashboard refreshed successfully after test: {test_name} ({outcome})")
+                    # Additional wait to ensure file is written to disk
+                    time.sleep(0.5)
+                else:
+                    logger.warning(f"Dashboard refresh returned code {result.returncode} for test: {test_name}")
+                    if result.stderr:
+                        logger.warning(f"Dashboard refresh stderr: {result.stderr}")
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Dashboard refresh timed out after 60 seconds for test: {test_name}")
+                # Try direct import as fallback
+                try:
+                    from utils.unified_log_viewer import generate_unified_dashboard
+                    logger.info("Attempting direct dashboard generation...")
+                    dashboard_path = generate_unified_dashboard()
+                    logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
+                except Exception as direct_err:
+                    logger.warning(f"Direct dashboard generation also failed: {direct_err}")
+            except Exception as refresh_err:
+                logger.warning(f"Error refreshing dashboard for test {test_name}: {refresh_err}")
+                # Try direct import as fallback
+                try:
+                    from utils.unified_log_viewer import generate_unified_dashboard
+                    logger.info("Attempting direct dashboard generation as fallback...")
+                    dashboard_path = generate_unified_dashboard()
+                    logger.info(f"✓ Dashboard generated directly (fallback): {dashboard_path}")
+                except Exception as direct_err:
+                    logger.warning(f"Direct dashboard generation (fallback) also failed: {direct_err}")
+        else:
+            logger.warning(f"Dashboard refresh script not found: {refresh_script}")
+            # Try direct import as fallback
+            try:
+                from utils.unified_log_viewer import generate_unified_dashboard
+                logger.info("Attempting direct dashboard generation (script not found)...")
+                dashboard_path = generate_unified_dashboard()
+                logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
+            except Exception as direct_err:
+                logger.warning(f"Direct dashboard generation failed: {direct_err}")
+    except Exception as e:
+        # Always log the error but don't fail the test
+        logger.warning(f"Could not refresh dashboard after test {test_name}: {e}")
+        # Try one more time with direct import
+        try:
+            from utils.unified_log_viewer import generate_unified_dashboard
+            logger.info("Final attempt: Direct dashboard generation...")
+            dashboard_path = generate_unified_dashboard()
+            logger.info(f"✓ Dashboard generated directly (final attempt): {dashboard_path}")
+        except Exception as final_err:
+            logger.error(f"All dashboard refresh attempts failed: {final_err}")
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Generate detailed test reports and refresh dashboard after each test"""
+    from utils.test_logger import get_test_logger
+    test_logger = get_test_logger()
+    
+    outcome = yield
+    rep = outcome.get_result()
+    
+    if rep.when == "call":
+        test_name = item.name
+        
+        if rep.outcome == "passed":
+            elapsed = rep.duration if hasattr(rep, 'duration') else None
+            test_logger.log_test_end(test_name, "PASS", elapsed=elapsed)
+            # Force flush to ensure log is written immediately
+            import logging
+            root_logger = logging.getLogger()
+            for handler in root_logger.handlers:
+                if hasattr(handler, 'flush'):
+                    handler.flush()
+            
+            # Refresh dashboard after test completes
+            _refresh_dashboard_after_test(test_name, rep.outcome)
+        elif rep.outcome == "failed":
+            error_msg = str(rep.longrepr) if rep.longrepr else "Test failed"
+            elapsed = rep.duration if hasattr(rep, 'duration') else None
+            test_logger.log_test_end(test_name, "FAIL", message=error_msg, elapsed=elapsed)
+            # Force flush to ensure log is written immediately
+            import logging
+            root_logger = logging.getLogger()
+            for handler in root_logger.handlers:
+                if hasattr(handler, 'flush'):
+                    handler.flush()
+            
+            # Refresh dashboard after test completes (FAIL)
+            _refresh_dashboard_after_test(test_name, rep.outcome)
+        elif rep.outcome == "skipped":
+            skip_reason = str(rep.longrepr) if rep.longrepr else "Test skipped"
+            elapsed = rep.duration if hasattr(rep, 'duration') else None
+            test_logger.log_test_end(test_name, "SKIP", message=skip_reason, elapsed=elapsed)
+            # Force flush to ensure log is written immediately
+            import logging
+            root_logger = logging.getLogger()
+            for handler in root_logger.handlers:
+                if hasattr(handler, 'flush'):
+                    handler.flush()
+            
+            # Refresh dashboard after test completes
+            _refresh_dashboard_after_test(test_name, rep.outcome)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Called after whole test run finished - refresh dashboard"""
+    from utils.test_logger import get_test_logger
+    test_logger = get_test_logger()
+    
+    # Generate unified dashboard - ALWAYS run this at session end to ensure dashboard is updated
+    # This ensures dashboard updates regardless of how tests were run (UI, command line, etc.)
+    try:
+        logger.info("Generating unified dashboard at session end (Job Seeker tests)...")
+        # Wait a moment to ensure all log files are fully written
+        time.sleep(1)
+        from utils.unified_log_viewer import generate_unified_dashboard
+        dashboard_path = generate_unified_dashboard()
+        logger.info(f"✓ Unified dashboard generated successfully: {dashboard_path}")
+        
+        # Additional wait to ensure file is written to disk
+        time.sleep(0.5)
+        logger.info("Dashboard update complete. UI will show latest status on next refresh.")
+    except Exception as dashboard_err:
+        logger.error(f"ERROR: Could not generate unified dashboard: {dashboard_err}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        # Try one more time with refresh script
+        try:
+            import subprocess
+            project_root = Path(__file__).parent
+            refresh_script = project_root / 'refresh_dashboard.py'
+            if refresh_script.exists():
+                logger.info("Attempting dashboard refresh via script...")
+                result = subprocess.run(
+                    [sys.executable, str(refresh_script)],
+                    cwd=project_root,
+                    timeout=60,
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    logger.info("✓ Dashboard refreshed via script successfully")
+                else:
+                    logger.warning(f"Dashboard refresh script returned code {result.returncode}")
+        except Exception as script_err:
+            logger.error(f"Dashboard refresh script also failed: {script_err}")

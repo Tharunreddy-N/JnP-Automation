@@ -18,13 +18,14 @@ AUTO_START_SCRIPT = PROJECT_ROOT / 'utils' / 'auto_start_server.py'
 
 
 def is_port_in_use(port):
-    """Check if a port is already in use."""
+    """Check if a port is already in use by trying to connect to it."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
         try:
-            s.bind(('localhost', port))
+            result = s.connect_ex(('localhost', port))
+            return result == 0  # True if connection was successful (port is in use)
+        except Exception:
             return False
-        except OSError:
-            return True
 
 
 class HelperHandler(BaseHTTPRequestHandler):

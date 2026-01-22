@@ -481,6 +481,9 @@ def generate_unified_dashboard():
     """Generate a unified dashboard HTML showing both Admin and Recruiter logs.
     This function is called automatically after each test run to ensure latest results are shown.
     """
+    import time
+    import os
+    
     project_root = Path(__file__).parent.parent
     logs_dir = project_root / 'logs'
     reports_dir = project_root / 'reports' / 'failures'
@@ -491,37 +494,78 @@ def generate_unified_dashboard():
     jobseeker_log = logs_dir / 'jobseeker.log'
     main_log = logs_dir / 'benchsale_test.log'
     
+    # CRITICAL: Wait for log files to be fully written before reading
+    # This ensures we capture the latest test status (PASS/FAIL)
+    time.sleep(2.0)  # Increased to 2 seconds to ensure log files are fully flushed
+    
+    # Force file system sync to ensure all log files are written
+    try:
+        # Sync all log files to disk
+        for log_file in [admin_log, recruiter_log, employer_log, jobseeker_log, main_log]:
+            if log_file.exists():
+                try:
+                    # Touch the file to ensure it's synced
+                    log_file.touch()
+                    # Force sync on Windows
+                    if sys.platform == 'win32':
+                        # On Windows, we can't directly sync, but touching helps
+                        pass
+                    else:
+                        # On Unix, sync the directory
+                        os.sync()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    
     all_tests = []
     
     # Parse ALL log files to preserve all test results
-    # Admin log - always parse if exists
-    if admin_log.exists():
-        admin_tests = parse_test_results_from_log(str(admin_log))
-        all_tests.extend([{**t, 'source': 'Admin'} for t in admin_tests])
+    # Each entry in all_tests will now also track the file's modification time
+    # IMPORTANT: Always use the LATEST test result if a test appears multiple times
+    def get_tests_with_mtime(log_path, source):
+        if not log_path.exists():
+            return []
+        
+        # Get file modification time BEFORE reading (to detect if file changes during read)
+        initial_mtime = log_path.stat().st_mtime
+        
+        # Read and parse the log file
+        results = parse_test_results_from_log(str(log_path))
+        
+        # Check if file was modified during reading (means new data was written)
+        try:
+            final_mtime = log_path.stat().st_mtime
+            if final_mtime > initial_mtime:
+                # File was modified during reading - re-read to get latest data
+                time.sleep(2.0)  # Increased wait to ensure write is complete
+                results = parse_test_results_from_log(str(log_path))
+                final_mtime = log_path.stat().st_mtime
+                # If file was modified again, wait once more and re-read
+                if log_path.stat().st_mtime > final_mtime:
+                    time.sleep(1.0)
+                    results = parse_test_results_from_log(str(log_path))
+                    final_mtime = log_path.stat().st_mtime
+                    # One more check for very recent writes
+                    if log_path.stat().st_mtime > final_mtime:
+                        time.sleep(0.5)
+                        results = parse_test_results_from_log(str(log_path))
+                        final_mtime = log_path.stat().st_mtime
+        except Exception:
+            final_mtime = initial_mtime
+        
+        return [{**t, 'source': source, 'mtime': final_mtime} for t in results]
+
+    all_tests = []
+    all_tests.extend(get_tests_with_mtime(admin_log, 'Admin'))
+    all_tests.extend(get_tests_with_mtime(recruiter_log, 'Recruiter'))
+    all_tests.extend(get_tests_with_mtime(employer_log, 'Employer'))
+    all_tests.extend(get_tests_with_mtime(jobseeker_log, 'Job Seeker'))
     
-    # Recruiter log - always parse if exists
-    if recruiter_log.exists():
-        recruiter_tests = parse_test_results_from_log(str(recruiter_log))
-        all_tests.extend([{**t, 'source': 'Recruiter'} for t in recruiter_tests])
-    
-    # Employer log - always parse if exists
-    if employer_log.exists():
-        employer_tests = parse_test_results_from_log(str(employer_log))
-        all_tests.extend([{**t, 'source': 'Employer'} for t in employer_tests])
-    
-    # Job Seeker log - always parse if exists
-    if jobseeker_log.exists():
-        jobseeker_tests = parse_test_results_from_log(str(jobseeker_log))
-        all_tests.extend([{**t, 'source': 'Job Seeker'} for t in jobseeker_tests])
-    
-    # Main log - parse if exists (for any tests not in admin/recruiter/employer/jobseeker logs)
+    # Main log - parse for any extra tests
     if main_log.exists():
-        main_tests = parse_test_results_from_log(str(main_log))
-        # Only add tests from main log that don't have a source yet
-        for t in main_tests:
-            if 'source' not in t:
-                t['source'] = 'Main'
-            all_tests.append(t)
+        main_results = get_tests_with_mtime(main_log, 'Main')
+        all_tests.extend(main_results)
     
     # Filter out warning messages (collected but not executed tests)
     # Only keep actual test results
@@ -558,13 +602,60 @@ def generate_unified_dashboard():
         test_dict[test_key] = test_info
     
     # Then, update with actual test results from logs (overwrites NOT_RUN status)
-    for test in actual_tests:
+    # CRITICAL: Sort by (mtime, line) descending to process latest results first
+    # This ensures that when we encounter duplicate test results, the first one we process is the latest
+    actual_tests_sorted = sorted(actual_tests, key=lambda x: (x.get('mtime', 0), x.get('line', 0)), reverse=True)
+    
+    for test in actual_tests_sorted:
         test_key = (test['name'], test.get('source', 'Main'))
-        # Keep the test with the highest line number (latest in log file = most recent run)
-        # This automatically replaces old failed tests with new results
-        # If a test was FAIL before and now PASS, the PASS result replaces the FAIL
-        if test_key not in test_dict or test['line'] > test_dict[test_key].get('line', 0):
+        
+        # IMPROVED DEDUPLICATION LOGIC:
+        # Always use the LATEST result to ensure dashboard shows current PASS/FAIL status
+        # Since we sorted by (mtime, line) descending, first entry for each test_key is the latest
+        existing = test_dict.get(test_key)
+        
+        if not existing or existing.get('status') == 'NOT_RUN':
+            # No existing result or it's NOT_RUN - always use new result
             test_dict[test_key] = test
+        else:
+            # Compare mtime and line number - always prefer newer/higher result
+            existing_mtime = existing.get('mtime', 0)
+            current_mtime = test.get('mtime', 0)
+            existing_line = existing.get('line', 0)
+            current_line = test.get('line', 0)
+            
+            # CRITICAL: Always prefer result with higher (mtime, line) combination
+            # This ensures latest test run result is always shown
+            time_diff = current_mtime - existing_mtime
+            
+            if time_diff > 2.0:
+                # Newer file by more than 2 seconds - always use this result
+                test_dict[test_key] = test
+            elif time_diff < -2.0:
+                # Existing is newer by more than 2 seconds - keep existing
+                pass
+            else:
+                # Mtimes are close (within 2 seconds) - prefer higher line number (appears later in log)
+                # CRITICAL: Higher line number = more recent entry in same file = always prefer
+                if current_line > existing_line:
+                    # Current appears later in log - always use it (it's more recent)
+                    test_dict[test_key] = test
+                elif current_line < existing_line:
+                    # Existing appears later - keep existing
+                    pass
+                else:
+                    # Same line number - prefer PASS over FAIL, or newer mtime
+                    existing_status = existing.get('status', '')
+                    current_status = test.get('status', '')
+                    if current_status == 'PASS' and existing_status == 'FAIL':
+                        # Always prefer PASS over FAIL if line numbers are same
+                        test_dict[test_key] = test
+                    elif current_status == 'FAIL' and existing_status == 'PASS':
+                        # Keep existing PASS
+                        pass
+                    elif current_mtime > existing_mtime:
+                        # Same status, prefer newer mtime
+                        test_dict[test_key] = test
 
     # Attach latest failure artifacts (screenshot/html/url) from reports/failures
     # so the right-side details panel can open them.
@@ -664,34 +755,50 @@ def generate_unified_dashboard():
             test['screenshots'] = find_screenshots_for_test(test['name'], reports_dir)
     
     # Get last modified time of log files for "Last Updated" display
-    last_updated = datetime.now()
-    if admin_log.exists():
-        admin_mtime = datetime.fromtimestamp(admin_log.stat().st_mtime)
-        if admin_mtime > last_updated:
-            last_updated = admin_mtime
-    if recruiter_log.exists():
-        recruiter_mtime = datetime.fromtimestamp(recruiter_log.stat().st_mtime)
-        if recruiter_mtime > last_updated:
-            last_updated = recruiter_mtime
-    if employer_log.exists():
-        employer_mtime = datetime.fromtimestamp(employer_log.stat().st_mtime)
-        if employer_mtime > last_updated:
-            last_updated = employer_mtime
-    if jobseeker_log.exists():
-        jobseeker_mtime = datetime.fromtimestamp(jobseeker_log.stat().st_mtime)
-        if jobseeker_mtime > last_updated:
-            last_updated = jobseeker_mtime
-    if main_log.exists():
-        main_mtime = datetime.fromtimestamp(main_log.stat().st_mtime)
-        if main_mtime > last_updated:
-            last_updated = main_mtime
+    # We calculate per-section timestamps AND an overall timestamp
+    last_updated = None
+    
+    # Validation: Only show timestamp if actual tests were executed (status != 'NOT_RUN')
+    # This prevents showing a timestamp for a log file that exists but has no valid results
+    benchsale_has_run = any(t.get('status') != 'NOT_RUN' for t in benchsale_tests)
+    employer_has_run = any(t.get('status') != 'NOT_RUN' for t in employer_tests)
+    jobseeker_has_run = any(t.get('status') != 'NOT_RUN' for t in jobseeker_tests)
+    
+    # BenchSale Timestamp (Admin or Recruiter)
+    benchsale_last_updated = None
+    if benchsale_has_run:
+        if admin_log.exists():
+            admin_mtime = datetime.fromtimestamp(admin_log.stat().st_mtime)
+            if benchsale_last_updated is None or admin_mtime > benchsale_last_updated:
+                benchsale_last_updated = admin_mtime
+        if recruiter_log.exists():
+            recruiter_mtime = datetime.fromtimestamp(recruiter_log.stat().st_mtime)
+            if benchsale_last_updated is None or recruiter_mtime > benchsale_last_updated:
+                benchsale_last_updated = recruiter_mtime
+            
+    # Employer Timestamp
+    employer_last_updated = None
+    if employer_has_run and employer_log.exists():
+        employer_last_updated = datetime.fromtimestamp(employer_log.stat().st_mtime)
+        
+    # Job Seeker Timestamp
+    jobseeker_last_updated = None
+    if jobseeker_has_run and jobseeker_log.exists():
+        jobseeker_last_updated = datetime.fromtimestamp(jobseeker_log.stat().st_mtime)
+        
+    # Overall Timestamp (Max of all valid section timestamps)
+    # If no sections ran, this stays as datetime.now() (Report Generated Time)
+    timestamps = [ts for ts in [benchsale_last_updated, employer_last_updated, jobseeker_last_updated] if ts is not None]
+    if timestamps:
+        last_updated = max(timestamps)
     
     # Generate HTML
     html_content = generate_dashboard_html(
         all_tests, total, passed, failed, skipped, 
         employer_total, employer_passed, employer_failed, employer_skipped, employer_not_run,
         jobseeker_total, jobseeker_passed, jobseeker_failed, jobseeker_skipped, jobseeker_not_run,
-        admin_log, recruiter_log, employer_log, jobseeker_log, main_log, last_updated
+        admin_log, recruiter_log, employer_log, jobseeker_log, main_log, 
+        last_updated, benchsale_last_updated, employer_last_updated, jobseeker_last_updated
     )
     
     # Write dashboard HTML (always overwrite to ensure latest content)
@@ -705,14 +812,20 @@ def generate_unified_dashboard():
 def generate_dashboard_html(tests, total, passed, failed, skipped, 
                             employer_total, employer_passed, employer_failed, employer_skipped, employer_not_run,
                             jobseeker_total, jobseeker_passed, jobseeker_failed, jobseeker_skipped, jobseeker_not_run,
-                            admin_log, recruiter_log, employer_log, jobseeker_log, main_log, last_updated=None):
+                            admin_log, recruiter_log, employer_log, jobseeker_log, main_log, 
+                            last_updated=None, benchsale_ts=None, employer_ts=None, jobseeker_ts=None):
     """Generate the HTML content for the unified dashboard."""
     
-    if last_updated is None:
-        last_updated = datetime.now()
-    
     generated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    last_updated_str = last_updated.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Format timestamps
+    # Format: 16 Jan 2026, 11:32 AM
+    fmt = '%d %b %Y, %I:%M %p'
+    last_updated_str = last_updated.strftime(fmt) if last_updated else "Not Run Yet"
+    
+    benchsale_ts_str = benchsale_ts.strftime(fmt) if benchsale_ts else "Not Run Yet"
+    employer_ts_str = employer_ts.strftime(fmt) if employer_ts else "Not Run Yet"
+    jobseeker_ts_str = jobseeker_ts.strftime(fmt) if jobseeker_ts else "Not Run Yet"
     
     # Group tests by source - separate BenchSale (Admin + Recruiter) from Employer and Job Seeker
     admin_tests = [t for t in tests if t.get('source') == 'Admin']
@@ -735,26 +848,25 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
         :root {{
-            --primary: #F97316; /* Orange 500 */
-            --primary-dark: #C2410C; /* Orange 700 */
-            --primary-light: #FFEDD5; /* Orange 100 */
-            --secondary: #F59E0B; /* Amber 500 */
-            --accent: #EA580C; /* Orange 600 */
-            --dark: #1C1917; /* Stone 900 */
-            --light: #FFF7ED; /* Orange 50 */
-            --card-bg: rgba(255, 255, 255, 0.75);
-            --card-hover: rgba(255, 255, 255, 0.95);
-            --glass-border: rgba(255, 255, 255, 0.6);
-            --text-primary: #1C1917;
-            --text-secondary: #475569;
-            --success: #10B981;
-            --success-bg: rgba(16, 185, 129, 0.15);
+            --primary: #F97316;
+            --primary-dark: #C2410C;
+            --primary-light: #FFEDD5;
+            --secondary: #F59E0B;
+            --accent: #EA580C;
+            --dark: #0F172A;
+            --light: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-primary: #1E293B;
+            --text-secondary: #64748B;
+            --success: #22C55E;
+            --success-bg: #F0FDF4;
             --danger: #EF4444;
-            --danger-bg: rgba(239, 68, 68, 0.15);
+            --danger-bg: #FEF2F2;
             --warning: #F59E0B;
-            --warning-bg: rgba(245, 158, 11, 0.15);
+            --warning-bg: #FFFBEB;
             --not-run: #94A3B8;
-            --not-run-bg: #E2E8F0;
+            --not-run-bg: #F8FAFC;
+            --glass-border: rgba(226, 232, 240, 0.8);
         }}
 
         /* Smooth Scrolling */
@@ -776,21 +888,12 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         }}
         
         body {{
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #FFEDD5 0%, #FFF7ED 50%, #FFEDD5 100%);
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F1F5F9;
             min-height: 100vh;
             padding: 0;
             position: relative;
-            overflow-x: hidden;
-            overflow-y: auto;
             color: var(--text-primary);
-            font-size: 16px;
-            line-height: 1.6;
-            font-weight: 400;
-            letter-spacing: 0.01em;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }}
 
         /* Animated Bubble Background with HD Colors */
@@ -836,35 +939,29 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             flex-direction: column;
             gap: 8px;
             padding: 15px;
-            padding-top: 55px; /* Space for fixed header */
+            padding-top: 110px;
             padding-bottom: 30px;
         }}
         
-        .back-btn-container {{
-            position: fixed;
-            top: 8px;
-            left: 8px;
-            z-index: 1001;
-        }}
-        
         /* Glassmorphism Header - Fixed at top */
+        
         .header {{
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(35px) saturate(180%);
-            -webkit-backdrop-filter: blur(35px) saturate(180%);
-            border-radius: 0 0 16px 16px;
-            padding: 4px 14px;
-            box-shadow: 
-                0 10px 40px -10px rgba(249, 115, 22, 0.25),
-                0 8px 20px -5px rgba(0, 0, 0, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 0 0 20px 20px;
+            padding: 8px 14px;
+            box-shadow:
+                0 4px 20px -5px rgba(0, 0, 0, 0.08),
+                0 2px 10px -2px rgba(249, 115, 22, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+            border: 1px solid rgba(226, 232, 240, 0.8);
             border-top: none;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 100;
+            z-index: 1000;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -873,22 +970,52 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             margin: 0 auto;
             width: 100%;
         }}
-        
+
         .header-top {{
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            gap: 15px;
             width: 100%;
+            height: 65px;
         }}
-        
+
         .header-content {{
-            flex: 1 1 auto;
+            flex: 1;
             display: flex;
             align-items: center;
-            gap: 8px;
-            min-width: 0; /* Prevent overflow */
-            max-width: calc(100% - 160px); /* Reserve space for refresh button */
+            gap: 15px;
+            min-width: 0;
+        }}
+
+        .header-home-btn {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            background: white;
+            color: var(--primary);
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            border: 1.5px solid rgba(249, 115, 22, 0.2);
+        }}
+
+        .header-home-btn:hover {{
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(249, 115, 22, 0.2);
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }}
+
+        .header-home-btn svg {{
+            width: 22px;
+            height: 22px;
+            stroke-width: 2.5;
         }}
         
         .dashboard-logo {{
@@ -1036,49 +1163,46 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         /* Stats Grid */
         .stats-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive */
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
             margin-bottom: 8px;
-            margin-top: 15px;
+            margin-top: 35px;
         }}
-        
+
         .stat-card {{
-            background: var(--card-bg);
-            backdrop-filter: blur(25px);
+            background: white;
             border-radius: 16px;
-            padding: 16px;
-            text-align: center;
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.06); 
-            border: 1px solid var(--glass-border);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+            padding: 12px 20px;
+            text-align: left;
+            flex: 1;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid rgba(226, 232, 240, 0.8);
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            flex-direction: row;
+            justify-content: flex-start;
             align-items: center;
-            min-height: 100px; /* Uniform Height */
+            gap: 15px;
+            min-height: 85px;
             position: relative;
             overflow: hidden;
             cursor: pointer;
+            border-top: none !important;
+            border-left: 5px solid transparent;
         }}
         
         .stat-card:hover {{
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 30px 60px -12px rgba(249, 115, 22, 0.3);
-            background: var(--card-hover);
-            border-color: white;
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+            border-color: rgba(249, 115, 22, 0.3);
         }}
         
         .stat-card .number {{
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 2.6em; /* Bigger numbers */
-            font-weight: 700;
-            margin-bottom: 2px;
-            line-height: 1;
-            text-shadow: 0 5px 15px rgba(249, 115, 22, 0.15);
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            font-feature-settings: "tnum" 1;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1.1;
             letter-spacing: -0.02em;
         }}
         
@@ -1093,53 +1217,98 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         
         .stat-card:hover::before {{ opacity: 1; }}
 
-        .stat-card.total .number {{ color: var(--primary); }}
-        .stat-card.passed .number {{ color: var(--success); }}
-        .stat-card.failed .number {{ color: var(--danger); }}
-        .stat-card.skipped .number {{ color: var(--warning); }}
-        .stat-card.not-run-stat .number {{ color: var(--not-run); }}
+        .stat-card.total {{
+            border-left-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.08);
+        }}
+
+        .stat-card.passed {{
+            border-left-color: var(--success);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.08);
+        }}
+
+        .stat-card.failed {{
+            border-left-color: var(--danger);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+        }}
+
+        .stat-card.skipped {{
+            border-left-color: var(--warning);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
+        }}
+
+        .stat-card.not-run-stat {{
+            border-left-color: var(--not-run);
+            box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08);
+        }}
         
         .stat-card .label {{
             color: var(--text-secondary);
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.8em;
-            letter-spacing: 1.2px;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 0.62rem;
+            letter-spacing: 0.8px;
+            font-family: 'Poppins', sans-serif;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }}
+
+        .stat-info {{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+            min-width: 0;
+        }}
+
+        .stat-icon {{
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }}
+
+        .stat-card.total .stat-icon {{ background: rgba(249, 115, 22, 0.1); color: var(--primary); }}
+        .stat-card.passed .stat-icon {{ background: rgba(34, 197, 94, 0.1); color: var(--success); }}
+        .stat-card.failed .stat-icon {{ background: rgba(239, 68, 68, 0.1); color: var(--danger); }}
+        .stat-card.skipped .stat-icon {{ background: rgba(245, 158, 11, 0.1); color: var(--warning); }}
+        .stat-card.not-run-stat .stat-icon {{ background: rgba(148, 163, 184, 0.1); color: var(--not-run); }}
+
+        .stat-icon svg {{
+            width: 24px;
+            height: 24px;
+            stroke-width: 2.5;
+        }}
+
+        .stat-card:hover .stat-icon {{
+            transform: scale(1.1) rotate(5deg);
         }}
         
         /* Active Filter Effect */
         .stat-card.active-filter {{
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 30px 60px -12px rgba(249, 115, 22, 0.4);
-            border-color: var(--primary);
-            background: white;
+            transform: translateY(-4px) scale(1.02);
+            border-color: currentColor !important;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
         }}
-        
-        .stat-card.active-filter::after {{
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 24px;
-            border: 3px solid var(--primary);
-            opacity: 0.5;
-            pointer-events: none;
-        }}
+
+        .stat-card.total.active-filter {{ box-shadow: 0 12px 24px rgba(249, 115, 22, 0.25) !important; }}
+        .stat-card.passed.active-filter {{ box-shadow: 0 12px 24px rgba(34, 197, 94, 0.25) !important; }}
+        .stat-card.failed.active-filter {{ box-shadow: 0 12px 24px rgba(239, 68, 68, 0.25) !important; }}
+        .stat-card.skipped.active-filter {{ box-shadow: 0 12px 24px rgba(245, 158, 11, 0.25) !important; }}
+        .stat-card.not-run-stat.active-filter {{ box-shadow: 0 12px 24px rgba(148, 163, 184, 0.25) !important; }}
         
         /* Tabs */
         .tabs {{
             display: flex;
-            gap: 10px;
-            background: rgba(255, 255, 255, 0.4);
-            padding: 8px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            gap: 12px;
+            padding: 0;
+            margin-bottom: 20px;
+            justify-content: flex-start; /* Left align tabs */
             flex-wrap: wrap;
-            margin-bottom: 0;
-            justify-content: center; /* Center tabs */
         }}
         
         .tab {{
@@ -1254,7 +1423,7 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             border-radius: 20px;
             padding: 25px;
             box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
-            overflow-y: visible;
+            overflow-y: auto;
             overflow-x: hidden;
             border: 1px solid rgba(249, 115, 22, 0.1);
             position: sticky;
@@ -1275,6 +1444,12 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             opacity: 0.6;
         }}
         
+        /* Ensure panel is visible when content is added */
+        .test-details-panel:not(.empty) {{
+            display: flex !important;
+            opacity: 1 !important;
+        }}
+        
         .test-details-header {{
             border-bottom: 2px solid rgba(249, 115, 22, 0.2);
             padding-bottom: 15px;
@@ -1282,15 +1457,16 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         }}
         
         .test-details-title {{
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 1.5em;
-            font-weight: 700;
-            color: var(--dark);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 1.15em;
+            font-weight: 600;
+            color: var(--text-primary);
             margin-bottom: 10px;
             text-rendering: optimizeLegibility;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            line-height: 1.3;
+            line-height: 1.4;
+            letter-spacing: 0.01em;
         }}
         
         .test-details-status {{
@@ -1464,25 +1640,25 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         
         .test-item {{
             background: white;
-            border-radius: 16px;
-            padding: 16px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 
-                0 4px 6px -1px rgba(0,0,0,0.02),
-                0 2px 4px -1px rgba(0,0,0,0.02);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border-left: 4px solid transparent;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            border-radius: 12px;
+            padding: 15px 20px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 5px solid transparent;
+            display: grid !important;
+            grid-template-columns: 1fr 140px !important;
+            grid-template-rows: auto auto !important;
+            gap: 10px 20px !important;
+            align-items: center;
             position: relative;
             overflow: hidden;
         }}
         
         .test-item:hover {{
-            transform: translateX(5px) scale(1.005);
-            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08); /* Lift effect */
-            border-color: rgba(249, 115, 22, 0.3);
+            transform: translateX(5px) scale(1.01);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border-color: rgba(249, 115, 22, 0.2);
             z-index: 2;
         }}
         
@@ -1492,9 +1668,24 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         
         /* Color Coding */
         .test-item.pass {{ border-left-color: var(--success); }}
-        .test-item.fail {{ border-left-color: var(--danger); background: linear-gradient(to right, #FFF5F5, #FFFFFF); }}
+        .test-item.fail {{ border-left-color: var(--danger); background: linear-gradient(to right, #FFF8F8, #FFFFFF); }}
         .test-item.skip {{ border-left-color: var(--warning); }}
         .test-item.not-run {{ border-left-color: var(--not-run); opacity: 0.8; }}
+
+        .test-badge.pass {{ background: var(--success-bg); color: var(--success); }}
+        .test-badge.fail {{ background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.1); }}
+        .test-badge.skip {{ background: var(--warning-bg); color: var(--warning); }}
+        .test-badge.not-run {{ background: var(--not-run-bg); color: var(--text-secondary); }}
+
+        /* Status-specific Button Colors */
+        .test-item.fail .run-test-btn {{
+            background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }}
+        .test-item.fail .run-test-btn:hover {{
+            background: linear-gradient(135deg, #F87171 0%, #EF4444 100%);
+            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
+        }}
 
         .test-header {{
             display: flex;
@@ -1505,60 +1696,54 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         }}
         
         .test-name {{
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            grid-column: 1 / 2 !important;
+            grid-row: 1 !important;
+            font-family: 'Poppins', sans-serif;
             font-weight: 600;
-            font-size: 1.15em;
-            color: var(--text-primary);
-            flex: 1;
-            min-width: 300px;
+            font-size: 1rem;
+            color: #1E293B;
             line-height: 1.4;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            letter-spacing: 0.01em;
+            margin: 0;
+            display: block !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }}
         
         .test-badge {{
-            padding: 6px 14px;
-            border-radius: 50px;
+            grid-column: 2 / 3 !important;
+            grid-row: 1 !important;
+            padding: 5px 12px;
+            border-radius: 8px;
             font-weight: 700;
-            font-size: 0.8em;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.6px;
             white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 28px;
         }}
         
-        .test-badge.pass {{ background: var(--success-bg); color: var(--success); }}
-        .test-badge.fail {{ background: var(--danger-bg); color: red; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); border: 1px solid rgba(239, 68, 68, 0.2); }}
-        .test-badge.skip {{ background: var(--warning-bg); color: var(--warning); }}
-        .test-badge.not-run {{ background: var(--not-run-bg); color: var(--text-secondary); }}
-        
         .test-source {{
-            font-size: 0.85em;
-            color: var(--text-secondary);
+            grid-column: 1 / 2 !important;
+            grid-row: 2 !important;
+            font-size: 0.78rem;
+            color: #64748B;
             font-weight: 500;
-            background: rgba(0,0,0,0.04);
-            padding: 4px 10px;
-            border-radius: 8px;
-            display: inline-block;
-            align-self: flex-start;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            letter-spacing: 0.02em;
+            opacity: 0.8;
+            margin: 0;
         }}
         
         .test-actions {{
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            grid-column: 2 / 3 !important;
+            grid-row: 2 !important;
+            display: flex !important;
+            justify-content: center;
             align-items: center;
+            width: 100%;
         }}
         
         .run-test-btn {{
@@ -1966,14 +2151,6 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         <div class="bubble"></div>
         <div class="bubble"></div>
     </div>
-    <div class="back-btn-container">
-        <a href="../dashboard_home.html" class="back-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span>Home</span>
-        </a>
-    </div>
     <!-- Notification Banner -->
     <div id="notificationBanner" class="notification-banner">
         <div class="notification-icon" id="notificationIcon">ℹ️</div>
@@ -1988,6 +2165,11 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         <div class="header">
             <div class="header-top">
                 <div class="header-content">
+                    <a href="../dashboard_home.html" class="header-home-btn" title="Back to Home Dashboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </a>
                     <div class="dashboard-logo" id="dashboard-logo">
                         <!-- BenchSale Logo (default) -->
                         <svg class="benchsale-logo-svg" id="benchsale-logo" xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2059,9 +2241,14 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                         </svg>
                     </div>
                     <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;">
-                        <h1 id="dashboard-title">BenchSale Test Dashboard</h1>
-                        <div class="subtitle">Unified Test Report • Generated: {generated_at}</div>
-                        <div class="last-updated">Last Updated: {last_updated_str}</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <h1 id="dashboard-title">Unified Test Report</h1>
+                            <div id="server-status-indicator" style="font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.5); padding: 4px 10px; border-radius: 20px;">
+                                <span id="server-status-text" style="color: #64748B;">Checking Server...</span>
+                                <button id="start-server-btn" onclick="startServer()" style="display: none; background: var(--primary); color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Start Server</button>
+                            </div>
+                        </div>
+                        <div class="subtitle">Auto-generated • Live Status • Last Run: <span id="last-run-time-main">{last_updated_str}</span></div>
                     </div>
                 </div>
                 <div class="refresh-btn-wrapper">
@@ -2074,66 +2261,171 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         <div class="stats-grid" id="stats-grid">
             <!-- Dynamic stats (shown for BenchSale - updates based on active tab) -->
             <div class="stat-card total benchsale-stat" id="stat-total-card" onclick="filterByStatus('all')">
-                <div class="number" id="stat-total">0</div>
-                <div class="label">Total Tests</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Total Tests</div>
+                   <div class="number" id="stat-total">0</div>
+                </div>
             </div>
             <div class="stat-card passed benchsale-stat" id="stat-passed-card" onclick="filterByStatus('pass')">
-                <div class="number" id="stat-passed">0</div>
-                <div class="label">Passed</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Passed</div>
+                   <div class="number" id="stat-passed">0</div>
+                </div>
             </div>
             <div class="stat-card failed benchsale-stat" id="stat-failed-card" onclick="filterByStatus('fail')">
-                <div class="number" id="stat-failed">0</div>
-                <div class="label">Failed</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Failed</div>
+                   <div class="number" id="stat-failed">0</div>
+                </div>
             </div>
             <div class="stat-card skipped benchsale-stat" id="stat-skipped-card" onclick="filterByStatus('skip')">
-                <div class="number" id="stat-skipped">0</div>
-                <div class="label">Skipped</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Skipped</div>
+                   <div class="number" id="stat-skipped">0</div>
+                </div>
             </div>
             <div class="stat-card total benchsale-stat not-run-stat" id="stat-not-run-card" onclick="filterByStatus('not-run')">
-                <div class="number" id="stat-not-run">0</div>
-                <div class="label">Not Run</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Not Run</div>
+                   <div class="number" id="stat-not-run">0</div>
+                </div>
             </div>
             <!-- Employer stats (shown when filter=employer) -->
             <div class="stat-card total employer-stat" id="stat-employer-total" style="display: none;" onclick="filterByStatus('all')">
-                <div class="number" id="stat-employer-total-num">{employer_total}</div>
-                <div class="label">Total Tests</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Total Tests</div>
+                   <div class="number" id="stat-employer-total-num">{employer_total}</div>
+                </div>
             </div>
             <div class="stat-card passed employer-stat" id="stat-employer-passed" style="display: none;" onclick="filterByStatus('pass')">
-                <div class="number" id="stat-employer-passed-num">{employer_passed}</div>
-                <div class="label">Passed</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Passed</div>
+                   <div class="number" id="stat-employer-passed-num">{employer_passed}</div>
+                </div>
             </div>
             <div class="stat-card failed employer-stat" id="stat-employer-failed" style="display: none;" onclick="filterByStatus('fail')">
-                <div class="number" id="stat-employer-failed-num">{employer_failed}</div>
-                <div class="label">Failed</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Failed</div>
+                   <div class="number" id="stat-employer-failed-num">{employer_failed}</div>
+                </div>
             </div>
             <div class="stat-card skipped employer-stat" id="stat-employer-skipped" style="display: none;" onclick="filterByStatus('skip')">
-                <div class="number" id="stat-employer-skipped-num">{employer_skipped}</div>
-                <div class="label">Skipped</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Skipped</div>
+                   <div class="number" id="stat-employer-skipped-num">{employer_skipped}</div>
+                </div>
             </div>
             <div class="stat-card total employer-stat not-run-stat" id="stat-employer-not-run" style="display: none;" onclick="filterByStatus('not-run')">
-                <div class="number" id="stat-employer-not-run-num">{employer_not_run}</div>
-                <div class="label">Not Run</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Not Run</div>
+                   <div class="number" id="stat-employer-not-run-num">{employer_not_run}</div>
+                </div>
             </div>
             <!-- Job Seeker stats (shown when filter=jobseeker) -->
             <div class="stat-card total jobseeker-stat" id="stat-jobseeker-total" style="display: none;" onclick="filterByStatus('all')">
-                <div class="number" id="stat-jobseeker-total-num">{jobseeker_total}</div>
-                <div class="label">Total Tests</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Total Tests</div>
+                   <div class="number" id="stat-jobseeker-total-num">{jobseeker_total}</div>
+                </div>
             </div>
             <div class="stat-card passed jobseeker-stat" id="stat-jobseeker-passed" style="display: none;" onclick="filterByStatus('pass')">
-                <div class="number" id="stat-jobseeker-passed-num">{jobseeker_passed}</div>
-                <div class="label">Passed</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Passed</div>
+                   <div class="number" id="stat-jobseeker-passed-num">{jobseeker_passed}</div>
+                </div>
             </div>
             <div class="stat-card failed jobseeker-stat" id="stat-jobseeker-failed" style="display: none;" onclick="filterByStatus('fail')">
-                <div class="number" id="stat-jobseeker-failed-num">{jobseeker_failed}</div>
-                <div class="label">Failed</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Failed</div>
+                   <div class="number" id="stat-jobseeker-failed-num">{jobseeker_failed}</div>
+                </div>
             </div>
             <div class="stat-card skipped jobseeker-stat" id="stat-jobseeker-skipped" style="display: none;" onclick="filterByStatus('skip')">
-                <div class="number" id="stat-jobseeker-skipped-num">{jobseeker_skipped}</div>
-                <div class="label">Skipped</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Skipped</div>
+                   <div class="number" id="stat-jobseeker-skipped-num">{jobseeker_skipped}</div>
+                </div>
             </div>
             <div class="stat-card total jobseeker-stat not-run-stat" id="stat-jobseeker-not-run" style="display: none;" onclick="filterByStatus('not-run')">
-                <div class="number" id="stat-jobseeker-not-run-num">{jobseeker_not_run}</div>
-                <div class="label">Not Run</div>
+                <div class="stat-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-info">
+                   <div class="label">Not Run</div>
+                   <div class="number" id="stat-jobseeker-not-run-num">{jobseeker_not_run}</div>
+                </div>
             </div>
         </div>
         
@@ -2149,7 +2441,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         </div>
         
         <div id="all-tests" class="test-section active">
-            <h2>All Test Results (BenchSale Only - Admin + Recruiter)</h2>
+            <h2>
+                All Test Results (BenchSale Only - Admin + Recruiter)
+                <span class="test-source" style="margin-left: 15px; background: rgba(249, 115, 22, 0.1); color: var(--primary);">Last Run: <span id="last-run-time-benchsale">{benchsale_ts_str}</span></span>
+            </h2>
             <div class="test-section-content">
                 <div class="test-list-container">
                     {generate_test_list_html(benchsale_tests)}
@@ -2185,7 +2480,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         </div>
         
         <div id="employer-tests" class="test-section">
-            <h2>Employer Test Results</h2>
+            <h2>
+                Employer Test Results
+                <span class="test-source" style="margin-left: 15px; background: rgba(217, 119, 6, 0.1); color: #D97706;">Last Run: <span id="last-run-time-employer">{employer_ts_str}</span></span>
+            </h2>
             <div class="test-section-content">
                 <div class="test-list-container">
                     {generate_test_list_html(employer_tests)}
@@ -2197,7 +2495,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         </div>
         
         <div id="jobseeker-tests" class="test-section">
-            <h2>Job Seeker Test Results</h2>
+            <h2>
+                Job Seeker Test Results
+                <span class="test-source" style="margin-left: 15px; background: rgba(22, 163, 74, 0.1); color: #16A34A;">Last Run: <span id="last-run-time-jobseeker">{jobseeker_ts_str}</span></span>
+            </h2>
             <div class="test-section-content">
                 <div class="test-list-container">
                     {generate_test_list_html(jobseeker_tests)}
@@ -2227,51 +2528,78 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
     </div>
 
     <script>
-        // Auto-start server when dashboard loads
-        (function autoStartServer() {{
-            // Check if main server is running by checking status endpoint
+        // Server Status Management
+        function checkServerStatus() {{
+            const statusIndicator = document.getElementById('server-status-indicator');
+            const statusText = document.getElementById('server-status-text');
+            const startBtn = document.getElementById('start-server-btn');
+            
+            if (!statusIndicator) return;
+
+            // Check if main server is running (via helper if available, or direct)
+            // We use 8767 (helper) to check status of 8766 (main)
             fetch('http://localhost:8767/status')
             .then(response => response.json())
             .then(data => {{
                 if (data.running) {{
-                    console.log('✅ Test server is already running');
+                    statusText.textContent = 'Server: Running';
+                    statusText.style.color = '#10B981'; // Green
+                    startBtn.style.display = 'none';
                 }} else {{
-                    // Server not running - try to start it via helper
-                    console.log('Starting test server...');
-                    fetch('http://localhost:8767/start')
-                    .then(response => response.json())
-                    .then(data => {{
-                        if (data.success) {{
-                            console.log('✅ Server started successfully!');
-                            showNotification('success', 'Server Started', 'Test server is now running. You can run tests now.', 3000);
-                        }} else {{
-                            console.log('Server is starting...');
-                            showNotification('info', 'Starting Server', 'Test server is starting in the background. Please wait a moment before running tests.', 4000);
-                        }}
-                    }})
-                    .catch(() => {{
-                        console.log('Helper server not available. Please run AUTO_START_ALL.bat first.');
-                        showNotification('warning', 'Server Not Running', 'Please run AUTO_START_ALL.bat to start the test server system.', 5000);
-                    }});
+                    statusText.textContent = 'Server: Stopped';
+                    statusText.style.color = '#EF4444'; // Red
+                    startBtn.style.display = 'inline-block';
                 }}
             }})
             .catch(() => {{
-                // Helper server not running - try to start main server directly
-                console.log('Helper server not available. Attempting direct start...');
-                fetch('http://localhost:8767/start')
-                .then(response => response.json())
-                .then(data => {{
-                    if (data.success) {{
-                        showNotification('success', 'Server Started', 'Test server is now running.', 3000);
-                    }} else {{
-                        showNotification('warning', 'Server Not Running', 'Please run AUTO_START_ALL.bat to start the test server system.', 5000);
-                    }}
+                // Helper not available, try checking main server directly
+                fetch('http://localhost:8766/status')
+                .then(r => r.json())
+                .then(d => {{
+                     statusText.textContent = 'Server: Running';
+                     statusText.style.color = '#10B981';
+                     startBtn.style.display = 'none';
                 }})
                 .catch(() => {{
-                    showNotification('warning', 'Server Not Running', 'Please run AUTO_START_ALL.bat once to start the test server system. Then dashboard will work automatically.', 6000);
+                    statusText.textContent = 'Server: Stopped';
+                    statusText.style.color = '#EF4444';
+                    startBtn.style.display = 'inline-block';
                 }});
             }});
-        }})();
+        }}
+
+        function startServer() {{
+            const startBtn = document.getElementById('start-server-btn');
+            if (startBtn) {{
+                startBtn.textContent = 'Starting...';
+                startBtn.disabled = true;
+            }}
+            
+            fetch('http://localhost:8767/start')
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    showNotification('success', 'Server Started', 'Test server is starting...', 3000);
+                    setTimeout(checkServerStatus, 2000);
+                }} else {{
+                    showNotification('info', 'Starting Server', 'Server start command sent.', 3000);
+                    setTimeout(checkServerStatus, 2000);
+                }}
+            }})
+            .catch(() => {{
+                showNotification('warning', 'Start Failed', 'Could not start server. Please run START_ALWAYS_ON_SERVER.bat manually.', 5000);
+                if (startBtn) {{
+                    startBtn.textContent = 'Start Server';
+                    startBtn.disabled = false;
+                }}
+            }});
+        }}
+
+        // Check status on load and every 10 seconds
+        document.addEventListener('DOMContentLoaded', function() {{
+            checkServerStatus();
+            setInterval(checkServerStatus, 10000);
+        }});
         
         // Global filter state
         let currentStatusFilter = 'all';
@@ -2380,7 +2708,7 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Hide BenchSale tabs and stats, show only Employer
                 document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
                 document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'flex');
                 document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'none');
                 // Hide all BenchSale and Job Seeker test sections completely
                 document.getElementById('all-tests').style.display = 'none';
@@ -2410,7 +2738,7 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'none');
                 document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'none');
                 document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'flex');
                 // Hide all BenchSale and Employer test sections completely
                 document.getElementById('all-tests').style.display = 'none';
                 document.getElementById('admin-tests').style.display = 'none';
@@ -2439,7 +2767,7 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 document.querySelectorAll('.benchsale-tab').forEach(tab => tab.style.display = 'block');
                 document.getElementById('tab-employer').style.display = 'none';
                 document.getElementById('tab-jobseeker').style.display = 'none';
-                document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.benchsale-stat').forEach(el => el.style.display = 'flex');
                 document.querySelectorAll('.employer-stat').forEach(el => el.style.display = 'none');
                 document.querySelectorAll('.jobseeker-stat').forEach(el => el.style.display = 'none');
                 // Hide Employer and Job Seeker test sections completely
@@ -2798,6 +3126,8 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             // Update details panel
             detailsPanel.innerHTML = detailsHTML;
             detailsPanel.classList.remove('empty');
+            detailsPanel.style.display = 'flex';
+            detailsPanel.style.opacity = '1';
             
             // Scroll details content to top
             const contentDiv = detailsPanel.querySelector('.test-details-content');
@@ -3071,6 +3401,82 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             // Falls back to regular server (port 8765) if needed
             let serverUrl = 'http://localhost:8766/add-test';
             let isAlwaysOnServer = true;
+            
+            // Helper function for polling
+            let testWasStarted = false; // Track if test actually started
+            function startPolling(port) {{
+                // Poll for completion
+                const pollInterval = 2000; // Check every 2 seconds
+                const maxPolls = 300; // 5 minutes max
+                let pollCount = 0;
+                let wasBusy = false; // Track if server was ever busy (test was running)
+                
+                // Wait 3 seconds before starting to poll (give server time to start test and set lock)
+                setTimeout(() => {{
+                    const timer = setInterval(() => {{
+                        fetch(`http://localhost:${{port}}/status`)
+                            .then(r => {{
+                                if (!r.ok) {{
+                                    throw new Error(`Server returned ${{r.status}}`);
+                                }}
+                                return r.json();
+                            }})
+                            .then(statusData => {{
+                                // Track if server was ever busy (means test was actually running)
+                                if (statusData.busy) {{
+                                    wasBusy = true;
+                                    console.log('Test is running... (poll count: ' + pollCount + ')');
+                                }}
+                                
+                                // Only show "Test Completed" if:
+                                // 1. Test was actually started (wasBusy was true at some point)
+                                // 2. Server is now not busy (test finished)
+                                if (wasBusy && !statusData.busy) {{
+                                    clearInterval(timer);
+                                    if (clickedButton) {{
+                                        clickedButton.textContent = '✅ Done';
+                                    }}
+                                    showNotification('success', 'Test Completed', 'Reloading dashboard...', 1500);
+                                    setTimeout(() => location.reload(), 1500);
+                                }} else if (!wasBusy && pollCount > 5) {{
+                                    // If server was never busy after 5 polls (10 seconds), test probably didn't start
+                                    clearInterval(timer);
+                                    if (clickedButton) {{
+                                        clickedButton.textContent = '▶ Run Test';
+                                        clickedButton.style.background = '';
+                                    }}
+                                    showNotification('error', 'Test Not Started', 'Server may not be running or test failed to start. Please check server status.', 5000);
+                                }}
+                            }})
+                            .catch(e => {{
+                                console.log('Polling error', e);
+                                pollCount += 2; // Accelerate timeout on errors
+                                
+                                // If server is not responding after many attempts, show error
+                                if (pollCount > 20) {{
+                                    clearInterval(timer);
+                                    if (clickedButton) {{
+                                        clickedButton.textContent = '▶ Run Test';
+                                        clickedButton.style.background = '';
+                                    }}
+                                    showNotification('error', 'Server Not Responding', 'Cannot connect to test server. Please make sure the server is running.', 5000);
+                                }}
+                            }});
+                             
+                        pollCount++;
+                        if (pollCount > maxPolls) {{
+                            clearInterval(timer);
+                            if (clickedButton) {{
+                                clickedButton.textContent = '▶ Run Test';
+                                clickedButton.style.background = '';
+                            }}
+                            showNotification('warning', 'Timeout', 'Test is taking longer than expected. Reloading dashboard...', 3000);
+                            setTimeout(() => location.reload(), 3000);
+                        }}
+                    }}, pollInterval);
+                }}, 3000); // Wait 3 seconds before starting to poll
+            }}
+
             fetch(serverUrl, {{
                 method: 'POST',
                 headers: {{
@@ -3078,23 +3484,24 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 }},
                 body: JSON.stringify({{ testName: testName }})
             }})
-            .then(response => response.json())
+            .then(response => {{
+                if (!response.ok) {{
+                    throw new Error(`Server returned ${{response.status}}: ${{response.statusText}}`);
+                }}
+                return response.json();
+            }})
             .then(data => {{
                 if (data.success) {{
+                    testWasStarted = true; // Mark that test was successfully started
                     if (clickedButton) {{
                         clickedButton.textContent = '✅ Running';
                         clickedButton.style.background = 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)';
                     }}
-                    // Show notification (no popup)
-                    showNotification('success', 'Test Started', 'Test "' + testName + '" is running in the background. Check terminal or refresh dashboard after completion.', 4000);
-                    // Auto-refresh after 5 seconds
-                    setTimeout(() => {{
-                        if (clickedButton) {{
-                            clickedButton.classList.remove('running');
-                            clickedButton.textContent = '▶ Run Test';
-                            clickedButton.disabled = false;
-                        }}
-                    }}, 5000);
+                    // Show notification
+                    showNotification('success', 'Test Started', 'Test "' + testName + '" is running. Dashboard will reload automatically when done.', 5000);
+                    
+                    // Start polling for completion
+                    startPolling(8766);
                 }} else {{
                     throw new Error(data.error || 'Failed to run test');
                 }}
@@ -3120,32 +3527,28 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                                 clickedButton.textContent = '✅ Running';
                                 clickedButton.style.background = 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)';
                             }}
-                            showNotification('success', 'Test Started', 'Test "' + testName + '" is running in the background. Check terminal or refresh dashboard after completion.', 4000);
+                            showNotification('success', 'Test Started', 'Test running. Dashboard will reload shortly.', 4000);
+                            
+                            // Fallback server might not have status endpoint, just wait 10s then reload
                             setTimeout(() => {{
-                                if (clickedButton) {{
-                                    clickedButton.classList.remove('running');
-                                    clickedButton.textContent = '▶ Run Test';
-                                    clickedButton.disabled = false;
-                                }}
-                            }}, 5000);
+                                location.reload();
+                            }}, 10000);
                         }} else {{
                             throw new Error(data.error || 'Failed to run test');
                         }}
                     }})
                     .catch(() => {{
-                        // Both servers failed - show notification
+                        // Both servers failed
                         const command = 'python -m pytest -k "' + testName + '" -s -vv';
                         
-                        // Try to copy command to clipboard silently
                         if (navigator.clipboard && navigator.clipboard.writeText) {{
                             navigator.clipboard.writeText(command).catch(() => {{}});
                         }}
                         
-                        // Show notification banner
                         showNotification(
                             'warning',
                             'Test Runner Not Available',
-                            'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat (or run: python utils/always_on_server.py). Command copied to clipboard.',
+                            'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat. Command copied to clipboard.',
                             6000
                         );
                         
@@ -3155,28 +3558,6 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                             clickedButton.disabled = false;
                         }}
                     }});
-                }} else {{
-                    // Both servers failed - show notification
-                    const command = 'python -m pytest -k "' + testName + '" -s -vv';
-                    
-                    // Try to copy command to clipboard silently
-                    if (navigator.clipboard && navigator.clipboard.writeText) {{
-                        navigator.clipboard.writeText(command).catch(() => {{}});
-                    }}
-                    
-                    // Show notification banner
-                    showNotification(
-                        'warning',
-                        'Test Runner Not Available',
-                        'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat (or run: python utils/always_on_server.py). Command copied to clipboard.',
-                        6000
-                    );
-                    
-                    if (clickedButton) {{
-                        clickedButton.classList.remove('running');
-                        clickedButton.textContent = '▶ Run Test';
-                        clickedButton.disabled = false;
-                    }}
                 }}
             }});
         }}
@@ -3262,17 +3643,15 @@ def generate_test_list_html(tests):
             
             html_items.append(f'''
                 <div class="test-item {status_lower}" data-test-info="{test_data_json_escaped}" onclick="showTestDetails(this)">
-                <div class="test-header">
                     <div class="test-name">{name}</div>
                     <div class="test-badge {status_lower}">{status_display}</div>
+                    <div class="test-source">Source: {source}</div>
+                    <div class="test-actions">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('{original_name_escaped}')" title="Run this test">
+                            ▶ Run Test
+                        </button>
+                    </div>
                 </div>
-                <div class="test-source">Source: {source}</div>
-                <div class="test-actions">
-                    <button class="run-test-btn" onclick="event.stopPropagation(); runTest('{original_name_escaped}')" title="Run this test">
-                        ▶ Run Test
-                    </button>
-                </div>
-            </div>
             ''')
         
         return f'<div class="test-list">{"".join(html_items)}</div>'

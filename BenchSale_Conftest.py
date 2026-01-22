@@ -273,11 +273,30 @@ RECRUITER_EMAIL = "test@adamitcorp.com"
 
 # Add Candidate
 # Use the resume in this repo for upload tests (avoid machine-specific D: paths)
-ADD_CANDIDATE_PROFILE = os.path.join(os.path.dirname(__file__), "BHAVANA N.pdf")
-ADD_CANDIDATE_FNAME = "BHAVANA"
-ADD_CANDIDATE_LNAME = "N"
-ADD_CANDIDATE_EMAIL = "bhavanan.upskill@gmail.com"
-ADD_CANDIDATE_ROLE = "Data Engineer"
+# Try BHAVANA N.pdf first, fallback to Deepika Kashni.pdf if not found
+_bhavana_resume = os.path.join(os.path.dirname(__file__), "BHAVANA N.pdf")
+_deepika_resume = os.path.join(os.path.dirname(__file__), "Deepika Kashni.pdf")
+
+if os.path.exists(_bhavana_resume):
+    ADD_CANDIDATE_PROFILE = _bhavana_resume
+    ADD_CANDIDATE_FNAME = "BHAVANA"
+    ADD_CANDIDATE_LNAME = "N"
+    ADD_CANDIDATE_EMAIL = "bhavanan.upskill@gmail.com"
+    ADD_CANDIDATE_ROLE = "Data Engineer"
+elif os.path.exists(_deepika_resume):
+    # Fallback to Deepika's resume if BHAVANA's resume not found
+    ADD_CANDIDATE_PROFILE = _deepika_resume
+    ADD_CANDIDATE_FNAME = "Deepika"
+    ADD_CANDIDATE_LNAME = "Kashni"
+    ADD_CANDIDATE_EMAIL = "deepika.kashni@example.com"  # Update with actual email if needed
+    ADD_CANDIDATE_ROLE = "Python Developer"  # Update based on Deepika's resume content
+else:
+    # If neither exists, use BHAVANA path (will fail with clear error)
+    ADD_CANDIDATE_PROFILE = _bhavana_resume
+    ADD_CANDIDATE_FNAME = "BHAVANA"
+    ADD_CANDIDATE_LNAME = "N"
+    ADD_CANDIDATE_EMAIL = "bhavanan.upskill@gmail.com"
+    ADD_CANDIDATE_ROLE = "Data Engineer"
 
 # Job Submission Email
 OUTLOOK_EMAIL = "dhigvijay.s@jobsnprofiles.com"
@@ -1018,8 +1037,37 @@ def measure_page_load_time_pw(page, url, operation_name="Page Load"):
 def goto_fast(page: PWPage, url: str, timeout: int = 60000):
     """
     Faster navigation: domcontentloaded is usually enough for SPA apps.
+    For dashboard/login URLs, use 'load' to ensure redirects complete without waiting for networkidle.
+    Has fallback mechanism if 'load' times out.
     """
-    page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+    # For dashboard/login URLs, use 'load' instead of 'networkidle' to avoid timeout issues
+    # 'load' waits for page load event (redirects complete) but doesn't wait for network to be idle
+    if "dashboard" in url.lower() or "login" in url.lower() or "EmpLogin" in url or "Empdashboard" in url:
+        # Try 'load' first, but fallback to 'domcontentloaded' if it times out
+        try:
+            page.goto(url, wait_until="load", timeout=timeout)
+            # Additional wait for DOM to be ready
+            page.wait_for_load_state("domcontentloaded", timeout=10000)
+        except Exception as e:
+            # If 'load' times out, try faster 'domcontentloaded' approach
+            logger.warning(f"goto_fast: 'load' timed out for {url}, trying 'domcontentloaded'...")
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                page.wait_for_load_state("domcontentloaded", timeout=10000)
+            except Exception as e2:
+                # Last resort: try with commit (fastest)
+                logger.warning(f"goto_fast: 'domcontentloaded' also failed for {url}, trying 'commit'...")
+                page.goto(url, wait_until="commit", timeout=timeout)
+                page.wait_for_load_state("domcontentloaded", timeout=10000)
+    else:
+        # For other pages, use faster domcontentloaded
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+        except Exception as e:
+            # Fallback to commit if domcontentloaded fails
+            logger.warning(f"goto_fast: 'domcontentloaded' timed out for {url}, trying 'commit'...")
+            page.goto(url, wait_until="commit", timeout=timeout)
+            page.wait_for_load_state("domcontentloaded", timeout=10000)
 
 
 def handle_job_fair_popup_pw(page):
@@ -1724,6 +1772,94 @@ def _capture_playwright_artifacts(page: PWPage, test_name: str):
     return screenshot_path, html_path, url_path, current_url
 
 
+def _refresh_dashboard_after_test(test_name: str, outcome: str):
+    """Refresh dashboard after each test completes to show latest status.
+    This runs after EVERY test (passed/failed/skipped) regardless of how the test was run.
+    """
+    try:
+        # Import here to avoid circular imports
+        import subprocess
+        import sys
+        import time
+        from pathlib import Path
+        
+        # Longer delay to ensure log files are fully flushed and written to disk
+        # This is critical for dashboard to show accurate status (PASS/FAIL)
+        # Increased wait time to ensure test results are fully written before dashboard refresh
+        time.sleep(5.0)  # Increased to 5 seconds to ensure log files are fully flushed and latest status is captured
+        
+        # Force log file flush by importing logging and flushing all handlers
+        import logging
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers:
+            if hasattr(handler, 'flush'):
+                handler.flush()
+        
+        project_root = Path(__file__).parent
+        refresh_script = project_root / 'refresh_dashboard.py'
+        
+        if refresh_script.exists():
+            # Run refresh - don't capture output so we can see any errors
+            try:
+                logger.info(f"Refreshing dashboard after test: {test_name} ({outcome})")
+                result = subprocess.run(
+                    [sys.executable, str(refresh_script)],
+                    cwd=project_root,
+                    timeout=60,  # Increased timeout to 60 seconds for large dashboards
+                    capture_output=True,  # Capture to check for errors
+                    text=True
+                )
+                if result.returncode == 0:
+                    logger.info(f"✓ Dashboard refreshed successfully after test: {test_name} ({outcome})")
+                    # Additional wait to ensure file is written to disk
+                    time.sleep(0.5)
+                else:
+                    logger.warning(f"Dashboard refresh returned code {result.returncode} for test: {test_name}")
+                    if result.stderr:
+                        logger.warning(f"Dashboard refresh stderr: {result.stderr}")
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Dashboard refresh timed out after 60 seconds for test: {test_name}")
+                # Try direct import as fallback
+                try:
+                    from utils.unified_log_viewer import generate_unified_dashboard
+                    logger.info("Attempting direct dashboard generation...")
+                    dashboard_path = generate_unified_dashboard()
+                    logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
+                except Exception as direct_err:
+                    logger.warning(f"Direct dashboard generation also failed: {direct_err}")
+            except Exception as refresh_err:
+                logger.warning(f"Error refreshing dashboard for test {test_name}: {refresh_err}")
+                # Try direct import as fallback
+                try:
+                    from utils.unified_log_viewer import generate_unified_dashboard
+                    logger.info("Attempting direct dashboard generation as fallback...")
+                    dashboard_path = generate_unified_dashboard()
+                    logger.info(f"✓ Dashboard generated directly (fallback): {dashboard_path}")
+                except Exception as direct_err:
+                    logger.warning(f"Direct dashboard generation (fallback) also failed: {direct_err}")
+        else:
+            logger.warning(f"Dashboard refresh script not found: {refresh_script}")
+            # Try direct import as fallback
+            try:
+                from utils.unified_log_viewer import generate_unified_dashboard
+                logger.info("Attempting direct dashboard generation (script not found)...")
+                dashboard_path = generate_unified_dashboard()
+                logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
+            except Exception as direct_err:
+                logger.warning(f"Direct dashboard generation failed: {direct_err}")
+    except Exception as e:
+        # Always log the error but don't fail the test
+        logger.warning(f"Could not refresh dashboard after test {test_name}: {e}")
+        # Try one more time with direct import
+        try:
+            from utils.unified_log_viewer import generate_unified_dashboard
+            logger.info("Final attempt: Direct dashboard generation...")
+            dashboard_path = generate_unified_dashboard()
+            logger.info(f"✓ Dashboard generated directly (final attempt): {dashboard_path}")
+        except Exception as final_err:
+            logger.error(f"All dashboard refresh attempts failed: {final_err}")
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Generate detailed test reports"""
@@ -1740,7 +1876,15 @@ def pytest_runtest_makereport(item, call):
         if rep.outcome == "passed":
             elapsed = rep.duration if hasattr(rep, 'duration') else None
             test_logger.log_test_end(test_name, "PASS", elapsed=elapsed)
-            logger.info(f"TEST {test_name}: PASS")
+            # Force flush to ensure log is written immediately
+            import logging
+            root_logger = logging.getLogger()
+            for handler in root_logger.handlers:
+                if hasattr(handler, 'flush'):
+                    handler.flush()
+            
+            # Refresh dashboard after test completes
+            _refresh_dashboard_after_test(test_name, rep.outcome)
         elif rep.outcome == "failed":
             error_msg = str(rep.longrepr) if rep.longrepr else "Test failed"
             locator_hint = _extract_locator_hint(error_msg)
@@ -1748,7 +1892,12 @@ def pytest_runtest_makereport(item, call):
                 error_msg = f"{error_msg}\n\nLocator/XPath hint: {locator_hint}"
             elapsed = rep.duration if hasattr(rep, 'duration') else None
             test_logger.log_test_end(test_name, "FAIL", message=error_msg, elapsed=elapsed)
-            logger.error(f"TEST {test_name}: FAIL")
+            # Force flush to ensure log is written immediately
+            import logging
+            root_logger = logging.getLogger()
+            for handler in root_logger.handlers:
+                if hasattr(handler, 'flush'):
+                    handler.flush()
             # If we have a Playwright page fixture, capture artifacts for debugging
             try:
                 pw_page = None
@@ -1771,11 +1920,22 @@ def pytest_runtest_makereport(item, call):
 
             if rep.longrepr:
                 logger.error(f"Error details:\n{rep.longrepr}")
+            
+            # Refresh dashboard after test completes (FAIL)
+            _refresh_dashboard_after_test(test_name, rep.outcome)
         elif rep.outcome == "skipped":
             skip_reason = str(rep.longrepr) if rep.longrepr else "Test skipped"
             elapsed = rep.duration if hasattr(rep, 'duration') else None
             test_logger.log_test_end(test_name, "SKIP", message=skip_reason, elapsed=elapsed)
-            logger.warning(f"TEST {test_name}: SKIP")
+            # Force flush to ensure log is written immediately
+            import logging
+            root_logger = logging.getLogger()
+            for handler in root_logger.handlers:
+                if hasattr(handler, 'flush'):
+                    handler.flush()
+            
+            # Refresh dashboard after test completes
+            _refresh_dashboard_after_test(test_name, rep.outcome)
 
 
 @pytest.fixture(autouse=True)
@@ -2138,13 +2298,44 @@ def pytest_sessionfinish(session, exitstatus):
             html_files.append(recruiter_html)
             logger.info(f"Recruiter HTML log viewer generated: {recruiter_html}")
         
-        # Generate unified dashboard
+        # Generate unified dashboard - ALWAYS run this at session end to ensure dashboard is updated
+        # This ensures dashboard updates regardless of how tests were run (UI, command line, etc.)
         try:
+            logger.info("Generating unified dashboard at session end...")
+            # Wait a moment to ensure all log files are fully written
+            time.sleep(1)
             dashboard_path = generate_unified_dashboard()
-            logger.info(f"Unified dashboard generated: {dashboard_path}")
+            logger.info(f"✓ Unified dashboard generated successfully: {dashboard_path}")
             html_files.append(dashboard_path)
+            
+            # Additional wait to ensure file is written to disk
+            time.sleep(0.5)
+            logger.info("Dashboard update complete. UI will show latest status on next refresh.")
         except Exception as dashboard_err:
-            logger.warning(f"Could not generate unified dashboard: {dashboard_err}")
+            logger.error(f"ERROR: Could not generate unified dashboard: {dashboard_err}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Try one more time with refresh script
+            try:
+                import subprocess
+                from pathlib import Path
+                project_root = Path(__file__).parent
+                refresh_script = project_root / 'refresh_dashboard.py'
+                if refresh_script.exists():
+                    logger.info("Attempting dashboard refresh via script...")
+                    result = subprocess.run(
+                        [sys.executable, str(refresh_script)],
+                        cwd=project_root,
+                        timeout=60,
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        logger.info("✓ Dashboard refreshed via script successfully")
+                    else:
+                        logger.warning(f"Dashboard refresh script returned code {result.returncode}")
+            except Exception as script_err:
+                logger.error(f"Dashboard refresh script also failed: {script_err}")
         
         # Automatically open unified dashboard in browser
         try:

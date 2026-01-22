@@ -1,0 +1,180 @@
+Command: C:\Program Files\Python310\python.exe -m pytest -k test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale -s -vv --maxfail=1 -x --tb=short
+Exit Code: 0
+---------------------------------------- STDOUT ----------------------------------------
+============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-7.4.3, pluggy-1.6.0 -- C:\Program Files\Python310\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.10.11', 'Platform': 'Windows-10-10.0.26200-SP0', 'Packages': {'pytest': '7.4.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.10.0', 'langsmith': '0.4.14', 'locust': '2.42.1', 'base-url': '2.1.0', 'html': '4.1.1', 'json-report': '1.5.0', 'metadata': '3.1.1', 'playwright': '0.5.0', 'timeout': '2.2.0', 'xdist': '3.5.0'}, 'JAVA_HOME': 'C:\\Program Files\\Eclipse Adoptium\\jdk-8.0.392.8-hotspot', 'Base URL': ''}
+rootdir: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.10.0, langsmith-0.4.14, locust-2.42.1, base-url-2.1.0, html-4.1.1, json-report-1.5.0, metadata-3.1.1, playwright-0.5.0, timeout-2.2.0, xdist-3.5.0
+collecting ... collected 43 items / 40 deselected / 3 selected
+
+tests/benchsale/test_benchsale_admin_test_cases.py::test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale 
+------------------------------- live log setup --------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:456 Acquired browser lock (PID: 3308)
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:522 Creating new browser instance (only one will be created across all processes)
+INFO     root:test_logger.py:44 
+INFO     root:test_logger.py:45 ====================================================================================================
+INFO     root:test_logger.py:46 TEST test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale
+INFO     root:test_logger.py:48 Full Name: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale
+INFO     root:test_logger.py:49 Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\benchsale\test_benchsale_admin_test_cases.py
+INFO     root:test_logger.py:51 Start: 20260119 15:09:18.868
+INFO     root:test_logger.py:52 ====================================================================================================
+INFO     root:test_logger.py:103 00:00:13.247KEYWORD Login credentials for BenchSale
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:1588 Logged in to BenchSale Admin successfully (Playwright)
+-------------------------------- live log call --------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:649 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:650 Started runtime measurement for: T1.09 Admin- Verification of inactivating and activating candidate
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:651 Start time: 2026-01-19 15:09:48
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:652 ================================================================================
+Started runtime measurement for: T1.09 Admin- Verification of inactivating and activating candidate
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:754 Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:770 Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+INFO     root:test_logger.py:103 00:00:00.787KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+Inactivating a candidate.......
+Number of active candidates: 4
+Chosen candidate: Srikant Reddy
+Moved-to-inactive toast: 'Selected candidates moved to inactive successfully'
+Inactivated a candidate successfully....
+Moved-to-active toast: 'Candidates Moved to Active'
+Candidate is activated again....
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:679 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:680 Runtime for 'T1.09 Admin- Verification of inactivating and activating candidate': 16.41 seconds
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:681 End time: 2026-01-19 15:10:05
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:682 ================================================================================
+Runtime for 'T1.09 Admin- Verification of inactivating and activating candidate': 16.41 seconds
+PASS: Test completed in 16.41 seconds
+INFO     root:test_logger.py:64 
+INFO     root:test_logger.py:65 Full Name: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale
+INFO     root:test_logger.py:66 Start / End / Elapsed: 20260119 15:09:18.864 / 20260119 15:10:05.147 / 00:00:16.407
+INFO     root:test_logger.py:70 TEST test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale: PASS
+INFO     root:test_logger.py:71 Status: PASS
+Refreshing BenchSale Dashboard...
+[OK] Dashboard refreshed: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+You can now open the dashboard in your browser.
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:1783 \u2713 Dashboard refreshed after test: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale (passed)\nPASSED
+------------------------------ live log teardown ------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:548 Closing browser instance
+--------------------------- live log sessionfinish ----------------------------
+INFO     root:test_logger.py:183 
+INFO     root:test_logger.py:184 ====================================================================================================
+INFO     root:test_logger.py:185 Full Name: JnP benchSale
+INFO     root:test_logger.py:186 Start / End / Elapsed: 20260119 15:09:17.945 / 20260119 15:10:07.504 / 00:00:49.558
+INFO     root:test_logger.py:187 Status: 1 tests total, 1 passed, 0 failed, 0 skipped
+INFO     root:test_logger.py:188 ====================================================================================================
+INFO     root:test_logger.py:195 
+INFO     root:test_logger.py:196 Test Statistics
+INFO     root:test_logger.py:197 ----------------------------------------------------------------------------------------------------
+INFO     root:test_logger.py:201 Test                                                         Total    Pass     Fail     Skip     Elapsed        
+INFO     root:test_logger.py:202 ----------------------------------------------------------------------------------------------------
+INFO     root:test_logger.py:213 test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale 1        1        0        0        00:00:16.407   
+INFO     root:test_logger.py:219 ----------------------------------------------------------------------------------------------------
+INFO     root:test_logger.py:220 All Tests                                                    1        1        0        0        00:00:16.407   
+INFO     root:test_logger.py:221 ----------------------------------------------------------------------------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2148 
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2149 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2150 TEST SESSION FINISHED
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2151 Session end time: 2026-01-19 15:10:07
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2152 Exit status: 0
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2155 Total tests executed: 1
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2159 
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2160 RUNTIME SUMMARY:
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2161 --------------------------------------------------------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2165   T1.09 Admin- Verification of inactivating and activating candidate: 16.41 seconds
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2166 --------------------------------------------------------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2168 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2169 
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2197 Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2217 HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2224 Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2231 Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2236 Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2272 Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+
+
+--------------------------------- JSON report ---------------------------------
+report saved to: reports/report.json
+- Generated html report: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/reports/report.html -
+====================== 1 passed, 40 deselected in 50.11s ======================
+
+---------------------------------------- STDERR ----------------------------------------
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:248 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:249 - BenchSale_Conftest: BenchSale Automation Test Suite - Logging Initialized
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:250 - BenchSale_Conftest: Log file: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.log
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:251 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:09:17 [    INFO] test_logger.py:163 - root: ====================================================================================================
+2026-01-19 15:09:17 [    INFO] test_logger.py:164 - root: SUITE JnP benchSale
+2026-01-19 15:09:17 [    INFO] test_logger.py:165 - root: Full Name: JnP benchSale
+2026-01-19 15:09:17 [    INFO] test_logger.py:167 - root: Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+2026-01-19 15:09:17 [    INFO] test_logger.py:168 - root: Start: 20260119 15:09:17.945
+2026-01-19 15:09:17 [    INFO] test_logger.py:169 - root: ====================================================================================================
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:2043 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:2044 - BenchSale_Conftest: \U0001f9e0 SMART FRAMEWORK: Admin tests explicitly requested - filtering recruiter tests
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:2045 - BenchSale_Conftest:    Admin tests: 11, Recruiter tests filtered: 2
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:2046 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:09:17 [    INFO] BenchSale_Conftest.py:2076 - BenchSale_Conftest: \u2713 Final test execution: 41 tests (Admin: 11, Recruiter: 0)
+2026-01-19 15:09:18 [    INFO] BenchSale_Conftest.py:456 - BenchSale_Conftest: Acquired browser lock (PID: 3308)
+2026-01-19 15:09:18 [    INFO] BenchSale_Conftest.py:522 - BenchSale_Conftest: Creating new browser instance (only one will be created across all processes)
+2026-01-19 15:09:18 [    INFO] test_logger.py:44 - root: 
+2026-01-19 15:09:18 [    INFO] test_logger.py:45 - root: ====================================================================================================
+2026-01-19 15:09:18 [    INFO] test_logger.py:46 - root: TEST test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale
+2026-01-19 15:09:18 [    INFO] test_logger.py:48 - root: Full Name: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale
+2026-01-19 15:09:18 [    INFO] test_logger.py:49 - root: Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\benchsale\test_benchsale_admin_test_cases.py
+2026-01-19 15:09:18 [    INFO] test_logger.py:51 - root: Start: 20260119 15:09:18.868
+2026-01-19 15:09:18 [    INFO] test_logger.py:52 - root: ====================================================================================================
+2026-01-19 15:09:37 [    INFO] test_logger.py:103 - root: 00:00:13.247KEYWORD Login credentials for BenchSale
+2026-01-19 15:09:37 [    INFO] BenchSale_Conftest.py:1588 - BenchSale_Conftest: Logged in to BenchSale Admin successfully (Playwright)
+2026-01-19 15:09:48 [    INFO] BenchSale_Conftest.py:649 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:09:48 [    INFO] BenchSale_Conftest.py:650 - BenchSale_Conftest: Started runtime measurement for: T1.09 Admin- Verification of inactivating and activating candidate
+2026-01-19 15:09:48 [    INFO] BenchSale_Conftest.py:651 - BenchSale_Conftest: Start time: 2026-01-19 15:09:48
+2026-01-19 15:09:48 [    INFO] BenchSale_Conftest.py:652 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:09:48 [    INFO] BenchSale_Conftest.py:754 - BenchSale_Conftest: Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+2026-01-19 15:09:49 [    INFO] BenchSale_Conftest.py:770 - BenchSale_Conftest: Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+2026-01-19 15:09:49 [    INFO] test_logger.py:103 - root: 00:00:00.787KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+2026-01-19 15:10:05 [    INFO] BenchSale_Conftest.py:679 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:10:05 [    INFO] BenchSale_Conftest.py:680 - BenchSale_Conftest: Runtime for 'T1.09 Admin- Verification of inactivating and activating candidate': 16.41 seconds
+2026-01-19 15:10:05 [    INFO] BenchSale_Conftest.py:681 - BenchSale_Conftest: End time: 2026-01-19 15:10:05
+2026-01-19 15:10:05 [    INFO] BenchSale_Conftest.py:682 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:10:05 [    INFO] test_logger.py:64 - root: 
+2026-01-19 15:10:05 [    INFO] test_logger.py:65 - root: Full Name: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale
+2026-01-19 15:10:05 [    INFO] test_logger.py:66 - root: Start / End / Elapsed: 20260119 15:09:18.864 / 20260119 15:10:05.147 / 00:00:16.407
+2026-01-19 15:10:05 [    INFO] test_logger.py:70 - root: TEST test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale: PASS
+2026-01-19 15:10:05 [    INFO] test_logger.py:71 - root: Status: PASS
+2026-01-19 15:10:06 [    INFO] BenchSale_Conftest.py:1783 - BenchSale_Conftest: \u2713 Dashboard refreshed after test: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale (passed)
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:548 - BenchSale_Conftest: Closing browser instance
+2026-01-19 15:10:07 [    INFO] test_logger.py:183 - root: 
+2026-01-19 15:10:07 [    INFO] test_logger.py:184 - root: ====================================================================================================
+2026-01-19 15:10:07 [    INFO] test_logger.py:185 - root: Full Name: JnP benchSale
+2026-01-19 15:10:07 [    INFO] test_logger.py:186 - root: Start / End / Elapsed: 20260119 15:09:17.945 / 20260119 15:10:07.504 / 00:00:49.558
+2026-01-19 15:10:07 [    INFO] test_logger.py:187 - root: Status: 1 tests total, 1 passed, 0 failed, 0 skipped
+2026-01-19 15:10:07 [    INFO] test_logger.py:188 - root: ====================================================================================================
+2026-01-19 15:10:07 [    INFO] test_logger.py:195 - root: 
+2026-01-19 15:10:07 [    INFO] test_logger.py:196 - root: Test Statistics
+2026-01-19 15:10:07 [    INFO] test_logger.py:197 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:10:07 [    INFO] test_logger.py:201 - root: Test                                                         Total    Pass     Fail     Skip     Elapsed        
+2026-01-19 15:10:07 [    INFO] test_logger.py:202 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:10:07 [    INFO] test_logger.py:213 - root: test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale 1        1        0        0        00:00:16.407   
+2026-01-19 15:10:07 [    INFO] test_logger.py:219 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:10:07 [    INFO] test_logger.py:220 - root: All Tests                                                    1        1        0        0        00:00:16.407   
+2026-01-19 15:10:07 [    INFO] test_logger.py:221 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2148 - BenchSale_Conftest: 
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2149 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2150 - BenchSale_Conftest: TEST SESSION FINISHED
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2151 - BenchSale_Conftest: Session end time: 2026-01-19 15:10:07
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2152 - BenchSale_Conftest: Exit status: 0
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2155 - BenchSale_Conftest: Total tests executed: 1
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2159 - BenchSale_Conftest: 
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2160 - BenchSale_Conftest: RUNTIME SUMMARY:
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2161 - BenchSale_Conftest: --------------------------------------------------------------------------------
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2165 - BenchSale_Conftest:   T1.09 Admin- Verification of inactivating and activating candidate: 16.41 seconds
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2166 - BenchSale_Conftest: --------------------------------------------------------------------------------
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2168 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2169 - BenchSale_Conftest: 
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2197 - BenchSale_Conftest: Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2217 - BenchSale_Conftest: HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2224 - BenchSale_Conftest: Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2231 - BenchSale_Conftest: Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2236 - BenchSale_Conftest: Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+2026-01-19 15:10:07 [    INFO] BenchSale_Conftest.py:2272 - BenchSale_Conftest: Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html

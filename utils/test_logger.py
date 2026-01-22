@@ -13,7 +13,9 @@ class TestLogger:
     """Enhanced logger with Robot Framework-style formatting"""
     
     def __init__(self, logger_name: str = 'benchsale_test'):
-        self.logger = logging.getLogger(logger_name)
+        # Use root logger to ensure it writes to the file handlers set up by conftest
+        # This ensures TEST lines appear in employer.log, jobseeker.log, benchsale_admin.log, etc.
+        self.logger = logging.getLogger()  # Root logger - has file handlers from conftest setup
         self.test_stats = {
             'tests': [],
             'total': 0,
@@ -64,6 +66,8 @@ class TestLogger:
             self.logger.info(f"Start / End / Elapsed: {datetime.fromtimestamp(start_time).strftime('%Y%m%d %H:%M:%S.%f')[:-3]} / {end_time_str} / {elapsed_str}")
             
             status_upper = status.upper()
+            # Write TEST line in format dashboard expects: "TEST test_name: PASS/FAIL/SKIP"
+            self.logger.info(f"TEST {test_name}: {status_upper}")
             self.logger.info(f"Status: {status_upper}")
             if message:
                 self.logger.info(f"Message: {message}")

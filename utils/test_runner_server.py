@@ -110,9 +110,26 @@ def run_test_command(test_name):
         result = subprocess.run(
             cmd,
             cwd=PROJECT_ROOT,
-            capture_output=False,
+            capture_output=True,
             text=True
         )
+        
+        # Log the output
+        try:
+            log_dir = PROJECT_ROOT / 'logs'
+            log_dir.mkdir(exist_ok=True)
+            run_log_file = log_dir / f"run_log_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            with open(run_log_file, 'w', encoding='utf-8') as f:
+                f.write(f"Command: {' '.join(cmd)}\n")
+                f.write(f"Exit Code: {result.returncode}\n")
+                f.write("STDOUT:\n" + result.stdout + "\n")
+                f.write("STDERR:\n" + result.stderr + "\n")
+            
+            print(result.stdout)
+            if result.stderr:
+                print(result.stderr, file=sys.stderr)
+        except Exception as e:
+            print(f"Error logging output: {e}")
         
         print(f"\n{'='*60}")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Test '{test_name}' completed with exit code: {result.returncode}")

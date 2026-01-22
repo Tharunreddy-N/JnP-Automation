@@ -28,8 +28,11 @@ CLEANUP_DIRS = {
 }
 
 # Files to remove from root (if they exist and are old)
+# NOTE: Do NOT remove resume PDF files - they are needed for test cases:
+# - "BHAVANA N.pdf" - Used in BenchSale_Conftest.py for candidate profile uploads
+# - "Deepika Kashni.pdf" - Used in JobSeeker_Conftest.py for resume uploads
 ROOT_FILES_TO_CHECK = [
-    "BHAVANA N.pdf",  # Test file, can be removed
+    # Resume files are needed for tests, don't remove them
 ]
 
 

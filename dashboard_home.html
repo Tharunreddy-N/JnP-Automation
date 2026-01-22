@@ -5,20 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JobsnProfiles - Automation Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-
         :root {
             --primary: #F97316;
-            /* Orange 500 */
-            --secondary: #F59E0B;
-            /* Amber 500 */
-            --accent: #EA580C;
-            /* Orange 600 */
-            --dark: #1C1917;
-            /* Stone 900 */
-            --light: #FFF7ED;
-            /* Orange 50 */
+            --primary-light: #FFEDD5;
+            --secondary: #6366f1;
+            --secondary-light: #EEF2FF;
+            --tertiary: #10b981;
+            --tertiary-light: #ECFDF5;
+            --bg-body: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
         }
 
         * {
@@ -26,764 +28,682 @@
             padding: 0;
             box-sizing: border-box;
             -webkit-font-smoothing: antialiased;
+            cursor: none;
+            /* Hide default cursor */
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--light);
-            color: var(--dark);
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(136deg, rgb(209 225 231) 0%, rgb(242 251 245) 50%, rgb(229 223 174) 100%);
+            color: var(--text-main);
             min-height: 100vh;
+            overflow-x: hidden;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            perspective: 2000px;
-            background: linear-gradient(135deg, #FFEDD5 0%, #FFF7ED 100%);
+            flex-direction: column;
+            cursor: none;
         }
 
-        /* Animated Bubble Background */
-        .background-bubbles {
+        /* Custom Cursor - High End Minimalist */
+        #cursor-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--primary);
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.2s ease, background-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+        }
+
+        #cursor-outline {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--primary);
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, opacity 0.3s ease;
+            opacity: 0.4;
+        }
+
+        /* Hover States for Cursor */
+        .cursor-hover #cursor-dot {
+            width: 4px;
+            height: 4px;
+            background-color: var(--white);
+            transform: translate(-50%, -50%) scale(0.5);
+            opacity: 0;
+        }
+
+        .cursor-hover #cursor-outline {
+            width: 58px;
+            height: 58px;
+            background-color: rgba(249, 115, 22, 0.1);
+            border-color: var(--primary);
+            opacity: 1;
+            border-width: 1.5px;
+        }
+
+        /* Click Ripple Effect */
+        .cursor-click #cursor-outline {
+            transform: translate(-50%, -50%) scale(0.85);
+            background-color: rgba(249, 115, 22, 0.25);
+            border-color: var(--primary);
+        }
+
+        /* Particles Background */
+        #particles-js {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
-            overflow: hidden;
-            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-        }
-
-        .bubble {
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(245, 158, 11, 0.2));
-            filter: blur(40px);
-            animation: floatBubble 20s infinite ease-in-out;
-            opacity: 0.6;
-        }
-
-        .bubble:nth-child(1) {
-            top: -10%;
-            left: -10%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
-            animation-duration: 25s;
-        }
-
-        .bubble:nth-child(2) {
-            bottom: -10%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
-            animation-duration: 30s;
-            animation-delay: -5s;
-        }
-
-        .bubble:nth-child(3) {
-            top: 40%;
-            left: 40%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(234, 88, 12, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
-            animation-duration: 20s;
-            animation-delay: -10s;
-        }
-
-        .bubble:nth-child(4) {
-            bottom: 20%;
-            left: 10%;
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(251, 146, 60, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
-            animation-duration: 18s;
-            animation-delay: -8s;
-        }
-
-        @keyframes floatBubble {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            33% {
-                transform: translate(30px, -50px) scale(1.1);
-            }
-
-            66% {
-                transform: translate(-20px, 20px) scale(0.95);
-            }
+            background: transparent;
         }
 
         .container {
-            width: 90%;
+            width: 100%;
             max-width: 1200px;
-            z-index: 10;
+            margin: 0 auto;
+            padding: 60px 20px;
+            z-index: 1;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 60px;
+            justify-content: center;
         }
 
-        /* Header Styling */
         .header {
             text-align: center;
+            margin-bottom: 80px;
+            animation: fadeInUp 0.8s ease-out;
             position: relative;
         }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(15px);
-            border-radius: 50px;
-            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.1);
-            margin-bottom: 30px;
-            animation: float 6s ease-in-out infinite;
-            border: 1px solid rgba(249, 115, 22, 0.2);
-        }
+        .header::before {
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #F97316;
-            /* Orange Dot */
-            border-radius: 50%;
-            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        .status-text {
-            font-size: 13px;
-            font-weight: 600;
-            color: #78350f;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-
-        h1 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 5.5rem;
+            display: inline-block;
+            padding: 6px 16px;
+            background: linear-gradient(90deg, #6366f1, #f43f5e);
+            color: white;
+            font-size: 0.75rem;
             font-weight: 700;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-img {
+            max-width: 320px;
+            height: auto;
+            margin-bottom: 24px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .title {
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: -2px;
             line-height: 1;
             margin-bottom: 25px;
-            background: linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%);
+            background: linear-gradient(135deg, #1e293b 20%, #6366f1 40%, #f43f5e 60%, #1e293b 80%);
+            background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -2px;
-            position: relative;
-            text-shadow: 0 2px 10px rgba(249, 115, 22, 0.1);
+            animation: gradientMove 5s linear infinite;
         }
 
-        h1::after {
-            content: 'JobsnProfiles';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(249, 115, 22, 0.25) 0%, transparent 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: blur(10px);
-            opacity: 0.4;
-            z-index: -1;
+        @keyframes gradientMove {
+            0% {
+                background-position: 0% center;
+            }
+
+            100% {
+                background-position: 200% center;
+            }
         }
 
-        .tagline {
-            font-size: 1.75rem;
-            font-weight: 600;
-            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-            letter-spacing: -0.3px;
-            position: relative;
-            display: inline-block;
+        .title-divider {
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #6366f1, #f43f5e);
+            margin: 30px auto 0;
+            /* Moved spacing to top since it's now below paragraph */
+            border-radius: 20px;
+            opacity: 0.8;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            color: #78350f;
-            /* Amber 900 */
-            max-width: 800px;
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 700px;
             margin: 0 auto;
-            line-height: 1.7;
             font-weight: 400;
-            opacity: 0.9;
+            line-height: 1.6;
         }
 
-        /* Grid Layout */
-        .grid-container {
+        /* Card Layout - Premium Glassmorphism */
+        .nav-hub {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 40px;
-            width: 100%;
-            perspective: 1000px;
+            gap: 30px;
+            padding-top: 20px;
         }
 
-        @media (max-width: 1200px) {
-            .grid-container {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .grid-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Card Styles */
-        .card {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            border-radius: 32px;
-            padding: 50px;
+        .hub-item {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            padding: 45px 35px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
-            cursor: pointer;
-            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-            transform-style: preserve-3d;
-            box-shadow:
-                0 10px 40px -10px rgba(249, 115, 22, 0.1),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-            overflow: hidden;
+            border-radius: 32px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            height: 450px;
-            outline: none;
+            overflow: hidden;
         }
 
-        .card:focus {
-            border-color: var(--primary);
-            box-shadow:
-                0 10px 40px -10px rgba(249, 115, 22, 0.2),
-                0 0 0 3px rgba(249, 115, 22, 0.2),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-        }
-
-        .card::before {
+        .hub-item::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(125deg, rgba(255, 255, 255, 0.6) 0%, transparent 60%);
+            background: transparent;
             opacity: 0;
-            transition: 0.5s;
-        }
-
-        .card:hover {
-            transform: translateY(-10px) rotateX(2deg) scale(1.02);
-            background: rgba(255, 255, 255, 0.85);
-            box-shadow:
-                0 30px 60px -12px rgba(249, 115, 22, 0.15),
-                0 18px 36px -18px rgba(0, 0, 0, 0.1);
-            border-color: #fff;
-        }
-
-        .card:hover::before {
-            opacity: 1;
-        }
-
-        /* Card Content */
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 30px;
-            transform: translateZ(20px);
-        }
-
-        .icon-box {
-            width: 120px;
-            height: 120px;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            transition: all 0.5s ease;
-            position: relative;
-            overflow: visible;
-        }
-
-        /* Specialized Colors with Animated Logos */
-        .benchsale .icon-box {
-            background: linear-gradient(135deg, #FFF7ED, #FFEDD5);
-            color: #F97316;
-            box-shadow: 0 0 15px rgba(249, 115, 22, 0.15), inset 0 0 10px rgba(249, 115, 22, 0.05);
-        }
-
-        .employer .icon-box {
-            background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
-            color: #D97706;
-            box-shadow: 0 0 15px rgba(217, 119, 6, 0.15), inset 0 0 10px rgba(217, 119, 6, 0.05);
-        }
-
-        .jobseeker .icon-box {
-            background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
-            color: #16A34A;
-            box-shadow: 0 0 15px rgba(22, 163, 74, 0.15), inset 0 0 10px rgba(22, 163, 74, 0.05);
-        }
-
-        .card:hover .icon-box {
-            transform: scale(1.1) rotate(-5deg);
-            box-shadow: 0 10px 25px rgba(249, 115, 22, 0.2), 0 0 30px rgba(249, 115, 22, 0.1);
-        }
-
-        /* Animated Logo SVG Styles */
-        .logo-svg {
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(0 0 4px currentColor);
-        }
-
-        .benchsale .logo-svg {
-            animation: rocketPulse 2s ease-in-out infinite, rocketGlow 3s ease-in-out infinite;
-        }
-
-        .employer .logo-svg {
-            animation: briefcasePulse 2s ease-in-out infinite, briefcaseGlow 3s ease-in-out infinite;
-        }
-
-        .jobseeker .logo-svg {
-            animation: userPulse 2s ease-in-out infinite, userGlow 3s ease-in-out infinite;
-        }
-
-        /* Rocket Animation for BenchSale */
-        @keyframes rocketPulse {
-
-            0%,
-            100% {
-                transform: scale(1) translateY(0);
-            }
-
-            50% {
-                transform: scale(1.1) translateY(-5px);
-            }
-        }
-
-        @keyframes rocketGlow {
-
-            0%,
-            100% {
-                filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.4)) drop-shadow(0 0 8px rgba(249, 115, 22, 0.2));
-            }
-
-            50% {
-                filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.6)) drop-shadow(0 0 12px rgba(249, 115, 22, 0.3)) drop-shadow(0 0 16px rgba(245, 158, 11, 0.2));
-            }
-        }
-
-        /* Briefcase Animation for Employer */
-        @keyframes briefcasePulse {
-
-            0%,
-            100% {
-                transform: scale(1) rotate(0deg);
-            }
-
-            50% {
-                transform: scale(1.1) rotate(2deg);
-            }
-        }
-
-        @keyframes briefcaseGlow {
-
-            0%,
-            100% {
-                filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.4)) drop-shadow(0 0 8px rgba(217, 119, 6, 0.2));
-            }
-
-            50% {
-                filter: drop-shadow(0 0 8px rgba(217, 119, 6, 0.6)) drop-shadow(0 0 12px rgba(217, 119, 6, 0.3)) drop-shadow(0 0 16px rgba(245, 158, 11, 0.2));
-            }
-        }
-
-        /* User Animation for Job Seeker */
-        @keyframes userPulse {
-
-            0%,
-            100% {
-                transform: scale(1) translateY(0);
-            }
-
-            50% {
-                transform: scale(1.1) translateY(-3px);
-            }
-        }
-
-        @keyframes userGlow {
-
-            0%,
-            100% {
-                filter: drop-shadow(0 0 4px rgba(22, 163, 74, 0.4)) drop-shadow(0 0 8px rgba(22, 163, 74, 0.2));
-            }
-
-            50% {
-                filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.6)) drop-shadow(0 0 12px rgba(22, 163, 74, 0.3)) drop-shadow(0 0 16px rgba(34, 197, 94, 0.2));
-            }
-        }
-
-        /* Animated particles around logos */
-        .icon-box::before {
-            content: '';
-            position: absolute;
-            width: 150%;
-            height: 150%;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(249, 115, 22, 0.2) 0%, transparent 70%);
-            animation: particleRotate 4s linear infinite;
+            transition: opacity 0.4s ease;
             pointer-events: none;
         }
 
-        .employer .icon-box::before {
-            background: radial-gradient(circle, rgba(217, 119, 6, 0.2) 0%, transparent 70%);
+        .hub-item::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 32px;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.4s ease;
         }
 
-        .jobseeker .icon-box::before {
-            background: radial-gradient(circle, rgba(22, 163, 74, 0.2) 0%, transparent 70%);
+        .hub-item:hover {
+            transform: translateY(-12px) scale(1.02);
+            background: #ffffff;
+            backdrop-filter: blur(30px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.5);
+            border-color: transparent;
         }
 
-        @keyframes particleRotate {
-            0% {
-                transform: rotate(0deg) scale(1);
-                opacity: 0.5;
-            }
-
-            50% {
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: rotate(360deg) scale(1.2);
-                opacity: 0.5;
-            }
+        .hub-item:hover::before {
+            opacity: 0;
         }
 
-        .card-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: var(--dark);
-            margin-bottom: 15px;
-            transform: translateZ(30px);
-            transition: color 0.3s;
+        /* Unique Glow Effects on Hover */
+        .hub-item:has(.icon-benchsale):hover {
+            box-shadow: 0 25px 60px rgba(249, 115, 22, 0.25), 0 0 40px rgba(249, 115, 22, 0.1);
         }
 
-        .card:hover .card-title {
-            background: linear-gradient(90deg, #9a3412, #c2410c);
-            -webkit-background-clip: text;
+        .hub-item:has(.icon-benchsale):hover::after {
+            background: linear-gradient(135deg, var(--primary), #fb923c);
+            opacity: 0.15;
         }
 
-        .card-desc {
-            font-size: 1.1rem;
-            color: #78350f;
-            line-height: 1.7;
-            transform: translateZ(20px);
+        .hub-item:has(.icon-employer):hover {
+            box-shadow: 0 25px 60px rgba(99, 102, 241, 0.25), 0 0 40px rgba(99, 102, 241, 0.1);
         }
 
-        /* Action Arrow */
-        .action {
-            align-self: flex-end;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--dark);
+        .hub-item:has(.icon-employer):hover::after {
+            background: linear-gradient(135deg, var(--secondary), #818cf8);
+            opacity: 0.15;
+        }
+
+        .hub-item:has(.icon-jobseeker):hover {
+            box-shadow: 0 25px 60px rgba(16, 185, 129, 0.25), 0 0 40px rgba(16, 185, 129, 0.1);
+        }
+
+        .hub-item:has(.icon-jobseeker):hover::after {
+            background: linear-gradient(135deg, var(--tertiary), #34d399);
+            opacity: 0.15;
+        }
+
+        .hub-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            transition: all 0.4s ease;
-            transform: translateZ(40px);
+            margin-bottom: 24px;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
-            overflow: hidden;
         }
 
-        .action svg {
-            width: 24px;
-            height: 24px;
-            transition: transform 0.4s;
-            z-index: 2;
-        }
-
-        /* Button Hover Effect */
-        .action::after {
+        .hub-icon::before {
             content: '';
             position: absolute;
-            width: 100%;
-            height: 100%;
-            background: var(--primary);
-            top: 100%;
-            left: 0;
-            transition: all 0.3s;
-            border-radius: 50%;
+            inset: -4px;
+            border-radius: 20px;
+            background: inherit;
+            opacity: 0;
+            filter: blur(12px);
+            transition: opacity 0.4s ease;
         }
 
-        .card.employer .action::after {
-            background: var(--secondary);
+        .hub-item:hover .hub-icon {
+            transform: scale(1.15) rotate(-8deg);
         }
 
-        .card.jobseeker .action::after {
-            background: #16A34A;
+        .hub-item:hover .hub-icon::before {
+            opacity: 0.6;
         }
 
-        .card:hover .action::after {
-            top: 0;
+        .icon-benchsale {
+            background: var(--primary-light);
+            color: var(--primary);
         }
 
-        .card:hover .action svg {
-            transform: translateX(3px);
+        .icon-employer {
+            background: var(--secondary-light);
+            color: var(--secondary);
         }
 
-        /* Animations */
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-5px);
-            }
+        .icon-jobseeker {
+            background: var(--tertiary-light);
+            color: var(--tertiary);
         }
 
-        @keyframes pulse {
+        .hub-item h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
 
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
-            }
+        .hub-item p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
 
-            70% {
-                box-shadow: 0 0 0 6px rgba(249, 115, 22, 0);
-            }
+        /* Button Styling */
+        .hub-link {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: 2px solid currentColor;
+            transition: all 0.3s ease;
+            background: transparent;
+            text-decoration: none;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hub-item:hover .hub-link {
+            background: transparent !important;
+            color: currentColor !important;
+            border-width: 2px;
+            border-color: currentColor;
+            gap: 15px;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+        }
+
+        /* Keep theme colors on hover with subtle bright borders */
+        .hub-item:hover .benchsale-link {
+            color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25) !important;
+        }
+
+        .hub-item:hover .employer-link {
+            color: var(--secondary) !important;
+            border-color: var(--secondary) !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25) !important;
+        }
+
+        .hub-item:hover .jobseeker-link {
+            color: var(--tertiary) !important;
+            border-color: var(--tertiary) !important;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25) !important;
+        }
+
+        /* SVG Color fix on hover to be white */
+        .hub-link svg {
+            stroke: currentColor;
+            transition: stroke 0.3s ease;
+        }
+
+        .hub-item:hover .hub-link svg {
+            stroke: currentColor !important;
+        }
+
+        .benchsale-link {
+            color: var(--primary);
+        }
+
+        .employer-link {
+            color: var(--secondary);
+        }
+
+        .jobseeker-link {
+            color: var(--tertiary);
         }
 
         /* Footer */
         .footer {
-            margin-top: 60px;
+            padding: 40px;
             text-align: center;
-            color: #9a3412;
+            color: var(--text-muted);
             font-size: 0.9rem;
-            opacity: 0.7;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        @media (max-width: 900px) {
+            .nav-hub {
+                grid-template-columns: 1fr;
+                border-top: none;
+            }
+
+            .hub-item::after {
+                display: none;
+            }
+
+            .title {
+                font-size: 2.5rem;
+            }
+
+            .header {
+                margin-bottom: 40px;
+            }
+        }
+
+        /* Subtle Cursor Blob */
+        .cursor-glow {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            transform: translate(-50%, -50%);
+            transition: none;
         }
     </style>
 </head>
 
 <body>
+    <!-- Particles Background -->
+    <div id="particles-js"></div>
 
-    <div class="background-bubbles">
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-    </div>
+    <!-- Custom Cursor Elements -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-outline"></div>
+
+    <div class="cursor-glow" id="cursor-glow"></div>
 
     <div class="container">
         <header class="header">
-            <h1>JobsnProfiles</h1>
-            <div class="tagline">Automation Control Center</div>
-            <p class="subtitle">Manage jobs, profiles, and workflows for BenchSales, employers, and job seekers — all in one place.</p>
+            <img src="images/jnplogo.png" alt="JobsnProfiles Logo" class="logo-img">
+            <h1 class="title">Automation Control Hub</h1>
+            <p class="subtitle">Accelerating recruitment intelligence through high-performance automation and real-time
+                execution monitoring.</p>
+            <div class="title-divider"></div>
         </header>
 
-        <div class="grid-container">
-            <!-- BenchSale Card -->
-            <div class="card benchsale" tabindex="0" role="button" aria-label="Navigate to BenchSale dashboard" onclick="window.location.href='logs/index.html?filter=benchsale'" onkeydown="if(event.key==='Enter'){window.location.href='logs/index.html?filter=benchsale'}">
-                <div class="card-header">
-                    <div class="icon-box">
-                        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" width="80" height="80"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <!-- Animated Rocket Logo for BenchSale -->
-                            <path
-                                d="M4.5 16.5c-1-1.5-1-4 0-5.5m5.5 0c1.5-1 4-1 5.5 0m0 0c1 1.5 1 4 0 5.5m-5.5 0c-1.5 1-4 1-5.5 0"
-                                stroke="#F97316" fill="rgba(249, 115, 22, 0.1)" />
-                            <path d="M12 2L8 6h8l-4-4z" fill="#F97316" opacity="0.9">
-                                <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s"
-                                    repeatCount="indefinite" />
-                            </path>
-                            <circle cx="12" cy="12" r="2" fill="#F97316">
-                                <animate attributeName="r" values="2;3;2" dur="2s" repeatCount="indefinite" />
-                                <animate attributeName="opacity" values="1;0.7;1" dur="2s" repeatCount="indefinite" />
-                            </circle>
-                            <path d="M12 6v6m0 0v6" stroke="#F59E0B" stroke-width="1.5">
-                                <animate attributeName="stroke-dasharray" values="0,6;3,3;0,6" dur="2s"
-                                    repeatCount="indefinite" />
-                            </path>
-                            <!-- Glowing particles -->
-                            <circle cx="8" cy="8" r="1" fill="#F97316" opacity="0.6">
-                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s"
-                                    repeatCount="indefinite" />
-                                <animateTransform attributeName="transform" type="translate" values="0,0; -2,-2; 0,0"
-                                    dur="2s" repeatCount="indefinite" />
-                            </circle>
-                            <circle cx="16" cy="8" r="1" fill="#F59E0B" opacity="0.6">
-                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s"
-                                    repeatCount="indefinite" />
-                                <animateTransform attributeName="transform" type="translate" values="0,0; 2,-2; 0,0"
-                                    dur="2.2s" repeatCount="indefinite" />
-                            </circle>
-                        </svg>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="card-title">BenchSale</h2>
-                    <p class="card-desc">Execute and monitor test cases for Job Seeker workflows, profile management,
-                        and job applications.</p>
-                </div>
-                <div class="action">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        <nav class="nav-hub">
+            <a href="logs/index.html?filter=benchsale" class="hub-item">
+                <div class="hub-icon icon-benchsale">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m12 14 4-4-4-4" />
+                        <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+                    </svg>
+                </div>
+                <h2>BenchSale</h2>
+                <p>Automate job seeker distribution and matching workflows with precision tracking.</p>
+                <div class="hub-link benchsale-link">
+                    Launch Console
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
                 </div>
-            </div>
+            </a>
 
-            <!-- Employer Card -->
-            <div class="card employer" tabindex="0" role="button" aria-label="Navigate to Employer dashboard" onclick="window.location.href='logs/index.html?filter=employer'" onkeydown="if(event.key==='Enter'){window.location.href='logs/index.html?filter=employer'}">
-                <div class="card-header">
-                    <div class="icon-box">
-                        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" width="80" height="80"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <!-- Animated Briefcase Logo for Employer -->
-                            <rect x="3" y="7" width="18" height="14" rx="2" ry="2" fill="rgba(217, 119, 6, 0.1)"
-                                stroke="#D97706">
-                                <animate attributeName="stroke-width" values="2.5;3;2.5" dur="2s"
-                                    repeatCount="indefinite" />
-                            </rect>
-                            <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#D97706"
-                                fill="rgba(217, 119, 6, 0.2)">
-                                <animate attributeName="opacity" values="1;0.8;1" dur="1.5s" repeatCount="indefinite" />
-                            </path>
-                            <line x1="12" y1="11" x2="12" y2="17" stroke="#F59E0B" stroke-width="2">
-                                <animate attributeName="stroke-dasharray" values="0,6;3,3;0,6" dur="2s"
-                                    repeatCount="indefinite" />
-                            </line>
-                            <circle cx="12" cy="14" r="1.5" fill="#D97706">
-                                <animate attributeName="r" values="1.5;2;1.5" dur="2s" repeatCount="indefinite" />
-                            </circle>
-                            <!-- Glowing accent lines -->
-                            <line x1="6" y1="10" x2="18" y2="10" stroke="#F59E0B" stroke-width="1" opacity="0.6">
-                                <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
-                                <animate attributeName="stroke-width" values="1;1.5;1" dur="2s"
-                                    repeatCount="indefinite" />
-                            </line>
-                            <!-- Shine effect -->
-                            <path d="M3 7 L12 7 L12 9 L3 9 Z" fill="rgba(255, 255, 255, 0.3)">
-                                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.5s"
-                                    repeatCount="indefinite" />
-                            </path>
-                        </svg>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="card-title">Employer</h2>
-                    <p class="card-desc">Manage test suites for Employer dashboards, job postings, candidate management,
-                        and company profiles.</p>
-                </div>
-                <div class="action">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            <a href="logs/index.html?filter=employer" class="hub-item">
+                <div class="hub-icon icon-employer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                </div>
+                <h2>Employer</h2>
+                <p>Manage job postings, candidate screening, and multi-channel recruitment funnels.</p>
+                <div class="hub-link employer-link">
+                    Deploy Workflow
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
                 </div>
-            </div>
+            </a>
 
-            <!-- Job Seeker Card -->
-            <div class="card jobseeker" tabindex="0" role="button" aria-label="Navigate to Job Seeker dashboard" onclick="window.location.href='logs/index.html?filter=jobseeker'" onkeydown="if(event.key==='Enter'){window.location.href='logs/index.html?filter=jobseeker'}">
-                <div class="card-header">
-                    <div class="icon-box">
-                        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" width="80" height="80"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <!-- Animated User/Job Seeker Logo -->
-                            <circle cx="12" cy="8" r="5" fill="rgba(22, 163, 74, 0.1)" stroke="#16A34A">
-                                <animate attributeName="stroke-width" values="2.5;3;2.5" dur="2s"
-                                    repeatCount="indefinite" />
-                                <animate attributeName="r" values="5;5.5;5" dur="2s" repeatCount="indefinite" />
-                            </circle>
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#16A34A" 
-                                fill="rgba(22, 163, 74, 0.1)">
-                                <animate attributeName="opacity" values="1;0.8;1" dur="1.5s" repeatCount="indefinite" />
-                            </path>
-                            <!-- Glowing particles -->
-                            <circle cx="8" cy="6" r="1.5" fill="#16A34A" opacity="0.6">
-                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s"
-                                    repeatCount="indefinite" />
-                                <animateTransform attributeName="transform" type="translate" values="0,0; -2,-2; 0,0"
-                                    dur="2s" repeatCount="indefinite" />
-                            </circle>
-                            <circle cx="16" cy="6" r="1.5" fill="#22C55E" opacity="0.6">
-                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s"
-                                    repeatCount="indefinite" />
-                                <animateTransform attributeName="transform" type="translate" values="0,0; 2,-2; 0,0"
-                                    dur="2.2s" repeatCount="indefinite" />
-                            </circle>
-                            <!-- Shine effect on user -->
-                            <path d="M12 3 L12 8 L9 6 Z" fill="rgba(255, 255, 255, 0.3)">
-                                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.5s"
-                                    repeatCount="indefinite" />
-                            </path>
-                        </svg>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="card-title">Job Seeker</h2>
-                    <p class="card-desc">Execute and monitor test cases for Job Seeker workflows, profile management,
-                        job applications, and network features.</p>
-                </div>
-                <div class="action">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            <a href="logs/index.html?filter=jobseeker" class="hub-item">
+                <div class="hub-icon icon-jobseeker">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <polyline points="16 11 18 13 22 9" />
+                    </svg>
+                </div>
+                <h2>Job Seeker</h2>
+                <p>Monitor profile optimization and automated multi-channel application scripts.</p>
+                <div class="hub-link jobseeker-link">
+                    Access Platform
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
                 </div>
-            </div>
-        </div>
-
-        <div class="footer">
-            &copy; 2026 Nitya Software Solutions Inc. All rights reserved.
-        </div>
+            </a>
+        </nav>
     </div>
 
+    <footer class="footer">
+        &copy; 2026 Nitya Software Solutions Inc. Designing the future of test engineering.
+    </footer>
+
+    <!-- Particles.js Library -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
     <script>
-        // ADDED: Simple 3D Tilt Effect Script
-        const cards = document.querySelectorAll('.card');
+        // Initialize Particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: ['#F97316', '#6366f1', '#10b981']
+                },
+                shape: {
+                    type: 'circle',
+                    stroke: {
+                        width: 0,
+                        color: '#000000'
+                    }
+                },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 1,
+                        opacity_min: 0.1,
+                        sync: false
+                    }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 2,
+                        size_min: 0.5,
+                        sync: false
+                    }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#6366f1',
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false,
+                    attract: {
+                        enable: true,
+                        rotateX: 600,
+                        rotateY: 1200
+                    }
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'repulse'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    repulse: {
+                        distance: 200,
+                        duration: 0.4
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
 
-        cards.forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+        // Custom Cursor Movement
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorOutline = document.getElementById('cursor-outline');
+        const glow = document.getElementById('cursor-glow');
 
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
+        let mouseX = 0;
+        let mouseY = 0;
+        let outlineX = 0;
+        let outlineY = 0;
 
-                const rotateX = ((y - centerY) / centerY) * -10; // Max 10deg rotation
-                const rotateY = ((x - centerX) / centerX) * 10;
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
 
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            // Dot follows mouse instantly
+            cursorDot.style.left = `${mouseX}px`;
+            cursorDot.style.top = `${mouseY}px`;
+
+            // Glow follows mouse instantly
+            glow.style.left = `${mouseX}px`;
+            glow.style.top = `${mouseY}px`;
+        });
+
+        // Smooth outline trailing
+        function animateOutline() {
+            outlineX += (mouseX - outlineX) * 0.15;
+            outlineY += (mouseY - outlineY) * 0.15;
+
+            cursorOutline.style.left = `${outlineX}px`;
+            cursorOutline.style.top = `${outlineY}px`;
+
+            requestAnimationFrame(animateOutline);
+        }
+        animateOutline();
+
+        // Cursor Click Animation
+        window.addEventListener('mousedown', () => {
+            document.body.classList.add('cursor-click');
+        });
+        window.addEventListener('mouseup', () => {
+            document.body.classList.remove('cursor-click');
+        });
+
+        // Cursor Hover Effects
+        const interactiveElements = document.querySelectorAll('a, .hub-item, button');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                document.body.classList.add('cursor-hover');
             });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+            el.addEventListener('mouseleave', () => {
+                document.body.classList.remove('cursor-hover');
             });
+        });
+
+        // Intersection Observer for fade-in effects
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.hub-item').forEach((item, index) => {
+            item.style.opacity = 0;
+            item.style.transform = 'translateY(20px)';
+            item.style.transitionDelay = `${index * 0.1}s`;
+            observer.observe(item);
         });
     </script>
 </body>

@@ -476,92 +476,150 @@ def test_t1_03_admin_verification_of_adding_candidates_in_benchsale(admin_page: 
     page = admin_page
     
     # --- Step 1: Handle Data Not Found Popup ---
+    # Robot Framework: ${if_pop_up_available} Run Keyword And Return Status Element Text Should Be css:.css-ohyacs Data Not Found
     try:
-        # Check for specific "Data Not Found" toast/popup
         popup_locator = page.locator(".css-ohyacs")
-        if popup_locator.is_visible(timeout=5000) and "Data Not Found" in (popup_locator.inner_text() or ""):
+        if_pop_up_available = popup_locator.is_visible(timeout=5000) and "Data Not Found" in (popup_locator.inner_text() or "")
+        
+        if if_pop_up_available:
+            # Robot Framework: Click Element tag:body
             page.locator("body").click()
+            # Robot Framework: Sleep 2
             page.wait_for_timeout(2000)
-    except Exception as e:
-        print(f"Non-critical: Popup check skipped - {e}")
+    except Exception:
+        if_pop_up_available = False
+    
+    # Robot Framework: Sleep 2 (after IF block)
+    page.wait_for_timeout(2000)
 
     # --- Step 2: Navigate to Candidates Section ---
-    # Using the specific XPath from the Robot script
+    # Robot Framework: Click Element xpath:/html/body/div[1]/div[2]/div/div/ul/li[3]/a/div
     candidates_menu = page.locator("xpath=/html/body/div[1]/div[2]/div/div/ul/li[3]/a/div")
     candidates_menu.wait_for(state="visible", timeout=30000)
     candidates_menu.click()
+    page.wait_for_timeout(2000)  # Robot: Sleep 2
     
-    # Wait for page to load after navigation
-    try:
-        page.wait_for_load_state("networkidle", timeout=10000)
-    except Exception:
-        pass  # Continue even if networkidle times out
-    page.wait_for_timeout(1000)
-    
+    # Robot Framework: Wait Until Page Contains Element xpath://button[contains(text(),'Add Candidate')] 30
     add_candidate_btn = page.locator("xpath=//button[contains(text(),'Add Candidate')]")
     add_candidate_btn.wait_for(state="visible", timeout=30000)
+    page.wait_for_timeout(2000)  # Robot: Sleep 2
+    
+    # Robot Framework: Click Button xpath://button[contains(text(),'Add Candidate')]
     add_candidate_btn.click()
     
-    # Verify Modal Header
+    # Robot Framework: Wait Until Page Contains Add Candidate 30
     page.wait_for_selector("text=Add Candidate", timeout=30000)
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(2000)  # Robot: Sleep 2
     
     # --- Step 3: Resume Upload & Parsing ---
+    # Robot Framework: Log To Console Uploading a resume..........
     print("Uploading a resume..........")
-    # Click the upload area/label
-    page.locator("xpath=/html/body/div[5]/div[3]/div/div/div/label/span").click()
-    page.wait_for_timeout(1000)
     
-    # Path should be defined in your constants (ADD_CANDIDATE_PROFILE)
-    page.set_input_files("#file-upload", ADD_CANDIDATE_PROFILE)
+    # Robot Framework: Wait Until Element Is Visible xpath:/html/body/div[5]/div[3]/div/div/div/label/span 30
+    upload_label = page.locator("xpath=/html/body/div[5]/div[3]/div/div/div/label/span")
+    upload_label.wait_for(state="visible", timeout=30000)
     
-    # Wait for Parsing Success Notification
+    # Robot Framework: Click Element xpath:/html/body/div[5]/div[3]/div/div/div/label/span
+    upload_label.click()
+    page.wait_for_timeout(1000)  # Robot: Sleep 1
+    
+    # Robot Framework: Choose File id:file-upload ${add_candidate_profile}
+    file_input = page.locator("#file-upload")
+    file_input.wait_for(state="attached", timeout=10000)
+    file_input.set_input_files(ADD_CANDIDATE_PROFILE)
+    page.wait_for_timeout(3000)  # Robot: Sleep 3 - Wait for file to start uploading
+    
+    # Robot Framework: Wait Until Page Contains Resume parsed successfully 120
     page.wait_for_selector("text=/Resume parsed successfully/i", timeout=120000)
     print("Resume parsed successfully popup appeared")
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(2000)  # Robot: Sleep 2
     
-    # --- Step 4: Form Interaction & Validation ---
-    # Ensure form fields are populated
-    fullname_field = page.locator("#fullName")
-    fullname_field.wait_for(state="visible", timeout=60000)
-    
-    # Logic to fill empty fields if parser missed them
-    fields_to_check = [
-        (fullname_field, ADD_CANDIDATE_FNAME),
-        (page.locator("#Email"), ADD_CANDIDATE_EMAIL),
-        (page.locator("#jobTitle"), ADD_CANDIDATE_ROLE)
-    ]
-
-    for field, default_value in fields_to_check:
-        current_val = field.input_value()
-        if not current_val.strip():
-            field.fill(default_value)
-            print(f"Field was empty, filled with: {default_value}")
-
-    # --- Step 5: Final Submission ---
+    # --- Step 4: Click Add Candidate Button ---
+    # Robot Framework: Wait Until Element Is Visible xpath:/html/body/div[5]/div[3]/div/div/div/button 30
     submit_btn = page.locator("xpath=/html/body/div[5]/div[3]/div/div/div/button")
-    submit_btn.scroll_into_view_if_needed()
-    page.wait_for_timeout(1000)
+    submit_btn.wait_for(state="visible", timeout=30000)
     
-    if submit_btn.is_enabled():
-        submit_btn.click()
-    else:
-        # Fallback click
-        page.evaluate('document.querySelector("button.MuiButton-containedPrimary").click()')
+    # Robot Framework: Click Element xpath:/html/body/div[5]/div[3]/div/div/div/button
+    submit_btn.click()
+    page.wait_for_timeout(5000)  # Robot: Sleep 5 - Wait for response
     
-    # --- Step 6: Verification of Result ---
+    # --- Step 5: Verify Toast Message ---
+    # Robot Framework: Wait Until Element Is Visible css:.css-1xsto0d 30
     toast = page.locator(".css-1xsto0d")
     toast.wait_for(state="visible", timeout=30000)
-    toast_text = toast.inner_text().strip()
-    print(f"Toast message received: {toast_text}")
-
-    # Search for the newly added candidate in the list
-    candidate_display_name = f"{ADD_CANDIDATE_FNAME} {ADD_CANDIDATE_LNAME}".strip()
-    candidate_search = page.get_by_text(candidate_display_name, exact=False)
     
-    # Final assertions matching your Robot "Page Should Contain"
-    assert candidate_search.first.is_visible(), f"Candidate {candidate_display_name} not found in list"
-    print(f"Candidate {candidate_display_name} verified successfully")
+    # Robot Framework: ${toast_message} Get Text css:div.MuiAlert-message
+    toast_message_elem = page.locator("div.MuiAlert-message")
+    toast_message = toast_message_elem.inner_text().strip()
+    print(f"Toast message: {toast_message}")
+    
+    # Robot Framework: Check if success or already exists
+    is_success = "Candidate Added Successfully" in toast_message
+    is_already_exists = "already exists" in toast_message.lower()
+    
+    if is_success:
+        print("Candidate Added Successfully")
+        # Robot Framework: Verify candidate in list
+        num_of_candidates = page.locator("css=.css-exmrh8").count()
+        print(f"num_of_candidates: {num_of_candidates}")
+        
+        # Robot Framework: Wait Until Page Contains BHAVANA N DATA ENGINEER 30
+        candidate_display = f"{ADD_CANDIDATE_FNAME} {ADD_CANDIDATE_LNAME} {ADD_CANDIDATE_ROLE}".upper()
+        page.wait_for_selector(f"text={candidate_display}", timeout=30000)
+        
+        # Robot Framework: Click Element xpath:/html/body/div[1]/div[2]/main/div/div/div[2]/div[2]/div[1]/ul/div[1]/div/div[2]/p[1]
+        first_candidate = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div[2]/div[1]/ul/div[1]/div/div[2]/p[1]")
+        first_candidate.wait_for(state="visible", timeout=30000)
+        first_candidate.click()
+        
+        # Robot Framework: Wait Until Element Is Visible xpath:/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[3]/div[1] 30
+        profile_section = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[3]/div[1]")
+        profile_section.wait_for(state="visible", timeout=30000)
+        
+        # Robot Framework: Wait Until Element Is Visible xpath://*[@id="root"]/div[2]/main/div/div/div[3]/div/div[3]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div[1]/div/div/div[2] 30
+        detail_section = page.locator("xpath=//*[@id='root']/div[2]/main/div/div/div[3]/div/div[3]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div[1]/div/div/div[2]")
+        detail_section.wait_for(state="visible", timeout=30000)
+        
+        # Robot Framework: Page Should Contain BHAVANA N 20
+        assert page.locator(f"text={ADD_CANDIDATE_FNAME}").first.is_visible(timeout=20000), f"{ADD_CANDIDATE_FNAME} not found"
+        print(f"{ADD_CANDIDATE_FNAME} is found...")
+        
+        # Robot Framework: Page Should Contain DATA ENGINEER 20
+        assert page.locator(f"text={ADD_CANDIDATE_ROLE}").first.is_visible(timeout=20000), f"{ADD_CANDIDATE_ROLE} not found"
+        print(f"Candidate {ADD_CANDIDATE_FNAME} - {ADD_CANDIDATE_ROLE} verified successfully")
+        
+    elif is_already_exists:
+        print("Candidate already exists - Continuing with verification steps...")
+        # Robot Framework: Verify if the candidate is available
+        num_of_candidates = page.locator("css=.css-exmrh8").count()
+        print(f"num_of_candidates: {num_of_candidates}")
+        
+        # Robot Framework: Wait Until Page Contains BHAVANA N DATA ENGINEER 30
+        candidate_display = f"{ADD_CANDIDATE_FNAME} {ADD_CANDIDATE_LNAME} {ADD_CANDIDATE_ROLE}".upper()
+        page.wait_for_selector(f"text={candidate_display}", timeout=30000)
+        
+        # Robot Framework: Click Element xpath:/html/body/div[1]/div[2]/main/div/div/div[2]/div[2]/div[1]/ul/div[1]/div/div[2]/p[1]
+        first_candidate = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div[2]/div[1]/ul/div[1]/div/div[2]/p[1]")
+        first_candidate.wait_for(state="visible", timeout=30000)
+        first_candidate.click()
+        
+        # Robot Framework: Wait Until Element Is Visible xpath:/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[3]/div[1] 30
+        profile_section = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[3]/div[1]")
+        profile_section.wait_for(state="visible", timeout=30000)
+        
+        # Robot Framework: Wait Until Element Is Visible xpath://*[@id="root"]/div[2]/main/div/div/div[3]/div/div[3]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div[1]/div/div/div[2] 30
+        detail_section = page.locator("xpath=//*[@id='root']/div[2]/main/div/div/div[3]/div/div[3]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div[1]/div/div/div[2]")
+        detail_section.wait_for(state="visible", timeout=30000)
+        
+        # Robot Framework: Page Should Contain BHAVANA N 20
+        assert page.locator(f"text={ADD_CANDIDATE_FNAME}").first.is_visible(timeout=20000), f"{ADD_CANDIDATE_FNAME} not found"
+        print("candidate is visible...")
+        
+        # Robot Framework: Page Should Contain DATA ENGINEER 20
+        assert page.locator(f"text={ADD_CANDIDATE_ROLE}").first.is_visible(timeout=20000), f"{ADD_CANDIDATE_ROLE} not found"
+        print(f"Candidate {ADD_CANDIDATE_FNAME}:{ADD_CANDIDATE_ROLE} verified successfully")
+    else:
+        raise Exception(f"Unexpected toast message received: {toast_message}")
 
     # Final Measurement
     total_runtime = end_runtime_measurement(test_name)
@@ -703,193 +761,231 @@ def test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_ben
         has_assigned = assigned_candidates.count() > 0
     
     if has_assigned:
-        # Unassign one candidate and verify
+        # Unassign one candidate and verify (Robot Framework lines 520-568)
+        print("Some candidates are already assigned......")
         num_assigned = assigned_candidates.count()
-        choose_rand_num = random.randint(1, num_assigned)  # 1-indexed like Robot
-        # Use the assigned_candidates locator directly to get the chip label (candidate name)
-        # This avoids matching multiple elements (name and job title)
-        candidate_chip = assigned_candidates.nth(choose_rand_num - 1)  # Convert to 0-indexed
-        candidate_to_be_unassigned = candidate_chip.inner_text().strip()
+        print(f"num_candidates_assigned_already: {num_assigned}")
         
-        # Click on the chip to unassign
-        candidate_chip.click()
-        page.wait_for_timeout(2000)
+        # Robot: ${choose_index}    Evaluate    random.randint(1,${num_candidates_assigned_already})
+        choose_index = random.randint(1, num_assigned)  # 1-indexed like Robot
         
+        # Robot: ${candidate_to_be_unassigned}    Get Text    xpath:/html/body/div[3]/div[3]/div/div[1]/form/div[1]/div/div[${choose_index}]/span[1]
+        candidate_to_be_unassigned = page.locator(f"xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[1]/div/div[{choose_index}]/span[1]").inner_text().strip()
+        print(f"candidate_to_be_unassigned: {candidate_to_be_unassigned}")
+        
+        # Robot: Click the close icon for the selected candidate using JavaScript
+        # Robot uses: Execute Javascript with CloseIcon SVG click
+        # Wait for CloseIcon elements to be available
+        close_icons = page.locator("css=div.MuiDialogContent-root svg[data-testid='CloseIcon']")
+        close_icons.first.wait_for(state="visible", timeout=20000)
+        icon_count = close_icons.count()
+        print(f"Found {icon_count} CloseIcon elements")
+        
+        # Robot: ${close_icon_index}=    Evaluate    random.randint(0, ${icon_count}-1)
+        # Note: Robot uses 0-indexed for JavaScript array, but we need to match the choose_index (1-indexed)
+        # Since choose_index is 1-indexed and corresponds to the candidate position, we use choose_index - 1
+        close_icon_index = choose_index - 1  # Convert to 0-indexed for JavaScript array
+        
+        # Robot: Execute Javascript to click the CloseIcon
+        # Dispatch mouse events: mousedown, mouseup, click
+        page.evaluate(f"""
+            const icons = document.querySelectorAll('div.MuiDialogContent-root svg[data-testid="CloseIcon"]');
+            if (icons.length > {close_icon_index}) {{
+                const el = icons[{close_icon_index}];
+                el.dispatchEvent(new MouseEvent('mousedown', {{ bubbles: true }}));
+                el.dispatchEvent(new MouseEvent('mouseup', {{ bubbles: true }}));
+                el.dispatchEvent(new MouseEvent('click', {{ bubbles: true }}));
+            }}
+        """)
+        print(f"Candidate removed successfully: {candidate_to_be_unassigned}")
+        page.wait_for_timeout(1000 if FAST_MODE else 2000)
+        
+        # Robot: Wait Until Page Contains Element    xpath:/html/body/div[1]/div[3]/div    30    # Toast message
         toast = page.locator("xpath=/html/body/div[1]/div[3]/div")
         toast.wait_for(state="visible", timeout=30000)
-        assert toast.inner_text().strip() == "Candidate Removed Successfully"
-        page.wait_for_timeout(2000)
+        
+        # Robot: ${remove_msg}    Get Text    xpath:/html/body/div[1]/div[3]/div
+        remove_msg = toast.inner_text().strip()
+        print(f"remove_msg: {remove_msg}")
+        
+        # Robot: Should Be Equal    '${remove_msg}'    'Candidate Removed Successfully'
+        assert remove_msg == "Candidate Removed Successfully", f"Expected 'Candidate Removed Successfully', got '{remove_msg}'"
+        
+        page.wait_for_timeout(2000)  # Robot: Sleep 2
+        
+        # Robot: Wait Until Element Is Visible    css:.css-qayx39    30
+        available_names = dialog.locator("css=.css-qayx39")
+        available_names.first.wait_for(state="visible", timeout=30000)
+        num_names_webelements = available_names.count()
+        print(f"num_names_webelements: {num_names_webelements}")
+        
+        # Robot: Verification loop is commented out in Robot Framework, but we'll keep basic check
+        # Robot comments out the verification that candidate appears in available list
+        # So we'll skip that assertion and just log
+        
+        # Robot: Check candidates column if it exists
+        # Robot: ${num_candidates_column}    Get Element Count    xpath:/html/body/div[1]/div[2]/main/div[2]/div/div[3]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]
+        candidates_column = page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[3]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]")
+        num_candidates_column = candidates_column.count()
+        print(f"num_candidates_column: {num_candidates_column}")
+        
+        if num_candidates_column > 0:
+            # Robot: FOR loop to check all candidates in the column
+            all_candidates = []
+            # Robot: FOR    ${i}    IN RANGE    1     ${num_candidates_column}+1
+            for i in range(1, num_candidates_column + 1):
+                # Robot: ${candidate_name}    Get Text    xpath:/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div[${i}]/div/div/p
+                candidate_name = form.locator(f"xpath=.//div[2]/div[{i}]/div/div/p").inner_text().strip()
+                all_candidates.append(candidate_name)
+                # Robot: IF    '${candidate_name}'=='${candidate_to_be_unassigned}'    Exit For Loop
+                if candidate_name == candidate_to_be_unassigned:
+                    break
+            # Robot: List Should Contain Value    ${all_candidates}    ${candidate_to_be_unassigned}
+            assert candidate_to_be_unassigned in all_candidates, f"Candidate '{candidate_to_be_unassigned}' not found in Candidates column"
+        else:
+            print("Candidate has been de-allocated successfully")
+    else:
+        # No assigned candidates - select, allocate, verify, deallocate, and verify again (Robot Framework lines 569-610)
+        print("no assigned candidates....................")
+        page.wait_for_timeout(2000)  # Robot: Sleep 2
+        
+        # Robot: ${num_candidates}    Get Element Count    xpath:/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div/div/div/p
+        candidates_in_pool = page.locator("xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div/div/div/p")
+        num_candidates = candidates_in_pool.count()
+        print(f"num_candidates: {num_candidates}")
+        assert num_candidates > 0, "No candidates available"
+        
+        # Robot: ${choose_random_no}    Evaluate    random.randint(1,${num_candidates})
+        choose_random_no = random.randint(1, num_candidates)
+        print(f"choose_random_no: {choose_random_no}")
+        
+        page.wait_for_timeout(2000)  # Robot: Sleep 2
+        
+        # Robot: ${selected_candidate_name}    Get Text    xpath:/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div[${choose_random_no}]/div/div/p
+        # Wait for the candidate name element to be visible first
+        candidate_name_locator = page.locator(f"xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div[{choose_random_no}]/div/div/p")
+        candidate_name_locator.wait_for(state="visible", timeout=30000)
+        selected_candidate_name = candidate_name_locator.inner_text().strip()
+        print(f"selected_candidate_name: {selected_candidate_name}")
+        assert selected_candidate_name, "Selected candidate name is empty"
+        
+        # Robot Framework has Sleep 2 before clicking checkbox (line 576)
+        # Wait for form to be fully loaded and stable
+        page.wait_for_timeout(2000)  # Robot: Sleep 2 - wait for form to stabilize
+        
+        # Ensure the form container is ready
+        form_container = page.locator("xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]")
+        form_container.wait_for(state="visible", timeout=30000)
+        page.wait_for_timeout(500)  # Additional wait for form to be interactive
+        
+        # Use the exact same XPath as Robot Framework
+        checkbox_input = page.locator(f"xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div[{choose_random_no}]/div/label/span/input")
+        
+        # Wait for checkbox to be visible and ready
+        checkbox_input.wait_for(state="visible", timeout=30000)
+        checkbox_input.wait_for(state="attached", timeout=10000)
+        
+        # Scroll into view and wait for it to be stable
+        checkbox_input.scroll_into_view_if_needed()
+        page.wait_for_timeout(1000)  # Wait after scroll
+        
+        # Wait for checkbox to be enabled/clickable
         try:
-            toast.wait_for(state="hidden", timeout=30000)
+            checkbox_input.wait_for(state="visible", timeout=5000)
         except Exception:
             pass
         
-        # Verify candidate appears in available list
-        available_names = dialog.locator("css=.css-qayx39")
-        available_names.first.wait_for(state="visible", timeout=30000)
-        found_back = False
-        for i in range(available_names.count()):
-            if available_names.nth(i).inner_text().strip() == candidate_to_be_unassigned:
-                found_back = True
-                break
-        assert found_back, f"Candidate '{candidate_to_be_unassigned}' not found in available list"
-        
-        # Check candidates column if it exists
-        candidates_column = page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[3]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]")
-        num_candidates_column = candidates_column.count()
-        if num_candidates_column > 0:
-            all_candidates = []
-            # Use form/div[2]/div[i]/div/div/p structure
-            candidate_items = form.locator("xpath=.//div[2]/div")
-            for i in range(1, candidate_items.count() + 1):
-                candidate_name = form.locator(f"xpath=.//div[2]/div[{i}]/div/div/p").inner_text().strip()
-                all_candidates.append(candidate_name)
-                if candidate_name == candidate_to_be_unassigned:
-                    break
-            assert candidate_to_be_unassigned in all_candidates
-    else:
-        # No assigned candidates - select, allocate, verify, deallocate, and verify again
-        # Use absolute XPath for reliable element access
-        candidates_in_pool = page.locator("xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div/div/div/p")
-        num_candidates = candidates_in_pool.count()
-        assert num_candidates > 0, "No candidates available"
-        
-        choose_random_no = random.randint(1, num_candidates)
-        
-        # Get candidate name (Robot: line 721)
-        selected_candidate_name = page.locator(f"xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div[{choose_random_no}]/div/div/p").inner_text().strip()
-        assert selected_candidate_name, "Selected candidate name is empty"
-        print(f"selected_candidate_name: {selected_candidate_name}")
-        
-        # Click checkbox using CSS selector approach (Robot: lines 1866-1867)
-        # Robot uses: Get Webelements css:.css-1m9pwf3 and Click Element ${checkbox_webelements}[${index}]
-        index = choose_random_no - 1  # Convert to 0-indexed
-        checkbox_elements = page.locator("css=.css-1m9pwf3")
-        checkbox_elements.nth(index).wait_for(state="visible", timeout=15000)
-        checkbox_elements.nth(index).scroll_into_view_if_needed()
+        # Additional wait to ensure checkbox is ready
         page.wait_for_timeout(500)
         
         # Click the checkbox
-        checkbox_elements.nth(index).click(force=True)
+        checkbox_input.click(force=True)
+        
+        # Robot: Sleep 1 after clicking (line 580)
         page.wait_for_timeout(1000)  # Robot: Sleep 1
         
-        # Verify checkbox is checked (optional verification)
+        # Verify checkbox is checked
         try:
-            checkbox_input = page.locator(f"xpath=/html/body/div[3]/div[3]/div/div[1]/form/div[2]/div[{choose_random_no}]/div/label/span/input")
-            if checkbox_input.count() > 0:
-                # Wait a bit for the state to update
+            page.wait_for_timeout(300)  # Small wait for state to update
+            if not checkbox_input.is_checked():
+                # If not checked, try clicking again
+                checkbox_input.click(force=True)
                 page.wait_for_timeout(500)
-                # If still not checked, try clicking the input directly as fallback
-                if not checkbox_input.is_checked():
-                    checkbox_input.click(force=True)
-                    page.wait_for_timeout(500)
         except Exception:
             pass  # Continue even if verification fails
         
-        # Submit allocation
+        # Robot: Click Button    xpath:/html/body/div[3]/div[3]/div/div[2]/button[2]    # Submit button
         submit_btn = page.locator("xpath=/html/body/div[3]/div[3]/div/div[2]/button[2]")
         submit_btn.wait_for(state="visible", timeout=30000)
         submit_btn.scroll_into_view_if_needed()
-        page.wait_for_timeout(500)
-        # Wait for button to be enabled
-        deadline = time.time() + 10
-        while time.time() < deadline:
-            try:
-                if submit_btn.is_enabled():
-                    break
-            except Exception:
-                pass
-            page.wait_for_timeout(200)
-        page.wait_for_timeout(500)
         submit_btn.click(force=True)
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(2000)  # Robot: Sleep 2
         
-        # Verify candidate in Candidates column
+        # Robot: Element Text Should Be    xpath:/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]    ${selected_candidate_name}
         candidate_name_in_column = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]")
-        candidate_name_in_column.first.wait_for(state="visible", timeout=30000)
-        assert candidate_name_in_column.first.inner_text().strip() == selected_candidate_name
+        candidate_name_in_column.wait_for(state="visible", timeout=30000)
+        actual_name = candidate_name_in_column.inner_text().strip()
+        assert actual_name == selected_candidate_name, f"Expected '{selected_candidate_name}', got '{actual_name}'"
+        print("Successfully allocated candidate")
         
-        # Deallocate
+        # Robot: Deallocate a candidate - using specific XPath for the Deallocate button in the first candidate card
+        # Robot: ${deallocate_button_xpath}=    Set Variable    xpath:/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[2]/div/div/div/ul/div[1]/div/button
         deallocate_btn = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[3]/div/div[2]/div/div/div/ul/div[1]/div/button")
         deallocate_btn.wait_for(state="visible", timeout=30000)
         deallocate_btn.scroll_into_view_if_needed()
-        deadline = time.time() + 10
-        while time.time() < deadline:
-            try:
-                if deallocate_btn.is_enabled():
-                    break
-            except Exception:
-                pass
-            page.wait_for_timeout(200)
-        page.wait_for_timeout(300)
         deallocate_btn.click()
         
+        # Robot: Wait Until Page Contains Element    xpath:/html/body/div[1]/div[3]/div    30    # Toast message for de-allocation
         toast = page.locator("xpath=/html/body/div[1]/div[3]/div")
         toast.wait_for(state="visible", timeout=30000)
-        assert toast.inner_text().strip() == "Candidate Removed Successfully"
-        try:
-            toast.wait_for(state="hidden", timeout=30000)
-        except Exception:
-            pass
         
-        # Reopen allocation and verify no assigned candidates (Robot: lines 596-609)
-        recruiter_card.scroll_into_view_if_needed()
+        # Robot: ${deallocation_msg}    Get Text     xpath:/html/body/div[1]/div[3]/div
+        deallocation_msg = toast.inner_text().strip()
+        print(f"deallocation_msg: {deallocation_msg}")
+        
+        # Robot: Should Be Equal    '${deallocation_msg}'     'Candidate Removed Successfully'
+        assert deallocation_msg == "Candidate Removed Successfully", f"Expected 'Candidate Removed Successfully', got '{deallocation_msg}'"
+        
+        # Robot: Again click on the Recruiter to verify allocation is done (lines 595-609)
+        # Robot: Get the same recruiter card using the iteration keyword
+        recruiter_card = page.locator(
+            f"xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/div[2]/div/div/div/ul/div[{choose_random_num}]/div"
+        )
+        recruiter_card.wait_for(state="visible", timeout=30000)
+        
+        # Robot: Step 1: Mouse over the random card
         recruiter_card.hover()
-        page.wait_for_timeout(2000)
-        recruiter_card.click()
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(2000)  # Robot: Sleep 2
         
-        # Use same fallback logic as initial allocation button click
+        # Robot: Step 2: Click on the card itself
+        recruiter_card.click()
+        page.wait_for_timeout(2000)  # Robot: Sleep 2
+        
+        # Robot: Step 3: Click Allocation button for this specific card
+        # Robot: ${allocation_button_xpath}=    Set Variable    xpath:/html/body/div[1]/div[2]/main/div/div/div[2]/div/div[2]/div/div/div/ul/div[${choose_random_num}]/div/div[2]/button[1]
         allocation_button_xpath = f"xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/div[2]/div/div/div/ul/div[{choose_random_num}]/div/div[2]/button[1]"
         allocation_button = page.locator(allocation_button_xpath)
+        allocation_button.wait_for(state="visible", timeout=10000)  # Robot: Wait Until Element Is Visible    10
+        allocation_button.click()
+        page.wait_for_timeout(3000)  # Robot: Sleep 3
         
-        button_clicked = False
-        last_error = None
-        
-        # First try: wait for button to be visible
-        try:
-            allocation_button.wait_for(state="visible", timeout=10000)
-            allocation_button.scroll_into_view_if_needed()
-            allocation_button.click()
-            button_clicked = True
-        except Exception as e:
-            last_error = e
-            # Second try: hover over card again and wait longer
-            try:
-                recruiter_card.hover()
-                page.wait_for_timeout(1500)
-                allocation_button.wait_for(state="visible", timeout=15000)
-                allocation_button.scroll_into_view_if_needed()
-                allocation_button.click()
-                button_clicked = True
-            except Exception as e2:
-                last_error = e2
-                # Third try: check if button exists but is not visible, try force click
-                try:
-                    if allocation_button.count() > 0:
-                        allocation_button.scroll_into_view_if_needed()
-                        allocation_button.click(force=True, timeout=5000)
-                        button_clicked = True
-                except Exception as e3:
-                    last_error = e3
-                    # Fourth try: try alternative selector
-                    try:
-                        alt_button = page.locator(f"xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/div[2]/div/div/div/ul/div[{choose_random_num}]//button[1]")
-                        if alt_button.count() > 0:
-                            alt_button.scroll_into_view_if_needed()
-                            alt_button.click(force=True, timeout=5000)
-                            button_clicked = True
-                    except Exception:
-                        pass
-        
-        if not button_clicked:
-            raise AssertionError(f"Could not click allocation button when reopening for recruiter card {choose_random_num}: {last_error}")
-        
-        page.wait_for_timeout(3000)
-        
+        # Robot: Page Should Not Contain Element    css:.css-9iedg7    # No allocated candidate
+        # Wait for dialog to be visible first
         dialog2 = page.locator("css=.MuiDialog-container").last
         dialog2.wait_for(state="visible", timeout=30000)
-        assert dialog2.locator("css=.css-9iedg7").count() == 0
+        
+        # Check if assigned candidates exist
+        assigned_after = dialog2.locator("css=.css-9iedg7")
+        try:
+            # Try to wait for element, if it appears, it means candidates are still assigned
+            assigned_after.first.wait_for(state="visible", timeout=3000)
+            has_assigned_after = assigned_after.count() > 0
+        except Exception:
+            # Element not found means no assigned candidates (expected)
+            has_assigned_after = False
+        
+        # Robot: Page Should Not Contain Element    css:.css-9iedg7
+        assert not has_assigned_after, "Expected no assigned candidates after deallocation, but found some"
     
     total_runtime = end_runtime_measurement("Allocate_Candidate_Under_Recruiter")
     print(f"PASS: Test completed in {total_runtime:.2f} seconds")
@@ -1468,13 +1564,53 @@ def test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_be
         card.hover()
         page.wait_for_timeout(300 if FAST_MODE else 1500)
         card.click()
-        page.wait_for_timeout(200 if FAST_MODE else 800)
-
-        # Select checkbox (Robot clicks visible parent span)
-        checkbox_parent = page.locator(
-            "xpath=//span[contains(@class,'MuiCheckbox-root') and .//input[contains(@class,'PrivateSwitchBase-input')]]"
-        ).first
-        checkbox_parent.wait_for(state="visible", timeout=15000)
+        page.wait_for_timeout(500 if FAST_MODE else 1500)  # Increased wait for card details to load
+        
+        # Wait for card details/selection UI to appear after clicking
+        try:
+            # Wait for any selection UI element to appear
+            page.wait_for_selector("css=.MuiCheckbox-root, input[type='checkbox'], .PrivateSwitchBase-input", timeout=10000, state="attached")
+        except Exception:
+            pass
+        
+        # Select checkbox - try multiple selectors
+        checkbox_parent = None
+        checkbox_selectors = [
+            "xpath=//span[contains(@class,'MuiCheckbox-root') and .//input[contains(@class,'PrivateSwitchBase-input')]]",
+            "css=.MuiCheckbox-root",
+            "css=input[type='checkbox']",
+            "css=.PrivateSwitchBase-input",
+            "xpath=//input[@type='checkbox']",
+            "xpath=//span[contains(@class,'MuiCheckbox-root')]",
+        ]
+        
+        for selector in checkbox_selectors:
+            try:
+                checkbox_parent = page.locator(selector).first
+                checkbox_parent.wait_for(state="visible", timeout=5000)
+                if checkbox_parent.is_visible():
+                    print(f"Found checkbox using selector: {selector}")
+                    break
+            except Exception:
+                continue
+        
+        if checkbox_parent is None or not checkbox_parent.is_visible():
+            # Try to find checkbox within the selected card
+            try:
+                checkbox_parent = card.locator("css=.MuiCheckbox-root, input[type='checkbox']").first
+                checkbox_parent.wait_for(state="visible", timeout=5000)
+                print("Found checkbox within card")
+            except Exception:
+                # Last resort: try to find any checkbox on the page
+                try:
+                    checkbox_parent = page.locator("css=input[type='checkbox']").first
+                    checkbox_parent.wait_for(state="visible", timeout=5000)
+                    print("Found checkbox using fallback selector")
+                except Exception as e:
+                    raise AssertionError(f"Checkbox not found. Tried selectors: {checkbox_selectors}. Error: {e}")
+        
+        checkbox_parent.scroll_into_view_if_needed()
+        page.wait_for_timeout(200 if FAST_MODE else 500)
         checkbox_parent.click(force=True)
         page.wait_for_timeout(300 if FAST_MODE else 1200)
 

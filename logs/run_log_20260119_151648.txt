@@ -1,0 +1,272 @@
+Command: C:\Program Files\Python310\python.exe -m pytest -k test_t1_13_admin_verification_of_candidates_in_submission_job_flow -s -vv --maxfail=1 -x --tb=short
+Exit Code: 1
+---------------------------------------- STDOUT ----------------------------------------
+============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-7.4.3, pluggy-1.6.0 -- C:\Program Files\Python310\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.10.11', 'Platform': 'Windows-10-10.0.26200-SP0', 'Packages': {'pytest': '7.4.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.10.0', 'langsmith': '0.4.14', 'locust': '2.42.1', 'base-url': '2.1.0', 'html': '4.1.1', 'json-report': '1.5.0', 'metadata': '3.1.1', 'playwright': '0.5.0', 'timeout': '2.2.0', 'xdist': '3.5.0'}, 'JAVA_HOME': 'C:\\Program Files\\Eclipse Adoptium\\jdk-8.0.392.8-hotspot', 'Base URL': ''}
+rootdir: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.10.0, langsmith-0.4.14, locust-2.42.1, base-url-2.1.0, html-4.1.1, json-report-1.5.0, metadata-3.1.1, playwright-0.5.0, timeout-2.2.0, xdist-3.5.0
+collecting ... collected 43 items / 40 deselected / 3 selected
+
+tests/benchsale/test_benchsale_admin_test_cases.py::test_t1_13_admin_verification_of_candidates_in_submission_job_flow 
+------------------------------- live log setup --------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:456 Acquired browser lock (PID: 20528)
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:522 Creating new browser instance (only one will be created across all processes)
+INFO     root:test_logger.py:44 
+INFO     root:test_logger.py:45 ====================================================================================================
+INFO     root:test_logger.py:46 TEST test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+INFO     root:test_logger.py:48 Full Name: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+INFO     root:test_logger.py:49 Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\benchsale\test_benchsale_admin_test_cases.py
+INFO     root:test_logger.py:51 Start: 20260119 15:15:13.490
+INFO     root:test_logger.py:52 ====================================================================================================
+INFO     root:test_logger.py:103 00:00:13.237KEYWORD Login credentials for BenchSale
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:1588 Logged in to BenchSale Admin successfully (Playwright)
+-------------------------------- live log call --------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:649 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:650 Started runtime measurement for: T1.13 Admin - Verification of candidates in submission Job flow
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:651 Start time: 2026-01-19 15:15:35
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:652 ================================================================================
+Started runtime measurement for: T1.13 Admin - Verification of candidates in submission Job flow
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:754 Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:770 Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+INFO     root:test_logger.py:103 00:00:00.807KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+Number of job cards: 10
+Selected random card index: 8
+Selected card title: Data Engineer - Advanced Analytics
+Already authenticated, email should be sent directly
+Waiting for success/failure message...
+INFO     root:test_logger.py:64 
+INFO     root:test_logger.py:65 Full Name: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+INFO     root:test_logger.py:66 Start / End / Elapsed: 20260119 15:15:13.488 / 20260119 15:16:45.588 / 00:01:10.277
+INFO     root:test_logger.py:70 TEST test_t1_13_admin_verification_of_candidates_in_submission_job_flow: FAIL
+INFO     root:test_logger.py:71 Status: FAIL
+INFO     root:test_logger.py:73 Message: tests\benchsale\test_benchsale_admin_test_cases.py:4060: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+    page.wait_for_timeout(2000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:11478: in wait_for_timeout
+    self._sync(self._impl_obj.wait_for_timeout(timeout=timeout))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_page.py:1073: in wait_for_timeout
+    await self._main_frame.wait_for_timeout(timeout)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:756: in wait_for_timeout
+    await self._channel.send("waitForTimeout", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TargetClosedError: Page.wait_for_timeout: Target page, context or browser has been closed
+INFO     root:test_logger.py:142 15:16:45.604	INFO	Failure artifacts saved:
+INFO     root:test_logger.py:142 15:16:45.604	INFO	  URL: https://bs.jobsnprofiles.com/my-candidates
+INFO     root:test_logger.py:142 15:16:45.604	INFO	  Screenshot: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\failures\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260119_151645.png
+INFO     root:test_logger.py:142 15:16:45.604	INFO	  HTML: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\failures\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260119_151645.html
+INFO     root:test_logger.py:142 15:16:45.604	INFO	  URL file: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\failures\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260119_151645.url.txt
+ERROR    BenchSale_Conftest:BenchSale_Conftest.py:1854 Error details:
+tests\benchsale\test_benchsale_admin_test_cases.py:4060: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+    page.wait_for_timeout(2000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:11478: in wait_for_timeout
+    self._sync(self._impl_obj.wait_for_timeout(timeout=timeout))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_page.py:1073: in wait_for_timeout
+    await self._main_frame.wait_for_timeout(timeout)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:756: in wait_for_timeout
+    await self._channel.send("waitForTimeout", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TargetClosedError: Page.wait_for_timeout: Target page, context or browser has been closed
+Refreshing BenchSale Dashboard...
+[OK] Dashboard refreshed: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+You can now open the dashboard in your browser.
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:1783 \u2713 Dashboard refreshed after test: test_t1_13_admin_verification_of_candidates_in_submission_job_flow (failed)\nFAILED
+------------------------------ live log teardown ------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:548 Closing browser instance
+--------------------------- live log sessionfinish ----------------------------
+INFO     root:test_logger.py:183 
+INFO     root:test_logger.py:184 ====================================================================================================
+INFO     root:test_logger.py:185 Full Name: JnP benchSale
+INFO     root:test_logger.py:186 Start / End / Elapsed: 20260119 15:15:12.569 / 20260119 15:16:47.365 / 00:01:34.795
+INFO     root:test_logger.py:187 Status: 1 tests total, 0 passed, 1 failed, 0 skipped
+INFO     root:test_logger.py:188 ====================================================================================================
+INFO     root:test_logger.py:195 
+INFO     root:test_logger.py:196 Test Statistics
+INFO     root:test_logger.py:197 ----------------------------------------------------------------------------------------------------
+INFO     root:test_logger.py:201 Test                                                         Total    Pass     Fail     Skip     Elapsed        
+INFO     root:test_logger.py:202 ----------------------------------------------------------------------------------------------------
+INFO     root:test_logger.py:213 test_t1_13_admin_verification_of_candidates_in_submission_job_flow 1        0        1        0        00:01:10.277   
+INFO     root:test_logger.py:219 ----------------------------------------------------------------------------------------------------
+INFO     root:test_logger.py:220 All Tests                                                    1        0        1        0        00:01:10.277   
+INFO     root:test_logger.py:221 ----------------------------------------------------------------------------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2148 
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2149 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2150 TEST SESSION FINISHED
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2151 Session end time: 2026-01-19 15:16:47
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2152 Exit status: 1
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2155 Total tests executed: 1
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2168 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2169 
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2197 Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2217 HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2224 Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2231 Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2236 Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:2272 Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html
+
+
+================================== FAILURES ===================================
+_____ test_t1_13_admin_verification_of_candidates_in_submission_job_flow ______
+tests\benchsale\test_benchsale_admin_test_cases.py:4060: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+    page.wait_for_timeout(2000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:11478: in wait_for_timeout
+    self._sync(self._impl_obj.wait_for_timeout(timeout=timeout))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_page.py:1073: in wait_for_timeout
+    await self._main_frame.wait_for_timeout(timeout)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:756: in wait_for_timeout
+    await self._channel.send("waitForTimeout", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TargetClosedError: Page.wait_for_timeout: Target page, context or browser has been closed
+----------------------------- Captured log setup ------------------------------
+DEBUG    asyncio:proactor_events.py:630 Using proactor: IocpProactor
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:456 Acquired browser lock (PID: 20528)
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:522 Creating new browser instance (only one will be created across all processes)
+INFO     root:test_logger.py:44 
+INFO     root:test_logger.py:45 ====================================================================================================
+INFO     root:test_logger.py:46 TEST test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+INFO     root:test_logger.py:48 Full Name: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+INFO     root:test_logger.py:49 Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\benchsale\test_benchsale_admin_test_cases.py
+INFO     root:test_logger.py:51 Start: 20260119 15:15:13.490
+INFO     root:test_logger.py:52 ====================================================================================================
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1886 Running ADMIN test: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1242 Creating admin_page fixture for test: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1177 Removed invalid admin storage state file
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1182 Creating new admin storage state with ADMIN credentials: james@adamitcorp.com (browser will open for login)
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1198 Logging in with ADMIN credentials: james@adamitcorp.com
+INFO     root:test_logger.py:103 00:00:13.237KEYWORD Login credentials for BenchSale
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:1588 Logged in to BenchSale Admin successfully (Playwright)
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1205 Admin storage state created and saved successfully with credentials: james@adamitcorp.com
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1287 Already authenticated, dashboard visible
+------------------------------ Captured log call ------------------------------
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:649 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:650 Started runtime measurement for: T1.13 Admin - Verification of candidates in submission Job flow
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:651 Start time: 2026-01-19 15:15:35
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:652 ================================================================================
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:754 Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:770 Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:771 Network check elapsed: 0.803s
+INFO     root:test_logger.py:103 00:00:00.807KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+---------------------------- Captured log teardown ----------------------------
+DEBUG    BenchSale_Conftest:BenchSale_Conftest.py:1368 Error during admin_page cleanup: Page.wait_for_timeout: Target page, context or browser has been closed
+INFO     BenchSale_Conftest:BenchSale_Conftest.py:548 Closing browser instance
+--------------------------------- JSON report ---------------------------------
+report saved to: reports/report.json
+- Generated html report: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/reports/report.html -
+=========================== short test summary info ===========================
+FAILED tests/benchsale/test_benchsale_admin_test_cases.py::test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+================= 1 failed, 40 deselected in 95.66s (0:01:35) =================
+
+---------------------------------------- STDERR ----------------------------------------
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:248 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:249 - BenchSale_Conftest: BenchSale Automation Test Suite - Logging Initialized
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:250 - BenchSale_Conftest: Log file: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.log
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:251 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:15:12 [    INFO] test_logger.py:163 - root: ====================================================================================================
+2026-01-19 15:15:12 [    INFO] test_logger.py:164 - root: SUITE JnP benchSale
+2026-01-19 15:15:12 [    INFO] test_logger.py:165 - root: Full Name: JnP benchSale
+2026-01-19 15:15:12 [    INFO] test_logger.py:167 - root: Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest
+2026-01-19 15:15:12 [    INFO] test_logger.py:168 - root: Start: 20260119 15:15:12.569
+2026-01-19 15:15:12 [    INFO] test_logger.py:169 - root: ====================================================================================================
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:2043 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:2044 - BenchSale_Conftest: \U0001f9e0 SMART FRAMEWORK: Admin tests explicitly requested - filtering recruiter tests
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:2045 - BenchSale_Conftest:    Admin tests: 11, Recruiter tests filtered: 2
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:2046 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:15:12 [    INFO] BenchSale_Conftest.py:2076 - BenchSale_Conftest: \u2713 Final test execution: 41 tests (Admin: 11, Recruiter: 0)
+2026-01-19 15:15:13 [    INFO] BenchSale_Conftest.py:456 - BenchSale_Conftest: Acquired browser lock (PID: 20528)
+2026-01-19 15:15:13 [    INFO] BenchSale_Conftest.py:522 - BenchSale_Conftest: Creating new browser instance (only one will be created across all processes)
+2026-01-19 15:15:13 [    INFO] test_logger.py:44 - root: 
+2026-01-19 15:15:13 [    INFO] test_logger.py:45 - root: ====================================================================================================
+2026-01-19 15:15:13 [    INFO] test_logger.py:46 - root: TEST test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+2026-01-19 15:15:13 [    INFO] test_logger.py:48 - root: Full Name: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+2026-01-19 15:15:13 [    INFO] test_logger.py:49 - root: Source: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\tests\benchsale\test_benchsale_admin_test_cases.py
+2026-01-19 15:15:13 [    INFO] test_logger.py:51 - root: Start: 20260119 15:15:13.490
+2026-01-19 15:15:13 [    INFO] test_logger.py:52 - root: ====================================================================================================
+2026-01-19 15:15:29 [    INFO] test_logger.py:103 - root: 00:00:13.237KEYWORD Login credentials for BenchSale
+2026-01-19 15:15:29 [    INFO] BenchSale_Conftest.py:1588 - BenchSale_Conftest: Logged in to BenchSale Admin successfully (Playwright)
+2026-01-19 15:15:35 [    INFO] BenchSale_Conftest.py:649 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:15:35 [    INFO] BenchSale_Conftest.py:650 - BenchSale_Conftest: Started runtime measurement for: T1.13 Admin - Verification of candidates in submission Job flow
+2026-01-19 15:15:35 [    INFO] BenchSale_Conftest.py:651 - BenchSale_Conftest: Start time: 2026-01-19 15:15:35
+2026-01-19 15:15:35 [    INFO] BenchSale_Conftest.py:652 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:15:35 [    INFO] BenchSale_Conftest.py:754 - BenchSale_Conftest: Checking network connectivity (timeout=5.0s). Targets: ['https://bs.jobsnprofiles.com/', 'https://www.google.com']
+2026-01-19 15:15:35 [    INFO] BenchSale_Conftest.py:770 - BenchSale_Conftest: Network connectivity check: Connected (Target: https://bs.jobsnprofiles.com/, Status: 200)
+2026-01-19 15:15:35 [    INFO] test_logger.py:103 - root: 00:00:00.807KEYWORD Check Network Connectivity https://bs.jobsnprofiles.com/, https://www.google.com
+2026-01-19 15:16:45 [    INFO] test_logger.py:64 - root: 
+2026-01-19 15:16:45 [    INFO] test_logger.py:65 - root: Full Name: test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+2026-01-19 15:16:45 [    INFO] test_logger.py:66 - root: Start / End / Elapsed: 20260119 15:15:13.488 / 20260119 15:16:45.588 / 00:01:10.277
+2026-01-19 15:16:45 [    INFO] test_logger.py:70 - root: TEST test_t1_13_admin_verification_of_candidates_in_submission_job_flow: FAIL
+2026-01-19 15:16:45 [    INFO] test_logger.py:71 - root: Status: FAIL
+2026-01-19 15:16:45 [    INFO] test_logger.py:73 - root: Message: tests\benchsale\test_benchsale_admin_test_cases.py:4060: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+    page.wait_for_timeout(2000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:11478: in wait_for_timeout
+    self._sync(self._impl_obj.wait_for_timeout(timeout=timeout))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_page.py:1073: in wait_for_timeout
+    await self._main_frame.wait_for_timeout(timeout)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:756: in wait_for_timeout
+    await self._channel.send("waitForTimeout", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TargetClosedError: Page.wait_for_timeout: Target page, context or browser has been closed
+2026-01-19 15:16:45 [    INFO] test_logger.py:142 - root: 15:16:45.604	INFO	Failure artifacts saved:
+2026-01-19 15:16:45 [    INFO] test_logger.py:142 - root: 15:16:45.604	INFO	  URL: https://bs.jobsnprofiles.com/my-candidates
+2026-01-19 15:16:45 [    INFO] test_logger.py:142 - root: 15:16:45.604	INFO	  Screenshot: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\failures\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260119_151645.png
+2026-01-19 15:16:45 [    INFO] test_logger.py:142 - root: 15:16:45.604	INFO	  HTML: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\failures\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260119_151645.html
+2026-01-19 15:16:45 [    INFO] test_logger.py:142 - root: 15:16:45.604	INFO	  URL file: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\failures\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260119_151645.url.txt
+2026-01-19 15:16:45 [   ERROR] BenchSale_Conftest.py:1854 - BenchSale_Conftest: Error details:
+tests\benchsale\test_benchsale_admin_test_cases.py:4060: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow
+    page.wait_for_timeout(2000)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\sync_api\_generated.py:11478: in wait_for_timeout
+    self._sync(self._impl_obj.wait_for_timeout(timeout=timeout))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_page.py:1073: in wait_for_timeout
+    await self._main_frame.wait_for_timeout(timeout)
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_frame.py:756: in wait_for_timeout
+    await self._channel.send("waitForTimeout", locals_to_params(locals()))
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:61: in send
+    return await self._connection.wrap_api_call(
+..\..\..\AppData\Roaming\Python\Python310\site-packages\playwright\_impl\_connection.py:528: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TargetClosedError: Page.wait_for_timeout: Target page, context or browser has been closed
+2026-01-19 15:16:46 [    INFO] BenchSale_Conftest.py:1783 - BenchSale_Conftest: \u2713 Dashboard refreshed after test: test_t1_13_admin_verification_of_candidates_in_submission_job_flow (failed)
+2026-01-19 15:16:46 [    INFO] BenchSale_Conftest.py:548 - BenchSale_Conftest: Closing browser instance
+2026-01-19 15:16:47 [    INFO] test_logger.py:183 - root: 
+2026-01-19 15:16:47 [    INFO] test_logger.py:184 - root: ====================================================================================================
+2026-01-19 15:16:47 [    INFO] test_logger.py:185 - root: Full Name: JnP benchSale
+2026-01-19 15:16:47 [    INFO] test_logger.py:186 - root: Start / End / Elapsed: 20260119 15:15:12.569 / 20260119 15:16:47.365 / 00:01:34.795
+2026-01-19 15:16:47 [    INFO] test_logger.py:187 - root: Status: 1 tests total, 0 passed, 1 failed, 0 skipped
+2026-01-19 15:16:47 [    INFO] test_logger.py:188 - root: ====================================================================================================
+2026-01-19 15:16:47 [    INFO] test_logger.py:195 - root: 
+2026-01-19 15:16:47 [    INFO] test_logger.py:196 - root: Test Statistics
+2026-01-19 15:16:47 [    INFO] test_logger.py:197 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:16:47 [    INFO] test_logger.py:201 - root: Test                                                         Total    Pass     Fail     Skip     Elapsed        
+2026-01-19 15:16:47 [    INFO] test_logger.py:202 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:16:47 [    INFO] test_logger.py:213 - root: test_t1_13_admin_verification_of_candidates_in_submission_job_flow 1        0        1        0        00:01:10.277   
+2026-01-19 15:16:47 [    INFO] test_logger.py:219 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:16:47 [    INFO] test_logger.py:220 - root: All Tests                                                    1        0        1        0        00:01:10.277   
+2026-01-19 15:16:47 [    INFO] test_logger.py:221 - root: ----------------------------------------------------------------------------------------------------
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2148 - BenchSale_Conftest: 
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2149 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2150 - BenchSale_Conftest: TEST SESSION FINISHED
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2151 - BenchSale_Conftest: Session end time: 2026-01-19 15:16:47
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2152 - BenchSale_Conftest: Exit status: 1
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2155 - BenchSale_Conftest: Total tests executed: 1
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2168 - BenchSale_Conftest: ================================================================================
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2169 - BenchSale_Conftest: 
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2197 - BenchSale_Conftest: Test summary written to: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\reports\test_summary.txt
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2217 - BenchSale_Conftest: HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2224 - BenchSale_Conftest: Admin HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_admin.html
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2231 - BenchSale_Conftest: Recruiter HTML log viewer generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\benchsale_recruiter.html
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2236 - BenchSale_Conftest: Unified dashboard generated: C:\Users\Nityainc\OneDrive - Nitya Software Solutions Inc\Desktop\Automation_testing_pytest\logs\index.html
+2026-01-19 15:16:47 [    INFO] BenchSale_Conftest.py:2272 - BenchSale_Conftest: Dashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html

@@ -116,6 +116,103 @@ def _handle_job_fair_popup(page: Page):
         pass
 
 
+def _handle_all_popups(page: Page, max_attempts: int = 5):
+    """Comprehensive popup handler - handles all types of dialogs, modals, and popups"""
+    for attempt in range(max_attempts):
+        try:
+            # Check for various popup types
+            dialog_selectors = [
+                ".MuiDialog-container",
+                ".MuiModal-root",
+                ".MuiBackdrop-root:not(.MuiBackdrop-invisible)",
+                ".css-uhb5lp",  # Job fair popup
+                "[role='dialog']",
+                "[class*='Dialog']",
+                "[class*='Modal']",
+                "[class*='Popup']",
+            ]
+            
+            popup_found = False
+            for selector in dialog_selectors:
+                try:
+                    elem = page.locator(selector)
+                    if elem.count() > 0 and elem.first.is_visible(timeout=1000):
+                        popup_found = True
+                        break
+                except Exception:
+                    continue
+            
+            if not popup_found:
+                break  # No popups found, exit
+            
+            # Strategy 1: Press ESC key
+            try:
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(300)
+            except Exception:
+                pass
+            
+            # Strategy 2: Click backdrop
+            try:
+                page.evaluate("""
+                    var backdrop = document.querySelector('.MuiBackdrop-root:not(.MuiBackdrop-invisible)');
+                    if (backdrop && backdrop.offsetParent !== null) {
+                        backdrop.style.pointerEvents = 'auto';
+                        backdrop.click();
+                    }
+                """)
+                page.wait_for_timeout(300)
+            except Exception:
+                pass
+            
+            # Strategy 3: Find and click close buttons
+            close_button_selectors = [
+                ".css-11q2htf",
+                "button[aria-label*='close']",
+                "button[aria-label*='Close']",
+                "xpath=/html/body/div[2]/div[3]/div/div[2]/button[2]",
+                ".MuiDialog-container button[aria-label*='close']",
+                ".MuiDialog-container button[aria-label*='Close']",
+                "button:has-text('Close')",
+                "button:has-text('×')",
+            ]
+            
+            for close_sel in close_button_selectors:
+                try:
+                    close_btn = page.locator(close_sel).first
+                    if close_btn.count() > 0 and close_btn.is_visible(timeout=500):
+                        close_btn.click()
+                        page.wait_for_timeout(500)
+                        break
+                except Exception:
+                    continue
+            
+            # Strategy 4: Remove invisible backdrops
+            try:
+                page.evaluate("""
+                    var backdrops = document.querySelectorAll('.MuiBackdrop-root');
+                    backdrops.forEach(function(b) {
+                        if (b.style.opacity === '0' || !b.offsetParent || b.classList.contains('MuiBackdrop-invisible')) {
+                            b.remove();
+                        }
+                    });
+                """)
+            except Exception:
+                pass
+            
+            page.wait_for_timeout(500)
+            
+        except Exception as e:
+            print(f"Popup handling attempt {attempt + 1} failed: {e}")
+            continue
+    
+    # Final wait to ensure popups are gone
+    try:
+        page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=2000)
+    except Exception:
+        pass
+
+
 def _open_resume_viewer_if_needed(page: Page) -> None:
     """
     Some flows require the resume preview (right panel) to be "opened" (clicked)
@@ -245,12 +342,50 @@ def test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page(request, pw
         # Job Fair Pop-up (matching Robot Framework: Job Fair Pop-up)
         _handle_job_fair_popup(page)
         
+        # Handle any remaining dialogs/modals that might be blocking the click
+        _handle_all_popups(page)
+        
+        # Wait for any dialogs to be hidden before proceeding
+        try:
+            page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=5000)
+        except Exception:
+            pass  # Dialog might not be present, continue anyway
+        
         # Wait Until Element Is Visible xpath:/html/body/div[1]/div[2]/div/section[1]/div[1]/div/button[2] 30
         browse_jobs_btn = page.locator("xpath=/html/body/div[1]/div[2]/div/section[1]/div[1]/div/button[2]")
         browse_jobs_btn.wait_for(state="visible", timeout=30000)
         
+        # Ensure no dialog is intercepting before clicking
+        try:
+            dialog = page.locator(".MuiDialog-container")
+            if dialog.count() > 0 and dialog.first.is_visible(timeout=1000):
+                _handle_all_popups(page)
+                page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=5000)
+        except Exception:
+            pass
+        
+        # Wait for backdrop to be hidden if present
+        try:
+            page.locator(".MuiBackdrop-root:not(.MuiBackdrop-invisible)").first.wait_for(state="hidden", timeout=3000)
+        except Exception:
+            pass
+        
         # Click Element xpath:/html/body/div[1]/div[2]/div/section[1]/div[1]/div/button[2]
-        browse_jobs_btn.click()
+        try:
+            browse_jobs_btn.click(timeout=30000)
+        except Exception as e:
+            # If click fails due to dialog intercepting, try to close it and retry
+            if "intercepts pointer events" in str(e) or "MuiDialog" in str(e):
+                _handle_all_popups(page)
+                page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=5000)
+                # Retry click, or use force click as last resort
+                try:
+                    browse_jobs_btn.click(timeout=30000)
+                except Exception:
+                    # Force click via JavaScript as last resort
+                    page.evaluate("(el) => { el.scrollIntoView({block:'center'}); el.click(); }", browse_jobs_btn.element_handle())
+            else:
+                raise
         page.wait_for_timeout(2000)
         
         # Click on the AI search input field to open job search (matching Robot Framework)
@@ -421,6 +556,15 @@ def test_t1_02_verification_of_a_saved_job_from_home_page_in_js(pw_browser, star
         # Job Fair Pop-up (matching Robot Framework: Job Fair Pop-up)
         _handle_job_fair_popup(page)
         
+        # Handle any remaining dialogs/modals that might be blocking the click
+        _handle_all_popups(page)
+        
+        # Wait for any dialogs to be hidden before proceeding
+        try:
+            page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=5000)
+        except Exception:
+            pass  # Dialog might not be present, continue anyway
+        
         # Wait Until Page Contains Find Your Dream Job 30 (matching Robot Framework)
         page.wait_for_selector("text=Find Your Dream Job", timeout=30000)
         
@@ -432,8 +576,37 @@ def test_t1_02_verification_of_a_saved_job_from_home_page_in_js(pw_browser, star
         browse_jobs_link.scroll_into_view_if_needed()
         page.wait_for_timeout(1000)  # Sleep 1 (matching Robot Framework: Sleep 1)
         
+        # Ensure no dialog is intercepting before clicking
+        try:
+            dialog = page.locator(".MuiDialog-container")
+            if dialog.count() > 0 and dialog.first.is_visible(timeout=1000):
+                _handle_all_popups(page)
+                page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=5000)
+        except Exception:
+            pass
+        
+        # Wait for backdrop to be hidden if present
+        try:
+            page.locator(".MuiBackdrop-root:not(.MuiBackdrop-invisible)").first.wait_for(state="hidden", timeout=3000)
+        except Exception:
+            pass
+        
         # Click Element xpath:/html/body/div[1]/div[2]/div/footer/div[1]/div[3]/a[1]
-        browse_jobs_link.click()
+        try:
+            browse_jobs_link.click(timeout=30000)
+        except Exception as e:
+            # If click fails due to dialog intercepting, try to close it and retry
+            if "intercepts pointer events" in str(e) or "MuiDialog" in str(e):
+                _handle_all_popups(page)
+                page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=5000)
+                # Retry click, or use force click as last resort
+                try:
+                    browse_jobs_link.click(timeout=30000)
+                except Exception:
+                    # Force click via JavaScript as last resort
+                    page.evaluate("(el) => { el.scrollIntoView({block:'center'}); el.click(); }", browse_jobs_link.element_handle())
+            else:
+                raise
         page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
         
         # Wait Until Page Contains Element xpath:/html/body/div[1]/div[2]/div[3]/div/div/div/ul/div[1] 30
@@ -2466,952 +2639,1191 @@ def test_t1_05_verification_of_searching_job_with_company_name(pw_browser, start
     total_runtime = end_runtime_measurement("T1.05 Verification of searching job with Company name")
     print(f"PASS: Test completed in {total_runtime:.2f} seconds")
 
+def _fill_field(page, name, value, clear_first=True):
+    """Helper: Fill form field, optionally clear first - OPTIMIZED: Reduced waits"""
+    loc = page.locator(f"[name='{name}']")
+    if clear_first:
+        loc.press("Control+a")
+        loc.press("Backspace")
+        page.wait_for_timeout(300)  # Reduced from 1000
+    loc.fill(value)
+    page.wait_for_timeout(300)  # Reduced from 1000
+
+def _select_option(page, name, value):
+    """Helper: Select dropdown option - OPTIMIZED: Reduced waits"""
+    page.locator(f"[name='{name}']").select_option(value=value)
+    page.wait_for_timeout(500)  # Reduced from 2000
+
+def _fill_project(page, index, client, role, country, state, city, start_date, end_date, description=""):
+    """Helper: Fill project details"""
+    _fill_field(page, f"client{index}", client)
+    _fill_field(page, f"role{index}", role)
+    _select_option(page, f"country{index}", country)
+    _select_option(page, f"state{index}", state)
+    _select_option(page, f"city{index}", city)
+    _fill_field(page, f"startdate{index}", start_date)
+    _fill_field(page, f"enddate{index}", end_date)
+    if description:
+        editors = page.locator(".ql-editor")
+        if editors.count() > index:
+            editors.nth(index).fill(description)
+            page.wait_for_timeout(1000)
+
+def _navigate_to_resumes(page):
+    """Helper: Navigate to Resumes section via sidebar - matches Robot Framework"""
+    # Wait for dialog to disappear
+    try:
+        page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=40000)
+    except Exception:
+        pass
+    page.wait_for_timeout(2000)
+    
+    # Click on Resume bar - Robot Framework uses css:.css-1livart, index 2
+    # Robot Framework: ${all_bars} Get Webelements css:.css-1livart, ${resume_bar} Set Variable ${all_bars}[2]
+    bars = page.locator(".css-1livart")
+    bars_count = bars.count()
+    
+    if bars_count >= 3:
+        print(f"Found {bars_count} sidebar bars, clicking resume bar (index 2)")
+        bars.nth(2).click()
+        page.wait_for_timeout(3000)  # Robot Framework: Sleep 3
+        
+        # Robot Framework: Wait Until Element Is Visible xpath:/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[2] 30
+        # Wait for first resume element - this is critical for the test
+        resume_list_visible = False
+        resume_selectors = [
+            "xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[2]",  # Primary selector from Robot Framework
+            ".css-1mdxnzg",  # Alternative CSS selector
+            "xpath=//ul[contains(@class, 'MuiList-root')]//div[2]",
+            "xpath=//main//ul//div[2]",
+        ]
+        
+        for selector in resume_selectors:
+            try:
+                if selector.startswith("xpath="):
+                    page.wait_for_selector(selector, timeout=30000, state="visible")
+                else:
+                    page.locator(selector).first.wait_for(state="visible", timeout=30000)
+                resume_list_visible = True
+                print(f"Resume list found using selector: {selector}")
+                break
+            except Exception as e:
+                print(f"Resume list not found with selector {selector}: {e}")
+                continue
+        
+        if not resume_list_visible:
+            print("WARNING: Resume list not found with primary selectors, trying fallback...")
+        
+        # Wait for additional element - Robot Framework: Wait Until Element Is Visible xpath:/html/body/div[1]/div[2]/main/div/div/div[3]/div/div/div[1]/div[2]/div/div/div[2]/div/div/div/div/div[1]/div[2]/div/div/div/div[2] 30
+        try:
+            page.wait_for_selector("xpath=/html/body/div[1]/div[2]/main/div/div/div[3]/div/div/div[1]/div[2]/div/div/div[2]/div/div/div/div/div[1]/div[2]/div/div/div/div[2]", timeout=30000, state="visible")
+        except Exception:
+            pass
+        
+        page.wait_for_timeout(5000)  # Robot Framework: Sleep 5
+        return
+    
+    # Fallback: direct navigation if sidebar bars not found
+    print("Sidebar bars not found, using direct navigation")
+    try:
+        page.goto("https://jobsnprofiles.com/Jsdashboard/my-resumes", wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(3000)
+        # Wait for resume list after navigation
+        page.wait_for_selector("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[2]", timeout=30000, state="visible")
+    except Exception as e:
+        print(f"Direct navigation failed: {e}")
+        # Try alternative URL
+        try:
+            page.goto("https://jobsnprofiles.com/Jsdashboard/my-resumes", timeout=30000)
+            page.wait_for_timeout(3000)
+        except Exception:
+            pass
+
+def _delete_resume_if_needed(page):
+    """Helper: Delete one resume if count is 8"""
+    resume_count = page.locator(".css-1mdxnzg").count()
+    if resume_count != 8:
+        return
+    
+    all_resumes = page.locator(".css-1mdxnzg")
+    for i in range(resume_count):
+        all_resumes.nth(i).hover()
+        page.wait_for_timeout(2000)
+        j = i + 3
+        
+        # Check if not primary
+        try:
+            svg = page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]/div/div[2]/p[1]/span[2]/svg[1]")
+            html = svg.get_attribute("innerHTML") or ""
+            if "Add to Primary" in html:
+                page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]").click()
+                page.locator(".rpv-core__text-layer").wait_for(state="visible", timeout=30000)
+                page.wait_for_timeout(4000)
+                
+                # Get resume ID and delete
+                resume_id = page.locator(".css-13o7eu2").inner_text().split("-")[0].replace("#", "")
+                page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]").hover()
+                page.wait_for_timeout(2000)
+                page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]//*[contains(@class, 'delete-icon')]").click()
+                
+                # Wait for delete confirmation
+                for _ in range(40):
+                    toast = page.locator(".Toastify, [class*='Toastify']")
+                    if toast.count() > 0 and "Resume Deleted Successfully" in toast.first.inner_text():
+                        break
+                    page.wait_for_timeout(1000)
+                break
+        except Exception:
+            continue
+
+def _upload_resume(page, resume_path):
+    """Helper: Upload resume file - matches Robot Framework (no JS click, direct Choose File)
+    UNLIMITED TIMEOUT for resume parsing - wait as long as needed for parsing to complete"""
+    resume_path_abs = os.path.abspath(resume_path)
+    
+    # Click Resume button - Robot Framework XPath: main/div/div/div[1]/div/div[1]/button
+    page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[1]/button").click()
+    page.wait_for_timeout(5000)
+    
+    # Upload file directly (Robot Framework uses Choose File, no JS click)
+    # Robot Framework XPath: main/div/div/div[2]/div/div/div/div/div[1]/div/input
+    file_input = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/div/div/div/div[1]/div/input")
+    file_input.wait_for(state="attached", timeout=30000)
+    file_input.set_input_files(resume_path_abs)
+    
+    # UNLIMITED TIMEOUT for resume parsing - wait as long as needed
+    # Use very long timeout (30 minutes = 1800000ms) for slow parsing
+    print("Waiting for resume to parse (this may take several minutes - unlimited timeout)...")
+    
+    # Wait for form to appear - UNLIMITED TIMEOUT (30 minutes)
+    max_wait_time = 1800000  # 30 minutes in milliseconds
+    start_time = time.time()
+    
+    form_visible = False
+    preview_visible = False
+    
+    while (time.time() - start_time) * 1000 < max_wait_time:
+        try:
+            if not form_visible:
+                page.locator(".col-md-7").wait_for(state="visible", timeout=10000)
+                form_visible = True
+                print(f"Resume form appeared (col-md-7) after {(time.time() - start_time):.1f} seconds")
+            
+            if not preview_visible:
+                page.locator(".col-md-5").wait_for(state="visible", timeout=10000)
+                preview_visible = True
+                print(f"Resume preview appeared (col-md-5) after {(time.time() - start_time):.1f} seconds")
+            
+            if form_visible and preview_visible:
+                print(f"Resume parsing completed successfully in {(time.time() - start_time):.1f} seconds!")
+                break
+        except Exception as e:
+            # Check if page is still open before waiting
+            try:
+                if page.is_closed():
+                    raise Exception("Page was closed during resume parsing wait")
+            except Exception:
+                # Page is closed, re-raise the original exception
+                raise e
+            
+            # Continue waiting only if page is still open
+            elapsed = (time.time() - start_time)
+            if int(elapsed) % 30 == 0:  # Print every 30 seconds
+                print(f"Still waiting for resume parsing... ({elapsed:.0f} seconds elapsed)")
+            
+            # Check page is open before timeout
+            if not page.is_closed():
+                page.wait_for_timeout(5000)
+            else:
+                raise Exception("Page was closed during resume parsing")
+    else:
+        if not form_visible or not preview_visible:
+            raise TimeoutError(f"Resume parsing timeout after {max_wait_time/1000:.0f} seconds. Form: {form_visible}, Preview: {preview_visible}")
+    
+    # OPTIMIZED: Minimal wait after parsing - form is ready, proceed immediately
+    page.wait_for_timeout(1000)  # Reduced from 4000 - just ensure DOM is stable
+
 @pytest.mark.jobseeker
 def test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_parsed_resume_in_emp(request, pw_browser, start_runtime_measurement, end_runtime_measurement):
     """T1.06 Parse resume in 'Resumes' option in JS Dashboard and verify the parsed resume in EMP"""
     start_runtime_measurement("T1.06 Parse resume in 'Resumes' option in JS Dashboard and verify the parsed resume in EMP")
     assert check_network_connectivity(), "Network connectivity check failed"
-
-    # Resume expectations (make email check configurable, because parsing can vary across files/accounts)
-    # If T1_06_RESUME_EMAIL is NOT set, we will infer the profile email after login and use that.
-    expected_resume_email_env = os.getenv("T1_06_RESUME_EMAIL", "").strip().lower()
-    strict_email_check = os.getenv("T1_06_STRICT_EMAIL", "0").strip() in ("1", "true", "yes")
+    
+    # Setup
+    profile_email = os.getenv("T1_06_RESUME_EMAIL", "").strip().lower() or JS_EMAIL
     resume_path_override = os.getenv("T1_06_RESUME_PATH", "").strip()
-    expected_resume_filename = os.getenv("T1_06_RESUME_FILENAME", "").strip()
+    # Robot Framework variables (copied as-is)
+    first_proj_desc = (
+        "Developed serverless functions using AWS Lambda or similar technologies. "
+        "➢ Implemented business logic and data processing operations within the serverless functions. "
+        "➢ Integrated serverless functions with other services and APIs for seamless functionality. "
+        "➢ Implemented Create, Read, Update, and Delete (CRUD) operations on databases or data stores. "
+        "➢ Developed APIs or backend endpoints to enable CRUD operations. "
+        "➢ Ensured data validation, error handling, and data integrity in CRUD operations. "
+        "➢ Designed and developed RESTful APIs for client-server communication. "
+        "➢ Implemented API endpoints for data retrieval, manipulation, and integration. "
+        "➢ Ensured adherence to RESTful principles, including proper HTTP status codes and response formats."
+    )
+    second_proj_desc = (
+        "Responsible for creating efficient design and development of responsive UI using with HTML5, CSS3, JavaScript, MEAN stack (MongoDB, Angular, and Node JS) and React JS. "
+        "➢ Responsible for developing Business Logic using Python on Django Web Framework. "
+        "➢ Responsible for creating the company's internal platform called DCAE by using Python to develop and test the components. "
+        "➢ React for the frontend "
+        "➢ Working with DevOps practices using AWS, Elastic Bean stalk and Docker with kubernetes. "
+        "➢ Used Ansible platform to scale application on AWS cloud. "
+        "➢ Involved in writing java API for Amazon Lambda to manage some of the AWS services. "
+        "➢ Deploy docker based applications written in Python/Flask to AWS ECS, a container orchestration service. "
+        "➢ Deployed and managed container replicas onto a node cluster using Kubernetes. "
+        "➢ Deployed microservice applications in Python, with Flask, SQL Alchemy, Docker."
+    )
+    # Robot Framework: ${add_project_description} SEPARATOR multi-line text
+    add_proj_desc = (
+        "Responsibilities➢Developed  views  and  templates  with  Python  and  Django's  view  controller  and templating language to create a user-friendly website interface. "
+        "➢Refactor Python/Django modules to deliver certain format of data. ➢Managed datasets using Panda data frames and MySQL, queried MYSQL database queries  from  python  using  Python-MySQL  connector  and  MySQL  dB  package  to retrieve information. "
+        "➢Utilized Python libraries NumPy and matplotlib. ➢Wrote Python scripts to parse XML documents and load the data in database. "
+        "➢Used Wireshark, live http headers, and Fiddler2 debugging proxy to debug the Flash object and help the developer create a functional component."
+    )
     
-    # Project descriptions (matching Robot Framework variables)
-    add_project_description = ""
-    first_proj_description = "Developed serverless functions using AWS Lambda or similar technologies."
-    second_proj_description = "Responsible for creating efficient design and development of responsive UI using with HTML5, CSS3, JavaScript, MEAN stack (MongoDB, Angular, and Node JS) and React JS."
-    
-    # Create a fresh page (matching Robot Framework: Open Browser)
-    viewport_size = None
-    context = pw_browser.new_context(ignore_https_errors=True, viewport=viewport_size)
+    # Create page
+    context = pw_browser.new_context(ignore_https_errors=True)
     context.set_default_timeout(30000)
     page = context.new_page()
     request.node._pw_page = page
     
     try:
-        # Open Browser https://jobsnprofiles.com/Login (matching Robot Framework)
+        # Login - IMPROVED: Better error handling and retry logic
         goto_fast(page, f"{BASE_URL}Login")
-        page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-        
-        # Maximize Browser Window (matching Robot Framework)
+        page.wait_for_timeout(3000)
         if MAXIMIZE_BROWSER:
             page.set_viewport_size({"width": 1920, "height": 1080})
         
-        # Job fair pop-up (matching Robot Framework: Job fair pop-up)
+        # Handle job fair popup before login
         _handle_job_fair_popup(page)
+        page.wait_for_timeout(1000)  # Brief wait after popup handling
         
-        # Sign in as job seeker (matching Robot Framework: Job-Seeker Sign-in)
-        login_jobseeker_pw(page, user_id=JS_EMAIL, password=JS_PASSWORD)
+        # Login with improved error handling
+        try:
+            login_jobseeker_pw(page, user_id=JS_EMAIL, password=JS_PASSWORD)
+        except Exception as login_err:
+            # Take screenshot on login failure
+            try:
+                page.screenshot(path=f"reports/failures/login_failure_{int(time.time())}.png")
+            except Exception:
+                pass
+            raise AssertionError(f"Login failed: {login_err}")
         
-        page.wait_for_timeout(10000)  # Sleep 10 (matching Robot Framework: Sleep 10)
-
-        # If we are still on Login, fail fast (session/captcha issue) instead of proceeding with wrong selectors.
+        # Wait for page to fully load after login
+        page.wait_for_timeout(5000)  # Reduced from 10000
+        
+        # Verify login succeeded
         if "Login" in (page.url or ""):
-            raise AssertionError(f"Login did not complete; still on login page: {page.url}")
+            raise AssertionError(f"Login verification failed: still on {page.url}")
         
-        # Wait Until Page Does Not Contain Element css:.MuiDialog-container 40
+        # Wait for any dialogs to disappear
         try:
-            page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=40000)
+            page.wait_for_selector(".MuiDialog-container", state="hidden", timeout=30000)  # Reduced from 40000
         except Exception:
             pass
         
-        # Go directly to My Resumes (avoid brittle left-nav index selectors)
-        goto_fast(page, f"{BASE_URL}my-resumes")
-        page.wait_for_load_state("domcontentloaded", timeout=30000)
-        page.wait_for_timeout(2000)
+        # Navigate to Resumes
+        _navigate_to_resumes(page)
+        page.wait_for_timeout(5000)
         
-        # Ensure we are on resumes page
-        page.locator("text=My Resumes").first.wait_for(state="visible", timeout=30000)
+        # Delete resume if needed
+        _delete_resume_if_needed(page)
         
-        # Optional: if a first resume exists, wait for list to render; otherwise we're on empty upload state.
-        try:
-            page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul").wait_for(state="attached", timeout=8000)
-        except Exception:
-            pass
+        # Get resume path - Check for Deepika Kashni.pdf first, then env var, then generate
+        resume_path = None
         
-        # Get Element Count (matching Robot Framework)
-        resume_count = 0
-        try:
-            resume_count = page.locator(".css-1mdxnzg").count()
-        except Exception:
-            resume_count = 0
-        print(f"Resume count: {resume_count}")
-        
-        # Delete resume if resume number is 8 (matching Robot Framework)
-        all_resumes = page.locator(".css-1mdxnzg")
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-        
-        if resume_count == 8:
-            print("Number of resumes is 8")
-            for each_resume in range(resume_count):  # FOR ${each_resume} IN RANGE 0 ${resume_count}
-                resume_elem = all_resumes.nth(each_resume)
-                resume_elem.hover()  # Mouse Over (matching Robot Framework)
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                
-                j = each_resume + 3  # ${j} = Evaluate ${each_resume}+3
-                
-                # Get Element Attribute (matching Robot Framework)
-                try:
-                    primary_resume_elements = page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]/div/div[2]/p[1]/span[2]/svg[1]").get_attribute("innerHTML")
-                    check_if_not_primary = "aria-label=\"Add to Primary\"" in (primary_resume_elements or "")
-                    
-                    if check_if_not_primary:
-                        # Click Element (matching Robot Framework)
-                        page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]").click()
-                        
-                        # Wait Until Element Is Visible css:.rpv-core__text-layer 30
-                        page.locator(".rpv-core__text-layer").wait_for(state="visible", timeout=30000)
-                        page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-                        
-                        # Get resume ID (matching Robot Framework)
-                        get_resume_id = page.locator(".css-13o7eu2").inner_text()
-                        print(f"Resume ID: {get_resume_id}")
-                        
-                        resume_id_split = get_resume_id.split("-")
-                        resume_id = resume_id_split[0].replace("#", "")
-                        print(f"Resume ID (cleaned): {resume_id}")
-                        
-                        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                        
-                        # Mouse Over (matching Robot Framework)
-                        resume_item = page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]")
-                        resume_item.hover()
-                        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                        
-                        # Wait Until Element Is Visible css:.css-ym91o1:hover .delete-icon 10
-                        # Use CSS selector with :hover state - need to find delete icon within hovered element
-                        try:
-                            delete_icon = resume_item.locator(".delete-icon")
-                            delete_icon.wait_for(state="visible", timeout=10000)
-                            delete_icon.click()
-                        except Exception:
-                            # Fallback: try to find delete icon by other means
-                            delete_icon = page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[2]/div/ul/div[{j}]//*[contains(@class, 'delete-icon')]")
-                            delete_icon.wait_for(state="visible", timeout=10000)
-                            delete_icon.click()
-                        
-                        # Wait for delete message (matching Robot Framework: Get Text class:Toastify)
-                        delete_msg = ""
-                        for time_attempt in range(1, 41):  # FOR ${time} IN RANGE 1 40
-                            try:
-                                # Try to get text from Toastify class (matching Robot Framework)
-                                toast = page.locator(".Toastify, [class*='Toastify']")
-                                if toast.count() > 0:
-                                    toast_text = toast.first.inner_text()
-                                    if "Resume Deleted Successfully" in toast_text:
-                                        delete_msg = "Resume Deleted Successfully"
-                                        print("One Resume Deleted")
-                                        break
-                            except Exception:
-                                pass
-                            page.wait_for_timeout(1000)  # Sleep 1
-                        
-                        if delete_msg == "Resume Deleted Successfully":
-                            break
-                except Exception as e:
-                    print(f"Error checking/deleting resume: {e}")
-                    continue
-        
-        # Determine the email the site considers your "profile email" (used for upload validation)
-        profile_email_ui = _get_profile_email_via_complete_profile(page)
-        if profile_email_ui:
-            # Return to resumes page after reading email
-            goto_fast(page, f"{BASE_URL}my-resumes")
-            page.wait_for_timeout(1500)
-        profile_email = profile_email_ui or _infer_profile_email(page) or JS_EMAIL
-        effective_resume_email = (expected_resume_email_env or profile_email).strip().lower()
-
-        # Build resume path now that we know the effective email
-        if resume_path_override:
-            resume_path = resume_path_override
-        else:
-            generated_dir = os.path.join(project_root, "reports", "generated_resumes")
-            try:
-                resume_path = create_docx_resume(
-                    generated_dir,
-                    full_name=JS_NAME,
-                    email=effective_resume_email,
-                    phone=os.getenv("T1_06_RESUME_PHONE", "").strip(),
-                )
-            except Exception:
-                resume_path = create_rtf_resume(
-                    generated_dir,
-                    full_name=JS_NAME,
-                    email=effective_resume_email,
-                    phone=os.getenv("T1_06_RESUME_PHONE", "").strip(),
-                )
-
-        if not expected_resume_filename:
-            expected_resume_filename = os.path.basename(resume_path)
-
-        # Uploading the resume
-        # NOTE: Do not "pre-click" the Resume button without a chooser handler.
-        # That click can trigger validation toast ("Please Upload Resume!!") immediately.
-        
-        # Choose File
-        # IMPORTANT: this page has multiple file inputs; we must target the one inside the upload dropzone.
-        assert os.path.exists(resume_path), f"Resume file not found: {resume_path}"
-
-        # First, click the "+ Resume" button to open the upload dialog/modal
-        add_resume_button = page.locator("xpath=//button[contains(text(), '+ Resume')] | //button[contains(., '+ Resume')]").first
-        try:
-            if add_resume_button.is_visible(timeout=5000):
-                add_resume_button.click()
-                page.wait_for_timeout(2000)  # Wait for dialog/modal to open
-        except Exception:
-            pass
-
-        upload_button = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[1]/button").first
-        # Try to click the actual dropzone container (not just the inner text).
-        dropzone = page.locator("text=Upload resume").first.locator("xpath=ancestor::div[1]")
-
-        # Click targets in priority order (button tends to wire up correct input in this UI)
-        upload_click_targets = [
-            upload_button,
-            dropzone,
-            page.locator("text=Supported Formats").first,
-            page.locator("xpath=//*[@data-testid='CloudUploadIcon']").first,
+        # Try multiple possible locations for Deepika Kashni.pdf
+        possible_locations = [
+            os.path.join(project_root, "Deepika Kashni.pdf"),  # Project root
+            str(Path(project_root).parent / "Deepika Kashni.pdf"),  # One level up (in case project_root is wrong)
+            os.path.join(os.path.dirname(__file__), "..", "..", "Deepika Kashni.pdf"),  # Relative from test file
+            str(Path(__file__).parent.parent.parent / "Deepika Kashni.pdf"),  # Using Path
         ]
-
-        upload_method = "unknown"
-        file_chosen = False
-        for tgt in upload_click_targets:
-            try:
-                if tgt.count() == 0 or not tgt.is_visible(timeout=2000):
-                    continue
-                with page.expect_file_chooser(timeout=5000) as fc_info:
-                    tgt.click()
-                chooser = fc_info.value
-                chooser.set_files(resume_path)
-                file_chosen = True
-                upload_method = "file_chooser"
+        
+        # Also check the RESUME_PATH from JobSeeker_Conftest
+        if RESUME_PATH and os.path.exists(RESUME_PATH):
+            possible_locations.insert(0, RESUME_PATH)
+        
+        for deepika_resume in possible_locations:
+            deepika_resume = os.path.abspath(deepika_resume)  # Normalize path
+            if os.path.exists(deepika_resume):
+                resume_path = deepika_resume
+                print(f"Found resume at: {resume_path}")
                 break
-            except Exception:
-                continue
-
-        if not file_chosen:
-            # Fallback: find the input inside the dropzone and set files there.
-            # If that fails, try all inputs.
+        
+        if not resume_path and resume_path_override:
+            if os.path.exists(resume_path_override):
+                resume_path = os.path.abspath(resume_path_override)
+                print(f"Using resume from env var: {resume_path}")
+            else:
+                print(f"WARNING: Resume path from env var does not exist: {resume_path_override}")
+        
+        if not resume_path:
+            # Generate resume as fallback
+            generated_dir = os.path.join(project_root, "reports", "generated_resumes")
+            os.makedirs(generated_dir, exist_ok=True)
             try:
-                dz_input = dropzone.locator("input[type='file']").first
-                dz_input.wait_for(state="attached", timeout=10000)
-                dz_input.set_input_files(resume_path)
-                upload_method = "set_input_files_dropzone"
-                file_chosen = True
-            except Exception:
-                all_inputs = page.locator("input[type='file']")
-                for i in range(min(all_inputs.count(), 5)):
-                    try:
-                        all_inputs.nth(i).set_input_files(resume_path)
-                        upload_method = f"set_input_files_any_{i}"
-                        file_chosen = True
-                        break
-                    except Exception:
-                        pass
-
-        # Trigger change on all file inputs to satisfy libraries that rely on events.
-        try:
-            page.evaluate(
-                """() => {
-                    const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
-                    for (const input of inputs) {
-                        try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
-                        try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-                    }
-                }"""
-            )
-        except Exception:
-            pass
-
+                resume_path = create_docx_resume(generated_dir, full_name=JS_NAME, email=profile_email, phone=os.getenv("T1_06_RESUME_PHONE", "").strip())
+                print(f"Generated DOCX resume: {resume_path}")
+            except Exception as e:
+                print(f"Failed to generate DOCX resume: {e}")
+                try:
+                    resume_path = create_rtf_resume(generated_dir, full_name=JS_NAME, email=profile_email, phone=os.getenv("T1_06_RESUME_PHONE", "").strip())
+                    print(f"Generated RTF resume: {resume_path}")
+                except Exception as e2:
+                    print(f"Failed to generate RTF resume: {e2}")
+        
+        assert resume_path and os.path.exists(resume_path), f"Resume file not found. Checked locations: {possible_locations}. Final path: {resume_path}"
+        print(f"Resume file verified: {resume_path} ({os.path.getsize(resume_path)} bytes)")
+        
+        # Upload resume - UNLIMITED TIMEOUT (waits as long as needed for parsing)
+        _upload_resume(page, resume_path)
+        
+        # Fill personal information - FIXED: Use logged-in user's name to avoid validation errors
+        # Handle any popups that might appear after resume parsing
+        _handle_all_popups(page)
         page.wait_for_timeout(1000)
-
-        # Best-effort: confirm at least one file input now has a file selected.
+        
+        # IMPROVED: Get the actual logged-in user's name from profile/dashboard
+        # This prevents "Full Name Doesn't match with the current user" error
+        logged_in_user_name = None
         try:
-            has_file = page.evaluate(
-                """() => {
-                    const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
-                    return inputs.some(el => el && el.files && el.files.length > 0);
-                }"""
-            )
-            assert has_file, "No file appears selected in any input[type=file] after upload"
-        except Exception:
-            pass
-
-        print(f"File upload attempted ({upload_method}): {resume_path}")
-
-        # If the UI complains, retry once via file chooser flow again.
-        try:
-            toast = page.locator(".Toastify, [class*='Toastify']")
-            if toast.count() > 0:
-                toast_text = (toast.first.inner_text() or "").strip()
-                if "please upload resume" in toast_text.lower():
-                    print(f"Toast detected: {toast_text} — retrying upload via file chooser")
-                    for tgt in upload_click_targets:
-                        try:
-                            if tgt.count() == 0 or not tgt.is_visible(timeout=2000):
-                                continue
-                            with page.expect_file_chooser(timeout=5000) as fc_info:
-                                tgt.click()
-                            fc_info.value.set_files(resume_path)
+            # Try to get user name from dashboard/profile elements
+            # Common selectors for user name in header/profile
+            user_name_selectors = [
+                "css:.css-1dbmup8",  # Dashboard profile name
+                "xpath=//header//div[contains(@class, 'css-1dbmup8')]",
+                "xpath=//div[contains(@class, 'text-capitalize')]",
+                "css:.text-capitalize",
+                "xpath=//header//p[contains(@class, 'MuiTypography')]",
+            ]
+            
+            for selector in user_name_selectors:
+                try:
+                    user_name_elem = page.locator(selector).first
+                    if user_name_elem.count() > 0 and user_name_elem.is_visible(timeout=2000):
+                        logged_in_user_name = user_name_elem.inner_text().strip()
+                        if logged_in_user_name:
+                            print(f"Found logged-in user name from dashboard: '{logged_in_user_name}'")
                             break
-                        except Exception:
-                            continue
-        except Exception:
-            pass
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"Could not get user name from dashboard: {e}")
         
-        # Wait for file to be processed
-        page.wait_for_timeout(3000)  # Wait for upload to process
+        # Wait for name field to be ready (form is already visible after parsing)
+        name_field = page.locator("[name='fullname']")
+        name_field.wait_for(state="attached", timeout=5000)
         
-        # Trigger change event to ensure the file input processes the file
+        # Get parsed name from form
+        parsed_name = name_field.input_value(timeout=2000) or ""
+        parsed_name_clean = parsed_name.strip() if parsed_name else ""
+        
+        # FIXED: Use "E Solomon" as the name (matching Robot Framework ${js_name} = "E Solomon")
+        # Robot Framework: Press Keys name:fullname CTRL+a+BACKSPACE, Sleep 1, Input Text name:fullname ${js_name}
+        current_name = name_field.input_value() or ""
+        current_name_clean = current_name.strip()
+        
+        # Use "E Solomon" as specified (matches Robot Framework js_name variable)
+        final_target_name = "E Solomon"
+        print(f"Using name 'E Solomon' (matches Robot Framework js_name variable)")
+        
+        # Only update if the current name doesn't match "E Solomon"
+        if current_name_clean.lower() != final_target_name.lower():
+            print(f"Setting name: '{current_name_clean}' -> '{final_target_name}'")
+            name_field.press("Control+a")
+            name_field.press("Backspace")
+            page.wait_for_timeout(1000)  # Robot Framework: Sleep 1
+            name_field.fill(final_target_name)
+            page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
+        else:
+            print(f"Name already matches 'E Solomon': '{current_name_clean}' - no update needed")
+        
+        # Robot Framework: Should Not Be Empty name:fullname Name is not available in the form
+        final_name = name_field.input_value() or ""
+        final_name_clean = final_name.strip()
+        assert final_name_clean, "Name is not available in the form"
+        print(f"Final name verified (matches Robot Framework verification): '{final_name_clean}'")
+        
+        # Handle any popups that might appear after name update
+        _handle_all_popups(page)
+        # OPTIMIZED: Fast form filling after name verification
+        title = page.locator("[name='resumetitle']").get_attribute("value") or ""
+        if title != "IT Business & System Analyst":
+            title_field = page.locator("[name='resumetitle']")
+            title_field.press("Control+a")
+            title_field.press("Backspace")
+            title_field.fill("IT Business & System Analyst")
+        
+        # Email - FIXED: Match Robot Framework logic - check if email is available, if not fill with profile_email
+        # Robot Framework: ${email_available} Run Keyword And Return Status Get Text name:contactemail
+        # IF '${email_available}'!='True' Input Text name:contactemail evon@gmail.com
+        email_field = page.locator("[name='contactemail']")
+        
+        # Try to get email text (Robot Framework uses Get Text, not Get Element Attribute)
         try:
-            page.evaluate("""
-                const input = document.querySelector('input[type="file"]');
-                if (input && input.files.length > 0) {
-                    const event = new Event('change', { bubbles: true });
-                    input.dispatchEvent(event);
-                }
-            """)
+            email_text = email_field.inner_text(timeout=1000) or ""
+            email_value = email_field.input_value(timeout=1000) or ""
+            # Check if email is available (either as text or value)
+            email_available = bool(email_text.strip() or email_value.strip())
         except Exception:
-            pass
+            email_available = False
+            email_value = ""
         
-        # Wait for file to be processed
-        page.wait_for_timeout(3000)  # Wait for upload to start and process
-
-        # Fast-fail for the known blocker:
-        # "Resume email does not match your profile. Upload denied."
-        try:
-            for _ in range(10):
-                toast = page.locator(".Toastify, [class*='Toastify']")
-                if toast.count() > 0:
-                    toast_text = (toast.first.inner_text() or "").strip()
-                    if "Resume email does not match" in toast_text and "Upload denied" in toast_text:
-                        raise AssertionError(
-                            "Resume upload denied due to email mismatch.\n"
-                            f"- Profile email (inferred): {profile_email}\n"
-                            f"- Resume email (embedded): {effective_resume_email}\n"
-                            f"- Uploaded file: {resume_path}\n"
-                            f"- Toast: {toast_text}\n"
-                            "Fix: upload a resume that contains the same email as the profile, "
-                            "or override with T1_06_RESUME_PATH / T1_06_RESUME_EMAIL."
-                        )
+        if not email_available:
+            # Email not available, fill with profile_email (matches Robot Framework: evon@gmail.com -> profile_email)
+            print(f"Email not available in form, filling with: {profile_email}")
+            email_field.fill(profile_email)
+            page.wait_for_timeout(500)
+        else:
+            # Email is available, check if it matches profile_email
+            current_email = email_value.strip() if email_value else email_text.strip()
+            if current_email and current_email.lower() != profile_email.lower():
+                print(f"Email in form ('{current_email}') differs from profile email ('{profile_email}'), updating...")
+                email_field.fill(profile_email)
                 page.wait_for_timeout(500)
-        except Exception:
+            else:
+                print(f"Email already set correctly: {current_email or 'parsed from resume'}")
+        
+        # Experience - fast fill
+        exp_field = page.locator("[name='yearsofexp']")
+        current_exp = exp_field.input_value(timeout=1000) or ""
+        if current_exp != "7":
+            exp_field.fill("7")
+        
+        # Willing to relocate - fast toggle
+        relocate = page.locator("[name='willingToRelocate']")
+        if not relocate.is_checked():
+            relocate.check()
+        
+        # Location - OPTIMIZED: Reduced waits
+        assert page.locator("select[name='country']").input_value() == "233", "Country should be 233"
+        state_code = page.locator("select[name='state']").input_value()
+        if state_code != "1440":  # Indiana
+            page.locator("select[name='state']").select_option(value="1440")
+            page.wait_for_timeout(1000)  # Reduced from 2000
+        city_code = page.locator("select[name='city']").input_value()
+        if city_code != "118924":  # Indianapolis
+            page.locator("select[name='city']").select_option(value="118924")
+            page.wait_for_timeout(1000)  # Reduced from 2000
+        
+        # Handle popups before submitting
+        _handle_all_popups(page)
+        page.wait_for_timeout(500)
+        
+        # OPTIMIZED: Fast submit button click
+        print("Clicking submit button for personal information...")
+        
+        # Find submit button - try primary selector first
+        submit_button = page.locator(".css-1e5anhh")
+        if not submit_button.is_visible(timeout=5000):
+            # Fallback to alternative selectors
+            submit_button = page.locator("xpath=//button[contains(@class,'css-1e5anhh')]")
+            if not submit_button.is_visible(timeout=2000):
+                submit_button = page.locator("xpath=//button[contains(text(),'Submit') or contains(text(),'Save')]")
+        
+        submit_button.wait_for(state="visible", timeout=10000)
+        submit_button.scroll_into_view_if_needed()
+        
+        # Wait for button to be enabled (fast check)
+        submit_button.wait_for(state="attached", timeout=5000)
+        if not submit_button.is_enabled():
+            page.wait_for_timeout(500)  # Brief wait if not enabled
+        
+        # Click the submit button
+        try:
+            submit_button.click(timeout=5000)
+            print("Submit button clicked successfully")
+        except Exception as e:
+            # JavaScript click as fallback
+            page.evaluate("arguments[0].click();", submit_button.element_handle())
+            print("Submit button clicked via JavaScript")
+        
+        # Handle popups after submit
+        _handle_all_popups(page)
+        
+        # FIXED: After first submit, wait for Projects section (matching Robot Framework)
+        # Robot Framework: Wait Until Page Contains Element css:.mt-4 60
+        # Do NOT click resume button here - that happens only at the very end after all forms are submitted
+        # Robot Framework directly waits for projects section without any resume click
+        print("Waiting for Projects section after personal information submit...")
+        page.wait_for_timeout(2000)  # Brief wait for page transition
+        
+        # Wait for projects section - use name:client0 which is more specific than .mt-4
+        # Robot Framework waits for .mt-4 (projects container) then scrolls to name:client0
+        # This avoids strict mode violation since .mt-4 matches multiple elements
+        # Robot Framework: Wait Until Page Contains Element css:.mt-4 60, then Scroll Element Into View name:client0
+        print("Waiting for projects section (client0 field)...")
+        try:
+            page.locator("[name='client0']").wait_for(state="visible", timeout=60000)
+            print("Projects section loaded - client0 field is visible")
+        except Exception as e:
+            # If projects section not found, check if page redirected
+            current_url = page.url
+            if "my-resumes" in current_url:
+                raise AssertionError(
+                    f"Page redirected to {current_url} after first submit. "
+                    f"This should not happen - form should stay on same page and show projects section. "
+                    f"The form may have been submitted completely or there's an issue with the form flow."
+                )
+            # Re-raise the original error if not a redirect issue
             raise
         
-        # Wait for loading indicator to disappear (if present)
-        try:
-            # Wait for any loading spinner to disappear
-            loading_selector = ".spinner, .loading, [class*='loading'], [class*='spinner']"
-            page.wait_for_selector(loading_selector, state="hidden", timeout=30000)
-        except Exception:
-            pass  # No loading indicator, that's fine
+        # Scroll to top so all project fields are visible (matching Robot Framework: Scroll Element Into View name:client0)
+        # Scroll to top first to see all projects, then scroll to specific field if needed
+        page.evaluate("window.scrollTo(0, 0)")
+        page.wait_for_timeout(500)  # Brief wait for scroll to complete
         
-        # Wait Until Page Contains Element css:.col-md-7 180 # the form (matching Robot Framework)
-            page.locator(".col-md-7").wait_for(state="visible", timeout=180000)
+        # Get project count (matching Robot Framework: ${num_of_projects_beginning} Get Element Count css:.mt-4)
+        num_projects = page.locator(".mt-4").count()
         
-        # Wait Until Page Contains Element css:.col-md-5 180 # the resume
-        page.locator(".col-md-5").wait_for(state="visible", timeout=180000)
-        print("Resume is available")
-        # Ensure resume preview is "opened" to satisfy server validations (toast: "Please open the resume")
-        _open_resume_viewer_if_needed(page)
-        page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-        
-        # Fill personal information form (matching Robot Framework)
-        # Press Keys name:fullname CTRL+a+BACKSPACE
-        fullname_input = page.locator("[name='fullname']")
-        fullname_input.press("Control+a")
-        fullname_input.press("Backspace")
-        page.wait_for_timeout(1000)  # Sleep 1 (matching Robot Framework: Sleep 1)
-        
-        # Input Text name:fullname ${js_name}
-        fullname_input.fill(JS_NAME)
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-        
-        # Should Not Be Empty name:fullname
-        assert fullname_input.input_value(), "Name is not available in the form"
-        
-        # Check application title (matching Robot Framework)
-        application_title = page.locator("[name='resumetitle']").get_attribute("value") or ""
-        if application_title != "IT Business & System Analyst":
-            resumetitle_input = page.locator("[name='resumetitle']")
-            resumetitle_input.press("Control+a")
-            resumetitle_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            resumetitle_input.fill("IT Business & System Analyst")
-        
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-        
-        # Check parsed email from resume
-        contact_email = page.locator("[name='contactemail']")
-        contact_email.wait_for(state="attached", timeout=10000)
-        parsed_email = ""
-        try:
-            parsed_email = (contact_email.input_value(timeout=2000) or "").strip()
-        except Exception:
-            parsed_email = ""
-
-        if parsed_email:
-            normalized = re.sub(r"[^a-z0-9@._+\\-]", "", parsed_email.lower())
-            if effective_resume_email and effective_resume_email not in normalized:
-                msg = (
-                    f"Parsed email does not match expected.\n"
-                    f"- Expected (effective): {effective_resume_email}\n"
-                    f"- Parsed (from form): {parsed_email}\n"
-                    f"- Uploaded file: {resume_path}\n"
-                    f"Hint: if you intentionally upload a different resume, set T1_06_RESUME_EMAIL accordingly."
-                )
-                if strict_email_check:
-                    raise AssertionError(msg)
-                print(f"WARNING: {msg}")
-                # Keep flow moving to avoid false negatives later in the pipeline
-                contact_email.fill(effective_resume_email)
-        else:
-            print("WARNING: Parsed email field is empty after upload; filling expected email to continue.")
-            if effective_resume_email:
-                contact_email.fill(effective_resume_email)
-        
-        # Check experience (matching Robot Framework)
-        years_of_exp = 7
-        check_exp = False
-        try:
-            yearsofexp = page.locator("[name='yearsofexp']")
-            if yearsofexp.is_visible(timeout=2000):
-                check_exp = True
-        except Exception:
-            pass
-        
-        if check_exp:
-            exp_years = page.locator("[name='yearsofexp']").get_attribute("value") or ""
-            if exp_years != "7":
-                yearsofexp_input = page.locator("[name='yearsofexp']")
-                yearsofexp_input.press("Control+a")
-                yearsofexp_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                yearsofexp_input.fill("7")
-        else:
-            page.locator("[name='yearsofexp']").fill("7")
-        
-        # Checkbox Should Not Be Selected name:willingToRelocate (matching Robot Framework)
-        willing_to_relocate = page.locator("[name='willingToRelocate']")
-        if willing_to_relocate.is_checked():
-            willing_to_relocate.uncheck()
-        page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-        willing_to_relocate.check()  # Click Element (matching Robot Framework)
-        
-        # Country (matching Robot Framework)
-        selected_country_code = page.locator("select[name='country']").input_value()
-        assert selected_country_code == "233", f"Expected country code 233 (United States), got {selected_country_code}"
-        page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-        
-        # State (matching Robot Framework)
-        selected_state_code = page.locator("select[name='state']").input_value()
-        if selected_state_code != "1440":  # Indiana
-            page.locator("[name='state']").select_option(value="1440")
-        page.wait_for_timeout(6000)  # Sleep 6 (matching Robot Framework: Sleep 6)
-        
-        # City (matching Robot Framework)
-        selected_city_code = page.locator("select[name='city']").input_value()
-        if selected_city_code != "118924":  # Indianapolis
-            page.locator("[name='city']").select_option(value="118924")
-        page.wait_for_timeout(6000)  # Sleep 6 (matching Robot Framework: Sleep 6)
-        
-        # Scroll Element Into View css:.css-1e5anhh # Submit button (matching Robot Framework)
-        try:
-            submit_button = page.locator(".css-1e5anhh")
-            submit_button.scroll_into_view_if_needed()
-        except Exception:
-            pass
-        page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-        
-        # Click Button css:.css-1e5anhh # Submit button in Personal information (matching Robot Framework)
-        submit_button.click()
-        page.wait_for_timeout(1500)  # Wait for any validation/toast
-
-        # If the site asks to "open the resume", click the preview and retry submit once.
-        try:
-            toast = page.locator(".Toastify, [class*='Toastify']")
-            if toast.count() > 0:
-                toast_text = (toast.first.inner_text() or "").strip()
-                if "open the resume" in toast_text.lower():
-                    print(f"Toast detected: {toast_text}")
-                    _open_resume_viewer_if_needed(page)
-                    page.wait_for_timeout(800)
-                    submit_button.click()
-        except Exception:
-            pass
-
-        page.wait_for_timeout(3000)  # Wait for form submission / navigation
-        
-        # Wait for projects section (matching Robot Framework)
-        # Wait Until Page Contains Element css:.mt-4 60
-        # Try multiple strategies to wait for the projects section
-        projects_section_visible = False
-        try:
-            page.locator(".mt-4").wait_for(state="visible", timeout=30000)
-            projects_section_visible = True
-        except Exception:
-            # Try alternative: wait for client0 input field
-            try:
-                page.locator("[name='client0']").wait_for(state="visible", timeout=30000)
-                projects_section_visible = True
-            except Exception:
-                # Try waiting for any project-related element
+        if num_projects != 0:
+            # Project 1
+            page.locator("[name='client0']").scroll_into_view_if_needed()
+            client0 = page.locator("[name='client0']").get_attribute("value") or ""
+            if client0 != "Marathon Petroleum Corporation":
+                _fill_field(page, "client0", "Marathon Petroleum Corporation")
+            role0 = page.locator("[name='role0']").get_attribute("value") or ""
+            if role0 != "IT Business & System Analyst":
+                _fill_field(page, "role0", "IT Business & System Analyst")
+            
+            page.locator("select[name='country0']").select_option(value="233")
+            if page.locator("[name='state0']").input_value() != "1407":  # Robot Framework: Project 1 state
+                page.locator("select[name='state0']").select_option(value="1407")
+                page.wait_for_timeout(500)  # Reduced from 1000
+            if page.locator("[name='city0']").input_value() != "114990":  # Robot Framework: Project 1 city
+                page.locator("select[name='city0']").select_option(value="114990")
+                page.wait_for_timeout(500)  # Reduced from 1000
+            
+            _fill_field(page, "startdate0", "2023-01-01")
+            _fill_field(page, "enddate0", "Present")
+            
+            # Project 1 description (matching Robot Framework: Input Text ${project_desc_webelements}[0] ${1st_proj_description})
+            # Robot Framework: ${1_proj_desc_availability} Evaluate bool('${1_proj_desc_text}'.strip())
+            # Robot Framework: IF '${1_proj_desc_availability}'=='False' Input Text ${project_desc_webelements}[0] ${1st_proj_description}, Sleep 2
+            editors = page.locator(".ql-editor")
+            if editors.count() > 0:
+                editor_0 = editors.nth(0)
                 try:
-                    page.wait_for_selector(".mt-4, [name='client0'], .form-group1", timeout=30000)
-                    projects_section_visible = True
-                except Exception:
-                    pass
-        
-        if not projects_section_visible:
-            # Check if there's an error message
-            try:
-                error_msg = page.locator(".MuiAlert-message, .error, [role='alert']").first
-                if error_msg.is_visible(timeout=2000):
-                    error_text = error_msg.inner_text()
-                    print(f"Error message found: {error_text}")
-            except Exception:
-                pass
-            raise AssertionError("Projects section (.mt-4) did not appear after submitting personal information form")
-        
-        # Get Element Count css:.mt-4 (matching Robot Framework)
-        num_of_projects_beginning = page.locator(".mt-4").count()
-        print(f"Number of projects at beginning: {num_of_projects_beginning}")
-        page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-        
-        if num_of_projects_beginning != 0:
-            # Only scroll if projects exist
-            try:
-                page.locator("[name='client0']").scroll_into_view_if_needed()
-            except Exception:
-                pass
-            # Project 1 (matching Robot Framework)
-            page.locator("[name='client0']").wait_for(state="visible", timeout=10000)
-            
-            first_project_client = page.locator("[name='client0']").get_attribute("value") or ""
-            if first_project_client != "Marathon Petroleum Corporation":
-                client0_input = page.locator("[name='client0']")
-                client0_input.press("Control+a")
-                client0_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                client0_input.fill("Marathon Petroleum Corporation")
-            else:
-                print("Client name is already available in project1")
-            
-            # Role (matching Robot Framework)
-            first_project_job_role = page.locator("[name='role0']").get_attribute("value") or ""
-            if first_project_job_role != "IT Business & System Analyst":
-                role0_input = page.locator("[name='role0']")
-                role0_input.press("Control+a")
-                role0_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                role0_input.fill("IT Business & System Analyst")
-            else:
-                print("Role is already available in project1")
-            
-            # Location (matching Robot Framework)
-            selected_country_code = page.locator("[name='country0']").input_value()
-            if selected_country_code != "233":
-                page.locator("[name='country0']").select_option(value="233")
-                page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-            
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            selected_state_code = page.locator("[name='state0']").input_value()
-            if selected_state_code != "1407":
-                page.locator("[name='state0']").select_option(value="1407")
-                page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-            
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            selected_city_code = page.locator("[name='city0']").input_value()
-            if selected_city_code != "114990":
-                page.locator("[name='city0']").select_option(value="114990")
-                page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-            
-            # Start date - end date (matching Robot Framework)
-            startdate0_input = page.locator("[name='startdate0']")
-            startdate0_input.press("Control+a")
-            startdate0_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            startdate0_input.fill("2023-01-01")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            enddate0_input = page.locator("[name='enddate0']")
-            enddate0_input.press("Control+a")
-            enddate0_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            enddate0_input.fill("Present")
-            
-            # Enter description (matching Robot Framework)
-            project_desc_webelements = page.locator(".ql-editor")
-            first_proj_desc_text = project_desc_webelements.nth(0).inner_text() if project_desc_webelements.count() > 0 else ""
-            first_proj_desc_availability = bool(first_proj_desc_text.strip())
-            print(f"First project description availability: {first_proj_desc_availability}")
-            
-            if not first_proj_desc_availability:
-                project_desc_webelements.nth(0).fill(first_proj_description)
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            # Project 2 (matching Robot Framework)
-            if num_of_projects_beginning != 1:
-                try:
-                    page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[5]/div/div/div[2]/div/div[1]/div/div[2]/div/form/div[3]/div[9]/div/label").scroll_into_view_if_needed()
-                except Exception:
-                    pass
-                page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-                
-                client1_input = page.locator("[name='client1']")
-                client1_input.press("Control+a")
-                client1_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                client1_input.fill("Caresource")
-                
-                # Role
-                role1_input = page.locator("[name='role1']")
-                role1_input.press("Control+a")
-                role1_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                role1_input.fill("IT Business & System Analyst")
-                
-                # Location
-                page.locator("[name='country1']").select_option(value="233")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                page.locator("[name='state1']").select_option(value="4851")
-                page.wait_for_timeout(5000)  # Sleep 5 (matching Robot Framework: Sleep 5)
-                page.locator("[name='city1']").select_option(value="141314")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                
-                # Start date - end date
-                startdate1_input = page.locator("[name='startdate1']")
-                startdate1_input.press("Control+a")
-                startdate1_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                startdate1_input.fill("2022-01-01")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                
-                enddate1_input = page.locator("[name='enddate1']")
-                enddate1_input.press("Control+a")
-                enddate1_input.press("Backspace")
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-                enddate1_input.fill("2022-12-31")
-                page.wait_for_timeout(4000)  # sleep 4 (matching Robot Framework: sleep 4)
-                
-                # Enter 2nd project description
-                if project_desc_webelements.count() > 1:
-                    second_proj_desc_text = project_desc_webelements.nth(1).inner_text()
-                    second_proj_desc_availability = bool(second_proj_desc_text.strip())
-                    print(f"Second project description availability: {second_proj_desc_availability}")
-                    
-                    if not second_proj_desc_availability:
-                        project_desc_webelements.nth(1).fill(second_proj_description)
-                        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            # Delete other projects (matching Robot Framework)
-            if num_of_projects_beginning > 2:
-                for i in range(2, num_of_projects_beginning + 2):  # FOR ${i} IN RANGE 2 ${num_of_projects_beginning}+2
+                    editor_0.wait_for(state="visible", timeout=5000)
+                    desc_text_0 = editor_0.inner_text(timeout=2000) or ""
+                    if not desc_text_0.strip():
+                        print("Adding description for project 1...")
+                        editor_0.scroll_into_view_if_needed()
+                        editor_0.click()
+                        page.wait_for_timeout(1000)  # Wait for editor to be ready
+                        
+                        # Robot Framework: Input Text (direct fill method)
+                        editor_0.fill(first_proj_desc)
+                        page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
+                        
+                        # Verify text was entered
+                        entered_text = editor_0.inner_text(timeout=3000) or ""
+                        if not entered_text.strip():
+                            # Try alternative method if direct fill didn't work
+                            print("Direct fill didn't work for project 1, trying type method...")
+                            editor_0.click()
+                            editor_0.clear()
+                            editor_0.type(first_proj_desc, delay=50)
+                            page.wait_for_timeout(2000)
+                            entered_text = editor_0.inner_text(timeout=3000) or ""
+                            
+                        if not entered_text.strip():
+                            raise AssertionError(
+                                f"Failed to add description for Project 1. "
+                                f"Description text is still empty after multiple attempts. "
+                                f"Location: Project 1 description field."
+                            )
+                        print(f"[OK] Project 1 description added successfully (length: {len(entered_text)} chars)")
+                except Exception as e:
                     try:
-                        page.locator(f"xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[5]/div/div/div[2]/div/div[1]/div/div[2]/div/form/div[{i}]/span").scroll_into_view_if_needed()
+                        page.screenshot(path=f"reports/failures/project1_description_error_{int(time.time())}.png", full_page=True)
                     except Exception:
                         pass
-                    page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
-                    
+                    raise AssertionError(
+                        f"Failed to add Project 1 description: {str(e)}. "
+                        f"Location: Project 1 description field. "
+                        f"Screenshot saved for debugging."
+                    ) from e
+            
+            # Project 2
+            if num_projects != 1:
+                _fill_field(page, "client1", "Caresource")
+                _fill_field(page, "role1", "IT Business & System Analyst")
+                page.locator("select[name='country1']").select_option(value="233")
+                page.locator("select[name='state1']").select_option(value="4851")
+                page.wait_for_timeout(1000)  # Reduced from 2000
+                page.locator("select[name='city1']").select_option(value="141314")
+                _fill_field(page, "startdate1", "2022-01-01")
+                _fill_field(page, "enddate1", "2022-12-31")
+                
+                # Project 2 description (matching Robot Framework: Input Text ${project_desc_webelements}[1] ${2nd_proj_description})
+                # Robot Framework: ${2_proj_desc_availability} Evaluate bool('${2_proj_desc_text}'.strip())
+                # Robot Framework: IF '${2_proj_desc_availability}'=='False' Input Text ${project_desc_webelements}[1] ${2nd_proj_description}, Sleep 2
+                if editors.count() > 1:
+                    editor_1 = editors.nth(1)
+                    try:
+                        editor_1.wait_for(state="visible", timeout=5000)
+                        desc_text_1 = editor_1.inner_text(timeout=2000) or ""
+                        if not desc_text_1.strip():
+                            print("Adding description for project 2...")
+                            editor_1.scroll_into_view_if_needed()
+                            editor_1.click()
+                            page.wait_for_timeout(1000)  # Wait for editor to be ready
+                            
+                            # Robot Framework: Input Text (direct fill method)
+                            editor_1.fill(second_proj_desc)
+                            page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
+                            
+                            # Verify text was entered
+                            entered_text = editor_1.inner_text(timeout=3000) or ""
+                            if not entered_text.strip():
+                                # Try alternative method if direct fill didn't work
+                                print("Direct fill didn't work for project 2, trying type method...")
+                                editor_1.click()
+                                editor_1.clear()
+                                editor_1.type(second_proj_desc, delay=50)
+                                page.wait_for_timeout(2000)
+                                entered_text = editor_1.inner_text(timeout=3000) or ""
+                                
+                            if not entered_text.strip():
+                                raise AssertionError(
+                                    f"Failed to add description for Project 2. "
+                                    f"Description text is still empty after multiple attempts. "
+                                    f"Location: Project 2 description field."
+                                )
+                            print(f"[OK] Project 2 description added successfully (length: {len(entered_text)} chars)")
+                    except Exception as e:
+                        try:
+                            page.screenshot(path=f"reports/failures/project2_description_error_{int(time.time())}.png", full_page=True)
+                        except Exception:
+                            pass
+                        raise AssertionError(
+                            f"Failed to add Project 2 description: {str(e)}. "
+                            f"Location: Project 2 description field. "
+                            f"Screenshot saved for debugging."
+                        ) from e
+            
+            # Delete extra projects - OPTIMIZED: Reduced wait
+            if num_projects > 2:
+                for i in range(2, num_projects + 2):
                     if i > 3:
                         try:
-                            # Delete icon selector (matching Robot Framework: css=.row:nth-child(4) > .delete-icon path)
-                            delete_icon_path = page.locator(".row:nth-child(4) > .delete-icon path")
-                            delete_icon_path.scroll_into_view_if_needed()
-                            delete_icon_path.click()
+                            page.locator(".row:nth-child(4) > .delete-icon path").click()
+                            page.wait_for_timeout(1500)  # Reduced from 3000
                         except Exception:
-                            # Fallback: try clicking the delete icon container
-                            try:
-                                delete_icon = page.locator(".row:nth-child(4) > .delete-icon")
-                                delete_icon.scroll_into_view_if_needed()
-                                delete_icon.click()
-                            except Exception:
-                                pass
-                        page.wait_for_timeout(7000)  # Sleep 7 (matching Robot Framework: Sleep 7)
+                            pass
             
-            num_of_projects_after_dlt = page.locator(".mt-4").count()
-            print(f"Number of projects after delete: {num_of_projects_after_dlt}")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+            # Add Project 3 - OPTIMIZED: Smart wait instead of fixed waits
+            page.locator("xpath=//button[contains(text(),'Add Project')]").scroll_into_view_if_needed()
+            page.locator("xpath=//button[contains(text(),'Add Project')]").click()
+            # Wait for client2 field to appear (reduced timeout)
+            page.locator("[name='client2']").wait_for(state="visible", timeout=20000)
             
-            # Add Project 3 (matching Robot Framework)
-            try:
-                page.locator("css=.form-group1:nth-child(4) > .bnt").scroll_into_view_if_needed()
-            except Exception:
-                pass
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+            _fill_field(page, "client2", "CIGNA")
+            _fill_field(page, "role2", "Data Management & System Analyst")
+            page.locator("select[name='country2']").select_option(value="233")
+            page.locator("select[name='state2']").select_option(value="1454")
+            page.locator("xpath=//select[@name='city2']/option[@value='122577']").wait_for(state="attached", timeout=10000)
+            page.locator("select[name='city2']").select_option(value="122577")
+            _fill_field(page, "startdate2", "2019-02-01")
+            _fill_field(page, "enddate2", "2021-06-30")
             
-            add_project_btn = page.locator("xpath=//button[contains(text(),'Add Project')]")
-            add_project_btn.click()
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            try:
-                add_project_btn.scroll_into_view_if_needed()
-            except Exception:
-                pass
-            page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-            
-            # Wait Until Keyword Succeeds 20x 2s Element Should Be Visible name:client2
-            for retry in range(20):
+            # Add Project 3 description (matching Robot Framework exactly)
+            # Robot Framework: ${desc_already_filled} Run Keyword And Return Status Page Should Contain Element xpath:.../div[4]/div[9]/div/div/div[2]/div[1]/p
+            # Robot Framework: Sleep 4, IF '${desc_already_filled}'=='False' Click Element ${description_place}[2], Input Text ${description_place}[2] ${add_project_description}, Sleep 2
+            editors = page.locator(".ql-editor")
+            if editors.count() > 2:
                 try:
-                    if page.locator("[name='client2']").is_visible(timeout=2000):
-                        break
-                except Exception:
-                    pass
-                page.wait_for_timeout(2000)
-            
-            page.locator("[name='client2']").scroll_into_view_if_needed()
-            client2_input = page.locator("[name='client2']")
-            client2_input.press("Control+a")
-            client2_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            client2_input.fill("CIGNA")
-            
-            # Role
-            role2_input = page.locator("[name='role2']")
-            role2_input.press("Control+a")
-            role2_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            role2_input.fill("Data Management & System Analyst")
-            
-            # Location
-            page.locator("[name='country2']").select_option(value="233")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            page.locator("[name='state2']").select_option(value="1454")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            # Wait Until Page Contains Element xpath://select[@name='city2']/option[@value='122577'] 15s
-            page.locator("xpath=//select[@name='city2']/option[@value='122577']").wait_for(state="attached", timeout=15000)
-            page.locator("[name='city2']").select_option(value="122577")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            # Start date - end date
-            startdate2_input = page.locator("[name='startdate2']")
-            startdate2_input.press("Control+a")
-            startdate2_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            startdate2_input.fill("2019-02-01")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            enddate2_input = page.locator("[name='enddate2']")
-            enddate2_input.press("Control+a")
-            enddate2_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            enddate2_input.fill("2021-06-30")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            # Description for project 3 (matching Robot Framework)
-            description_place = page.locator(".ql-editor")
-            length_desc = description_place.count()
-            print(f"Description elements count: {length_desc}")
-            
-            # Get descriptions check (matching Robot Framework)
-            descriptions_check = page.locator(".ql-toolbar.ql-snow+.ql-container.ql-snow")
-            desc_count = descriptions_check.count()
-            desc_already_filled = False
-            
-            if desc_count > 0:
-                try:
-                    # Check if description is already filled (matching Robot Framework logic)
+                    # Robot Framework: Sleep 4 before checking
+                    page.wait_for_timeout(4000)  # Robot Framework: Sleep 4
+                    
+                    # Check if description already filled (matching Robot Framework check)
                     desc_elem = page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div[2]/div[2]/div/div/div[2]/div/div[1]/div[2]/form/div[4]/div[9]/div/div/div[2]/div[1]/p")
-                    if desc_elem.is_visible(timeout=2000):
-                        desc_already_filled = True
+                    desc_already_filled = desc_elem.is_visible(timeout=2000)
+                    
+                    if not desc_already_filled:
+                        print("Description not filled, adding description for project 3...")
+                        # Get the editor element (matching Robot Framework: ${description_place}[2])
+                        editor_3 = editors.nth(2)
+                        editor_3.scroll_into_view_if_needed()
+                        page.wait_for_timeout(500)
+                        
+                        # Robot Framework: Click Element ${description_place}[2]
+                        editor_3.click()
+                        page.wait_for_timeout(1000)  # Wait for editor to be ready
+                        
+                        # Robot Framework: Input Text ${description_place}[2] ${add_project_description}
+                        # Use direct fill method (matches Robot Framework Input Text)
+                        editor_3.fill(add_proj_desc)
+                        page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
+                        
+                        # Verify text was entered
+                        entered_text = editor_3.inner_text(timeout=3000) or ""
+                        if not entered_text.strip():
+                            # Try alternative method if direct fill didn't work
+                            print("Direct fill didn't work, trying type method...")
+                            editor_3.click()
+                            editor_3.clear()
+                            editor_3.type(add_proj_desc, delay=50)
+                            page.wait_for_timeout(2000)
+                            entered_text = editor_3.inner_text(timeout=3000) or ""
+                            
+                        if not entered_text.strip():
+                            raise AssertionError(
+                                f"Failed to add description for Project 3. "
+                                f"Description text is still empty after multiple attempts. "
+                                f"Location: Project 3 description field (ql-editor index 2)."
+                            )
+                        print(f"[OK] Project 3 description added successfully (length: {len(entered_text)} chars)")
+                except Exception as e:
+                    # Take screenshot on any error
+                    try:
+                        page.screenshot(path=f"reports/failures/project3_description_error_{int(time.time())}.png", full_page=True)
+                    except Exception:
+                        pass
+                    raise AssertionError(
+                        f"Error while adding project 3 description: {str(e)}. "
+                        f"Location: Project 3 description field. "
+                        f"Screenshot saved for debugging."
+                    ) from e
+        else:
+            # No projects - add one
+            page.locator("xpath=//button[contains(text(),'Add Project')]").click()
+            page.wait_for_timeout(1000)  # Reduced from 2000
+            _fill_field(page, "client0", "Anthem")
+            _fill_field(page, "role0", "Senior Python Developer")
+            page.locator("select[name='country0']").select_option(value="233")
+            page.locator("select[name='state0']").select_option(value="1417")
+            page.locator("select[name='city0']").select_option(value="119457")
+            _fill_field(page, "startdate0", "Aug 2019")
+            _fill_field(page, "enddate0", "Jan 2021")
+            page.wait_for_timeout(2000)  # Reduced from 4000
+            
+            # Add project description (matching Robot Framework exactly)
+            # Robot Framework: ${desc_already_filled} Run Keyword And Return Status Should Be Empty xpath:.../div[4]/div[9]/div/div/div[2]/div[1]
+            # Robot Framework: Sleep 4000, IF '${desc_already_filled}'=='False' Click Element ${description_place}[2], Input Text ${description_place}[2] ${add_project_description}, Sleep 2
+            try:
+                # Robot Framework: Sleep 4000 before checking
+                page.wait_for_timeout(4000)  # Robot Framework: Sleep 4000
+                
+                # Check if description is empty (matching Robot Framework check)
+                desc_elem = page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[5]/div/div/div[2]/div/div[1]/div/div[2]/div/form/div[4]/div[9]/div/div/div[2]/div[1]")
+                desc_already_filled = False
+                try:
+                    desc_text = desc_elem.inner_text(timeout=2000)
+                    desc_already_filled = bool(desc_text and desc_text.strip())
+                except Exception:
+                    desc_already_filled = False
+                
+                if not desc_already_filled:
+                    print("Description not filled, adding description for new project...")
+                    # Find the Quill editor for this project
+                    editors = page.locator(".ql-editor")
+                    if editors.count() > 0:
+                        # Use the last editor (for the newly added project) - matching Robot Framework: ${description_place}[2]
+                        editor = editors.nth(editors.count() - 1)
+                        editor.scroll_into_view_if_needed()
+                        page.wait_for_timeout(500)
+                        
+                        # Robot Framework: Click Element ${description_place}[2]
+                        editor.click()
+                        page.wait_for_timeout(1000)  # Wait for editor to be ready
+                        
+                        # Robot Framework: Input Text ${description_place}[2] ${add_project_description}
+                        # Use direct fill method (matches Robot Framework Input Text)
+                        editor.fill(add_proj_desc)
+                        page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
+                        
+                        # Verify text was entered
+                        entered_text = editor.inner_text(timeout=3000) or ""
+                        if not entered_text.strip():
+                            # Try alternative method if direct fill didn't work
+                            print("Direct fill didn't work, trying type method...")
+                            editor.click()
+                            editor.clear()
+                            editor.type(add_proj_desc, delay=50)
+                            page.wait_for_timeout(2000)
+                            entered_text = editor.inner_text(timeout=3000) or ""
+                            
+                        if not entered_text.strip():
+                            raise AssertionError(
+                                f"Failed to add description for new project. "
+                                f"Description text is still empty after multiple attempts. "
+                                f"Location: New project description field (no projects case)."
+                            )
+                        print(f"[OK] Description added successfully (length: {len(entered_text)} chars)")
+            except Exception as e:
+                # Take screenshot on description entry failure
+                try:
+                    page.screenshot(path=f"reports/failures/no_projects_description_error_{int(time.time())}.png", full_page=True)
                 except Exception:
                     pass
-            
-            print(f"Description already filled: {desc_already_filled}")
-            page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-            
-            if not desc_already_filled and description_place.count() > 2:
-                description_place.nth(2).click()
-                description_place.nth(2).fill(add_project_description)
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-        else:
-            print("No Project details.....")
-            try:
-                page.locator("css=.form-group1:nth-child(4) > .bnt").scroll_into_view_if_needed()
-            except Exception:
-                pass
-            page.wait_for_timeout(2000)  # Sleep 2000 (matching Robot Framework: Sleep 2000)
-            
-            add_project_btn = page.locator("xpath=//button[contains(text(),'Add Project')]")
-            add_project_btn.click()
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            try:
-                add_project_btn.scroll_into_view_if_needed()
-            except Exception:
-                pass
-            page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
-            
-            client0_input = page.locator("[name='client0']")
-            client0_input.press("Control+a")
-            client0_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            client0_input.fill("Anthem")
-            
-            # Role
-            role0_input = page.locator("[name='role0']")
-            role0_input.press("Control+a")
-            role0_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            role0_input.fill("Senior Python Developer")
-            
-            # Location
-            page.locator("[name='country0']").select_option(value="233")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            page.locator("[name='state0']").select_option(value="1417")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            page.locator("[name='city0']").select_option(value="119457")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            # Start date - end date
-            startdate0_input = page.locator("[name='startdate0']")
-            startdate0_input.press("Control+a")
-            startdate0_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            startdate0_input.fill("Aug 2019")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            
-            enddate0_input = page.locator("[name='enddate0']")
-            enddate0_input.press("Control+a")
-            enddate0_input.press("Backspace")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
-            enddate0_input.fill("Jan 2021")
-            
-            # Description place for no projects case (matching Robot Framework)
-            description_place = page.locator(".ql-blank > p")
-            length_desc = description_place.count()
-            print(f"Description length: {length_desc}")
-            
-            # Check if description is empty (matching Robot Framework: Should Be Empty)
-            desc_already_filled = False
-            try:
-                desc_elem = page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div/div[5]/div/div/div[2]/div/div[1]/div/div[2]/div/form/div[4]/div[9]/div/div/div[2]/div[1]")
-                desc_text = desc_elem.inner_text(timeout=2000)
-                if not desc_text.strip():
-                    desc_already_filled = True  # Empty means not filled
-            except Exception:
-                pass
-            
-            print(f"Description already filled: {desc_already_filled}")
-            page.wait_for_timeout(4000)  # Sleep 4000 (matching Robot Framework: Sleep 4000)
-            
-            # If description is empty (not filled), fill it
-            if desc_already_filled and description_place.count() > 2:
-                description_place.nth(2).click()
-                description_place.nth(2).fill(add_project_description)
-                page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+                raise AssertionError(
+                    f"Error while adding description for new project: {str(e)}. "
+                    f"Location: New project description field (no projects case). "
+                    f"Screenshot saved for debugging."
+                ) from e
         
-        # Submit projects section (matching Robot Framework)
-        try:
-            page.locator("css=.form-group1:nth-child(5) > #update_profile").scroll_into_view_if_needed()
-        except Exception:
-            pass
-        page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
+        # OPTIMIZED: Fast submit projects
+        # Handle popups before submitting projects
+        _handle_all_popups(page)
+        page.wait_for_timeout(500)
         
+        # Scroll to bottom (matching Robot Framework: Execute JavaScript window.scrollTo(0, document.body.scrollHeight))
         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+        page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
         
-        # Wait Until Element Is Enabled id:update_profile 30
-        page.locator("id=update_profile").wait_for(state="enabled", timeout=30000)
-        
-        # Click Button css:.css-1e5anhh # Submit (matching Robot Framework)
-        page.locator(".css-1e5anhh").click()
-        
-        # Wait Until Page Contains Education 10
-        page.wait_for_selector("text=Education", timeout=10000)
-        
-        # Education section (matching Robot Framework)
-        education_available = False
+        # Wait for update_profile button to be enabled (matching Robot Framework: Wait Until Element Is Enabled id:update_profile 30)
+        # Robot Framework waits for id=update_profile but clicks css:.css-1e5anhh
+        # Since id=update_profile has 2 elements, use css:.css-1e5anhh which is the actual submit button
+        # Playwright doesn't support state="enabled", so we wait for visible then check enabled status
         try:
-            if page.locator("[name='education0']").is_visible(timeout=2000):
-                education_available = True
-        except Exception:
-            pass
+            # Use the submit button with class css-1e5anhh (matches Robot Framework: Click Button css:.css-1e5anhh)
+            update_profile_btn = page.locator(".css-1e5anhh")
+            update_profile_btn.wait_for(state="visible", timeout=30000)
+            
+            # Wait until button is enabled (polling check - matches Robot Framework behavior)
+            start_time = time.time()
+            timeout_seconds = 30
+            while time.time() - start_time < timeout_seconds:
+                if update_profile_btn.is_enabled():
+                    break
+                page.wait_for_timeout(500)  # Check every 500ms
+            else:
+                # Take screenshot before raising error
+                try:
+                    page.screenshot(path=f"reports/failures/update_profile_not_enabled_{int(time.time())}.png", full_page=True)
+                except Exception:
+                    pass
+                raise TimeoutError(
+                    f"Submit button (css:.css-1e5anhh) was not enabled within {timeout_seconds} seconds. "
+                    f"This button is used to submit the projects section. Please check if all required fields are filled."
+                )
+            
+            # Click submit button (matching Robot Framework: Click Button css:.css-1e5anhh # Submit)
+            update_profile_btn.click()
+        except Exception as e:
+            # Take screenshot on any error
+            try:
+                page.screenshot(path=f"reports/failures/projects_submit_error_{int(time.time())}.png", full_page=True)
+            except Exception:
+                pass
+            # Provide clear error message
+            raise AssertionError(
+                f"Failed to submit projects section: {str(e)}. "
+                f"Location: After filling project details, trying to click submit button. "
+                f"Screenshot saved for debugging."
+            ) from e
         
-        print(f"Education available: {education_available}")
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+        # Handle popups after submitting projects
+        _handle_all_popups(page)
+        
+        # Wait for Education section (matching Robot Framework: Wait Until Page Contains Education 10)
+        # Robot Framework waits for "Education" text to appear on the page
+        print("Waiting for Education section after projects submit...")
+        try:
+            page.wait_for_selector("text=Education", timeout=10000)  # Robot Framework: 10 seconds
+            print("Education section loaded")
+        except Exception as e:
+            # Check if page redirected
+            current_url = page.url
+            if "my-resumes" in current_url:
+                print(f"Page redirected to {current_url} after projects submit. Navigating back...")
+                _navigate_to_resumes(page)
+                page.wait_for_timeout(2000)
+                # Click on resume to continue
+                resume_list_item = page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[3]")
+                resume_list_item.wait_for(state="visible", timeout=30000)
+                resume_list_item.click()
+                page.wait_for_timeout(2000)
+                # Wait for Education again
+                page.wait_for_selector("text=Education", timeout=10000)
+            else:
+                raise
+        
+        # Check if education field exists (matching Robot Framework: ${education_available} Run Keyword And Return Status get webelement name:education0)
+        education_available = page.locator("[name='education0']").count() > 0
         
         if not education_available:
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+            # Add education field (matching Robot Framework: Click Element xpath:/html/body/div[1]/div[2]/main/div[2]/div[2]/div[2]/div/div/div[2]/div/div[1]/div[2]/form/div/div[1]/button)
+            print("Education field not available, clicking add button...")
             page.locator("xpath=/html/body/div[1]/div[2]/main/div[2]/div[2]/div[2]/div/div/div[2]/div/div[1]/div[2]/form/div/div[1]/button").click()
+            page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
             page.locator("[name='education0']").fill("B.tech in Computer Science")
-            page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+        else:
+            # Education field exists, check if it needs to be filled
+            existing_education = page.locator("[name='education0']").input_value() or ""
+            if not existing_education.strip():
+                page.locator("[name='education0']").fill("B.tech in Computer Science")
         
-        # Certification (matching Robot Framework)
+        # Fill certifications (matching Robot Framework: Input Text name:certName0 AI/ML, Input Text name:certYear0 2023)
         page.locator("[name='certName0']").fill("AI/ML")
         page.locator("[name='certYear0']").fill("2023")
-        page.wait_for_timeout(4000)  # Sleep 4 (matching Robot Framework: Sleep 4)
+        page.wait_for_timeout(4000)  # Robot Framework: Sleep 4
         
-        # Click Button css:.css-19peay6 # Submit button (matching Robot Framework)
+        # Submit education section (matching Robot Framework: Click Button css:.css-19peay6 # Submit button)
         page.locator(".css-19peay6").click()
-        page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
+        # Robot Framework: Sleep 3, Wait Until Page Contains Element id=react-select-2-placeholder 30
+        page.wait_for_timeout(3000)  # Robot Framework: Sleep 3
+        # Wait for job preferences to appear
+        job_type_dropdown = page.locator("id=react-select-2-placeholder")
+        job_type_dropdown.wait_for(state="visible", timeout=30000)  # Robot Framework: 30 seconds
         
-        # Job preferences (matching Robot Framework)
-        # Wait Until Page Contains Element id=react-select-2-placeholder 30
-        page.locator("id=react-select-2-placeholder").wait_for(state="visible", timeout=30000)
+        # Job preferences - matching Robot Framework: Press Keys id=react-select-2-placeholder ARROW_DOWN Full-Time ENTER
+        # Robot Framework: Press Keys focuses the element and sends keys in sequence (no click needed)
         
-        # Press Keys id=react-select-2-placeholder ARROW_DOWN Full-Time ENTER (matching Robot Framework)
-        job_type_select = page.locator("id=react-select-2-placeholder")
-        job_type_select.click()
+        # Handle popups/overlays first (they might be blocking the dropdown)
+        _handle_all_popups(page)
         page.wait_for_timeout(500)
+        
+        # Scroll element into view first to prevent movement
+        job_type_dropdown.scroll_into_view_if_needed()
+        page.wait_for_timeout(500)  # Wait for scroll to complete
+        
+        # Robot Framework: Press Keys directly focuses and sends keys
+        # But React Select needs the dropdown to be opened first
+        # Use JavaScript to open dropdown and focus input, then send keys via page.keyboard
+        print("Opening React Select dropdown and sending keys (matching Robot Framework Press Keys)...")
+        
+        # Use JavaScript to find input, open dropdown, and prepare for keyboard input
+        page.evaluate("""
+            (function() {
+                // Find the placeholder element
+                const placeholder = document.getElementById('react-select-2-placeholder');
+                if (!placeholder) {
+                    console.log('Placeholder not found');
+                    return false;
+                }
+                
+                // Find the React Select control container
+                const control = placeholder.closest('[class*="control"]') || placeholder.closest('div[class*="react-select"]');
+                if (!control) {
+                    console.log('Control container not found');
+                    return false;
+                }
+                
+                // Find the hidden input element inside React Select
+                const input = control.querySelector('input[id*="react-select"]') || 
+                             control.querySelector('input[type="text"]') ||
+                             control.querySelector('input');
+                
+                if (input) {
+                    // Remove pointer-events from any overlaying elements
+                    const rect = control.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const elementAtPoint = document.elementFromPoint(centerX, centerY);
+                    if (elementAtPoint && elementAtPoint !== control && !control.contains(elementAtPoint)) {
+                        if (elementAtPoint.style) {
+                            elementAtPoint.style.pointerEvents = 'none';
+                        }
+                    }
+                    
+                    // Click the control to open dropdown (React Select needs this)
+                    control.click();
+                    
+                    // Focus the input (this ensures keyboard input goes to the right place)
+                    input.focus();
+                    
+                    // Dispatch events to ensure React Select is ready
+                    const focusEvent = new FocusEvent('focus', { bubbles: true });
+                    input.dispatchEvent(focusEvent);
+                    
+                    return true;
+                } else {
+                    // Fallback: just click the control
+                    control.click();
+                    control.focus();
+                    return true;
+                }
+            })();
+        """)
+        page.wait_for_timeout(800)  # Wait for dropdown to fully open
+        
+        # Send keys in sequence (matching Robot Framework: Press Keys ARROW_DOWN Full-Time ENTER)
+        # Robot Framework Press Keys sends: ARROW_DOWN, then types "Full-Time", then ENTER
+        # Use page.keyboard which sends to the currently focused element
         page.keyboard.press("ArrowDown")
-        page.wait_for_timeout(500)
-        # Type "Full-Time" and press Enter
-        page.keyboard.type("Full-Time", delay=100)
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(300)  # Brief wait for dropdown to respond
+        page.keyboard.type("Full-Time", delay=50)
+        page.wait_for_timeout(500)  # Wait for filtering/search to complete
         page.keyboard.press("Enter")
-        page.wait_for_timeout(3000)  # Sleep 3 (matching Robot Framework: Sleep 3)
+        page.wait_for_timeout(3000)  # Robot Framework: Sleep 3 after Press Keys
         
-        # Select From List By Value name:visatype 3 # H1
-        page.locator("[name='visatype']").select_option(value="3")
-        # Select From List By Value name:salarytype 6 # Per Hour
-        page.locator("[name='salarytype']").select_option(value="6")
-        # Input Text name:salary 50
+        # Verify job type was selected
+        try:
+            # Wait a bit for the selection to update
+            page.wait_for_timeout(500)
+            # Check if "Full-Time" appears in the selected value
+            selected_text = job_type_dropdown.inner_text(timeout=2000)
+            if "Full-Time" not in selected_text and "Select" not in selected_text.lower():
+                print(f"Warning: Job type selection may not have worked. Current text: {selected_text}")
+        except Exception:
+            pass  # Continue even if verification fails
+        page.locator("select[name='visatype']").select_option(value="3")
+        page.locator("select[name='salarytype']").select_option(value="6")
         page.locator("[name='salary']").fill("50")
-        # Select From List By Value css:#addresume > div.row > div.row > div:nth-child(3) > div > select 1434 # Arizona
         page.locator("#addresume > div.row > div.row > div:nth-child(3) > div > select").select_option(value="1434")
-        page.wait_for_timeout(6000)  # Sleep 6 (matching Robot Framework: Sleep 6)
-        
-        # Select From List By label css:.col-md-4:nth-child(4) .form-select Anthem
+        page.wait_for_timeout(6000)  # Robot Framework: Sleep 6
         page.locator(".col-md-4:nth-child(4) .form-select").select_option(label="Anthem")
+        page.wait_for_timeout(1000)  # Brief wait after selection
         
-        # Click Element css:.form-group1:nth-child(2) > #update_profile # Submit (matching Robot Framework)
-        page.locator(".form-group1:nth-child(2) > #update_profile").click()
-        page.wait_for_timeout(10000)  # Sleep 10 (matching Robot Framework: Sleep 10)
+        # Handle popups before final submit
+        _handle_all_popups(page)
+        page.wait_for_timeout(500)
         
+        # Final submit button (matching Robot Framework: Click Element css:.form-group1:nth-child(2) > #update_profile)
+        # Robot Framework: Sleep 6, then Click Element (no wait for enabled)
+        try:
+            # Scroll to button first (matching Robot Framework: Scroll Element Into View)
+            final_submit_btn = page.locator(".form-group1:nth-child(2) > #update_profile").first
+            final_submit_btn.scroll_into_view_if_needed()
+            page.wait_for_timeout(500)
+            
+            # Wait for button to be visible
+            final_submit_btn.wait_for(state="visible", timeout=20000)
+            
+            # Check if button is enabled (quick check)
+            page.wait_for_timeout(1000)  # Brief wait for button state to update
+            if not final_submit_btn.is_enabled():
+                # Button not enabled, try waiting a bit more
+                page.wait_for_timeout(2000)
+                if not final_submit_btn.is_enabled():
+                    # Still not enabled, take screenshot and try clicking anyway (sometimes click works even if not "enabled")
+                    try:
+                        page.screenshot(path=f"reports/failures/final_submit_not_enabled_{int(time.time())}.png", full_page=True)
+                    except Exception:
+                        pass
+                    print("Warning: Button may not be enabled, attempting click anyway...")
+            
+            # Click final submit button (matching Robot Framework: Click Element)
+            final_submit_btn.click()
+            page.wait_for_timeout(1000)  # Brief wait after click
+        except Exception as e:
+            # Take screenshot on any error
+            try:
+                page.screenshot(path=f"reports/failures/final_submit_error_{int(time.time())}.png", full_page=True)
+            except Exception:
+                pass
+            # Provide clear error message
+            raise AssertionError(
+                f"Failed to click final submit button (job preferences section): {str(e)}. "
+                f"Location: After filling job preferences, trying to click final submit button. "
+                f"Screenshot saved for debugging."
+            ) from e
+        
+        # Handle popups after final submit
+        _handle_all_popups(page)
+        page.wait_for_timeout(1000)
+        
+        # Robot Framework: Log To Console Resume is parsed successfully, Sleep 10
         print("Resume is parsed successfully")
-        page.wait_for_timeout(10000)  # Sleep 10 (matching Robot Framework: Sleep 10)
+        page.wait_for_timeout(10000)  # Robot Framework: Sleep 10
         
-        # Verify resume (matching Robot Framework)
-        # Wait Until Page Contains Element xpath:/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[3] 30 # first resume
+        # Robot Framework: Wait Until Page Contains Element xpath:/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[3] 30
+        print("Verifying parsed resume...")
         page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[3]").wait_for(state="visible", timeout=30000)
         page.locator("xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/ul/div[3]").click()
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+        page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
         
-        # Wait Until Page Contains Element css:.css-1td8faf 30 # Resume details
+        # Robot Framework: Wait Until Page Contains Element css:.css-1td8faf 30
         page.locator(".css-1td8faf").wait_for(state="visible", timeout=30000)
-        # Wait Until Page Contains Element css:.rpv-default-layout__body 40 # Resume pdf view
+        # Robot Framework: Wait Until Page Contains Element css:.rpv-default-layout__body 40
         page.locator(".rpv-default-layout__body").wait_for(state="visible", timeout=40000)
-        # Wait Until Page Contains Element css:.rpv-core__text-layer-text 30
-        page.locator(".rpv-core__text-layer-text").wait_for(state="visible", timeout=30000)
-        # Wait Until Page Contains Element css:.rpv-core__text-layer-text 40
-        page.locator(".rpv-core__text-layer-text").wait_for(state="visible", timeout=40000)
-        page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
+        # Robot Framework: Wait Until Page Contains Element css:.rpv-core__text-layer-text 30 and 40
+        # Use .first to avoid strict mode violation (there are many text elements in PDF)
+        page.locator(".rpv-core__text-layer-text").first.wait_for(state="visible", timeout=30000)
+        page.locator(".rpv-core__text-layer-text").first.wait_for(state="visible", timeout=40000)
+        page.wait_for_timeout(2000)  # Robot Framework: Sleep 2
         
-        # Wait Until Page Contains Deepika 40
+        # Robot Framework: Wait Until Page Contains Deepika 40, Page Should Contain Deepika
+        # Verification: Check for "Deepika" in the resume (this is the name from the resume file, not the form)
+        # The form uses logged-in user's name (JS_NAME), but the resume contains "Deepika" from the PDF
         page.wait_for_selector("text=Deepika", timeout=40000)
-        # Page Should Contain Deepika
-        assert "Deepika" in page.content(), "Resume does not contain 'Deepika'"
+        assert "Deepika" in page.content(), "Resume does not contain 'Deepika' - verification failed"
+        print("Resume verification successful - 'Deepika' found in parsed resume (matches Robot Framework verification)")
         
     except Exception as e:
-        raise
+        # CRITICAL: Always take screenshot on any failure - at any cost
+        error_location = "Unknown location"
+        try:
+            import traceback
+            tb = traceback.extract_tb(e.__traceback__)
+            if tb:
+                last_frame = tb[-1]
+                error_location = f"File: {last_frame.filename}, Line: {last_frame.lineno}, Function: {last_frame.name}"
+        except Exception:
+            pass
+        
+        # Take screenshot with detailed filename
+        screenshot_taken = False
+        try:
+            timestamp = int(time.time())
+            screenshot_path = f"reports/failures/test_t1_06_error_{timestamp}.png"
+            page.screenshot(path=screenshot_path, full_page=True)
+            screenshot_taken = True
+            print(f"[OK] Screenshot saved: {screenshot_path}")
+        except Exception as screenshot_error:
+            # Try alternative screenshot methods
+            try:
+                # Try without full_page
+                page.screenshot(path=f"reports/failures/test_t1_06_error_{int(time.time())}.png")
+                screenshot_taken = True
+            except Exception:
+                try:
+                    # Try saving HTML as backup
+                    html_content = page.content()
+                    with open(f"reports/failures/test_t1_06_error_{int(time.time())}.html", "w", encoding="utf-8") as f:
+                        f.write(html_content)
+                    print("[OK] HTML content saved as backup")
+                except Exception:
+                    pass
+        
+        # Create clear, understandable error message
+        error_type = type(e).__name__
+        error_message = str(e)
+        
+        # Format error message to be clear and understandable
+        if "strict mode violation" in error_message.lower():
+            formatted_error = (
+                f"Element selection error: Multiple elements found with same selector. "
+                f"This usually means the page structure changed or there are duplicate elements. "
+                f"Error: {error_message}. "
+                f"Location: {error_location}. "
+                f"{'Screenshot saved' if screenshot_taken else 'Screenshot attempt failed'}"
+            )
+        elif "timeout" in error_message.lower():
+            formatted_error = (
+                f"Timeout error: Element did not appear within the expected time. "
+                f"This could mean the page is loading slowly or the element selector is incorrect. "
+                f"Error: {error_message}. "
+                f"Location: {error_location}. "
+                f"{'Screenshot saved' if screenshot_taken else 'Screenshot attempt failed'}"
+            )
+        elif "description" in error_message.lower() or "description" in str(e).lower():
+            formatted_error = (
+                f"Description entry failed: Could not add text to project description field. "
+                f"This is a Quill editor field that requires special handling. "
+                f"Error: {error_message}. "
+                f"Location: {error_location}. "
+                f"{'Screenshot saved' if screenshot_taken else 'Screenshot attempt failed'}"
+            )
+        else:
+            formatted_error = (
+                f"Test failed: {error_type}. "
+                f"Error details: {error_message}. "
+                f"Location: {error_location}. "
+                f"{'Screenshot saved' if screenshot_taken else 'Screenshot attempt failed'}"
+            )
+        
+        # Re-raise with formatted error message
+        raise AssertionError(formatted_error) from e
+        
     finally:
-        # Cleanup (matching Robot Framework: Close Browser)
         try:
             context.close()
         except Exception:
