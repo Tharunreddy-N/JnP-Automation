@@ -44,7 +44,7 @@ def is_port_in_use(port):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(1)
-            result = s.connect_ex(('localhost', port))
+            result = s.connect_ex(('127.0.0.1', port))
             return result == 0
     except Exception:
         return False

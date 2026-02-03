@@ -169,6 +169,7 @@ def _safe_click(page: Page, loc, timeout_ms: int = 15000):
 @pytest.mark.recruiter
 def test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive(
     recruiter_page: Page,
+    pw_browser,  # Added pw_browser fixture
     start_runtime_measurement,
     end_runtime_measurement,
 ):
@@ -200,150 +201,180 @@ def test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive(
     if toast_msg_test == f"User '{REC_ID}' not active":
         print(f"Condition matched: {toast_msg_test} == User '{REC_ID}' not active")
 
-        # Open admin in a different tab/page (Robot: window.open + Switch Window NEW)
-        context = page.context
-        admin_page = context.new_page()
-        admin_page.goto(f"{BENCHSALE_URL.rstrip('/')}/login")
-        admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
-
-        # Optional toggle to email/password mode
+        # Open admin in a completely NEW CONTEXT (isolated cookies/session)
+        # This prevents the Admin login from overwriting the Recruiter session in the main context
+        print("Opening isolated Admin context...")
+        admin_context = pw_browser.new_context(ignore_https_errors=True, viewport={"width": 1920, "height": 1080})
+        admin_page = admin_context.new_page()
+        
         try:
-            tgl = admin_page.locator(".css-1hw9j7s")
-            if tgl.count() and tgl.first.is_visible():
-                tgl.first.click()
-                admin_page.wait_for_timeout(300 if FAST_MODE else 500)
-        except Exception:
-            pass
+            admin_page.goto(f"{BENCHSALE_URL.rstrip('/')}/login")
+            admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
 
-        login_benchsale_admin_pw(admin_page)
-        admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
+            # Optional toggle to email/password mode
+            try:
+                tgl = admin_page.locator(".css-1hw9j7s")
+                if tgl.count() and tgl.first.is_visible():
+                    tgl.first.click()
+                    admin_page.wait_for_timeout(300 if FAST_MODE else 500)
+            except Exception:
+                pass
 
-        # Inactive Recruiters
-        inactive_recruiters_menu = admin_page.locator(
-            "xpath=/html/body/div[1]/div[2]/div/div/ul/li[4]/a/div"
-        )
-        inactive_recruiters_menu.wait_for(state="visible", timeout=40000)
-        inactive_recruiters_menu.click()
+            login_benchsale_admin_pw(admin_page)
+            admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
 
-        # Robot optionally sees a dialog if there are no inactive recruiters; close if it blocks.
-        _close_blocking_popup_if_present(admin_page)
+            # Inactive Recruiters
+            inactive_recruiters_menu = admin_page.locator(
+                "xpath=/html/body/div[1]/div[2]/div/div/ul/li[4]/a/div"
+            )
+            inactive_recruiters_menu.wait_for(state="visible", timeout=40000)
+            inactive_recruiters_menu.click()
 
-        # Wait for first inactive recruiter list entry
-        admin_page.locator(
-            "xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div"
-        ).first.wait_for(state="visible", timeout=30000)
-        admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
+            # Robot optionally sees a dialog if there are no inactive recruiters; close if it blocks.
+            _close_blocking_popup_if_present(admin_page)
 
-        # Robot counts recruiter name rows
-        inactive_name_rows = admin_page.locator(
-            "xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]"
-        )
-        num_inactive = inactive_name_rows.count()
-        print(f"Number of inactive recruiters found: {num_inactive}")
+            # Wait for first inactive recruiter list entry
+            admin_page.locator(
+                "xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div"
+            ).first.wait_for(state="visible", timeout=30000)
+            admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
 
-        all_recruiter_emails: list[str] = []
+            # Robot counts recruiter name rows
+            inactive_name_rows = admin_page.locator(
+                "xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div/div/div/div[2]/p[1]"
+            )
+            num_inactive = inactive_name_rows.count()
+            print(f"Number of inactive recruiters found: {num_inactive}")
 
-        if num_inactive == 0:
-            print("WARNING: No inactive recruiters found in the list")
-        else:
-            print(f"Looking for recruiter: {REC_ID}")
-            print("Collecting all inactive recruiter emails for comparison...")
+            all_recruiter_emails: list[str] = []
 
-            for i in range(1, num_inactive + 1):
-                print(f"Checking recruiter {i} of {num_inactive}")
-                try:
-                    rec_name_loc = admin_page.locator(
-                        f"xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div[{i}]/div/div/div[2]/p[1]"
-                    )
-                    rec_name = (rec_name_loc.inner_text() or "").strip()
-                    print(f"Recruiter name: {rec_name}")
+            if num_inactive == 0:
+                print("WARNING: No inactive recruiters found in the list")
+            else:
+                print(f"Looking for recruiter: {REC_ID}")
+                print("Collecting all inactive recruiter emails for comparison...")
 
-                    # Click recruiter card to open profile panel
-                    rec_name_loc.click()
-                    admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
-
-                    admin_page.locator("css:.css-16rlg6l").wait_for(state="visible", timeout=30000)
-
-                    rec_email_details_loc = admin_page.locator(
-                        "xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/div[2]/div/h6[2]"
-                    )
-                    rec_email_details = (rec_email_details_loc.inner_text() or "").strip()
-                    print(f"Email details: {rec_email_details}")
-
-                    # Robot: Split String  ${rec_email_details}  :
-                    rec_email_split = rec_email_details.split(":")
-                    if len(rec_email_split) > 1:
-                        rec_email = rec_email_split[1].strip()
-                    else:
-                        rec_email = rec_email_details.strip()
-                        print("WARNING: Could not split email by ':', using full text")
-
-                    all_recruiter_emails.append(rec_email)
-                    print(f"Recruiter email: {rec_email}")
-                    print(f"Looking for: {REC_ID}")
-
-                    if REC_ID == rec_email or REC_ID in rec_email:
-                        print(f"Match found! '{REC_ID}' matches '{rec_email}'")
-
-                        activate_button = admin_page.locator(
-                            f"xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div[{i}]/div/button"
+                for i in range(1, num_inactive + 1):
+                    print(f"Checking recruiter {i} of {num_inactive}")
+                    try:
+                        rec_name_loc = admin_page.locator(
+                            f"xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div[{i}]/div/div/div[2]/p[1]"
                         )
-                        activate_button.wait_for(state="visible", timeout=30000)
-                        activate_button.click()
-                        admin_page.wait_for_timeout(300 if FAST_MODE else 1000)
+                        rec_name = (rec_name_loc.inner_text() or "").strip()
+                        print(f"Recruiter name: {rec_name}")
 
-                        # Robot: Click Element xpath:/html/body/div[3]/div[3]/ul  # Active button
-                        admin_page.locator("xpath=/html/body/div[3]/div[3]/ul").wait_for(
-                            state="visible", timeout=30000
-                        )
-                        admin_page.locator("xpath=/html/body/div[3]/div[3]/ul").click()
-
-                        success_toast = admin_page.locator("xpath=/html/body/div[1]/div[3]/div")
-                        success_toast.wait_for(state="visible", timeout=30000)
-                        activated_msg = (success_toast.inner_text() or "").strip()
-                        assert (
-                            activated_msg == "Recruiter Activated Successfully"
-                        ), f"Expected activation message, got '{activated_msg}'"
-
+                        # Click recruiter card to open profile panel
+                        rec_name_loc.click()
                         admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
-                        rec_matched += 1
-                        break
-                    else:
-                        print("continued..........")
+
+                        admin_page.locator("css:.css-16rlg6l").wait_for(state="visible", timeout=30000)
+
+                        rec_email_details_loc = admin_page.locator(
+                            "xpath=/html/body/div[1]/div[2]/main/div/div/div[2]/div/div[2]/div/h6[2]"
+                        )
+                        rec_email_details = (rec_email_details_loc.inner_text() or "").strip()
+                        print(f"Email details: {rec_email_details}")
+
+                        # Robot: Split String  ${rec_email_details}  :
+                        rec_email_split = rec_email_details.split(":")
+                        if len(rec_email_split) > 1:
+                            rec_email = rec_email_split[1].strip()
+                        else:
+                            rec_email = rec_email_details.strip()
+                            print("WARNING: Could not split email by ':', using full text")
+
+                        all_recruiter_emails.append(rec_email)
+                        print(f"Recruiter email: {rec_email}")
+                        print(f"Looking for: {REC_ID}")
+
+                        if REC_ID == rec_email or REC_ID in rec_email:
+                            print(f"Match found! '{REC_ID}' matches '{rec_email}'")
+
+                            activate_button = admin_page.locator(
+                                f"xpath=/html/body/div[1]/div[2]/main/div/div/div[1]/div/div[2]/div/div/div/ul/div[{i}]/div/button"
+                            )
+                            activate_button.wait_for(state="visible", timeout=30000)
+                            activate_button.click()
+                            admin_page.wait_for_timeout(300 if FAST_MODE else 1000)
+
+                            # Robot: Click Element xpath:/html/body/div[3]/div[3]/ul  # Active button
+                            admin_page.locator("xpath=/html/body/div[3]/div[3]/ul").wait_for(
+                                state="visible", timeout=30000
+                            )
+                            admin_page.locator("xpath=/html/body/div[3]/div[3]/ul").click()
+
+                            success_toast = admin_page.locator("xpath=/html/body/div[1]/div[3]/div")
+                            success_toast.wait_for(state="visible", timeout=30000)
+                            activated_msg = (success_toast.inner_text() or "").strip()
+                            assert (
+                                activated_msg == "Recruiter Activated Successfully"
+                            ), f"Expected activation message, got '{activated_msg}'"
+
+                            admin_page.wait_for_timeout(300 if FAST_MODE else 2000)
+                            rec_matched += 1
+                            break
+                        else:
+                            print("continued..........")
+                            continue
+                    except Exception as e:
+                        print(f"Error processing recruiter {i}: {e}")
                         continue
-                except Exception as e:
-                    print(f"Error processing recruiter {i}: {e}")
-                    continue
 
-        if rec_matched == 0:
-            print("========================================")
-            print(f"WARNING: Recruiter '{REC_ID}' was not found in the inactive recruiters list")
-            print(f"All inactive recruiter emails found: {all_recruiter_emails}")
-            print("The recruiter may:")
-            print("- Already be active (check active recruiters list)")
-            print("- Not exist in the system")
-            print("- Have a different email address")
-            print("========================================")
+            if rec_matched == 0:
+                print("========================================")
+                print(f"WARNING: Recruiter '{REC_ID}' was not found in the inactive recruiters list")
+                print(f"All inactive recruiter emails found: {all_recruiter_emails}")
+                print("The recruiter may:")
+                print("- Already be active (check active recruiters list)")
+                print("- Not exist in the system")
+                print("- Have a different email address")
+                print("========================================")
 
-        assert (
-            rec_matched == 1
-        ), f"Recruiter '{REC_ID}' was not found and activated. rec_matched={rec_matched}, num_inactive={num_inactive}"
+            assert (
+                rec_matched == 1
+            ), f"Recruiter '{REC_ID}' was not found and activated. rec_matched={rec_matched}, num_inactive={num_inactive}"
 
-        # Close admin page and continue with recruiter login
-        try:
-            admin_page.close()
-        except Exception:
-            pass
+        finally:
+            # Close admin page and context
+            try:
+                admin_page.close()
+                admin_context.close()
+                print("Closed isolated Admin context")
+            except Exception:
+                pass
 
         # Robot: Switch Window MAIN then Click Sign In
+        # Since we used an isolated context, the main Recruiter context 'page' might still be logged in 
+        # (unless server invalidated it). We check if we need to sign in again.
         try:
+            page.bring_to_front()
+            
+            # Check if we were logged out (Sign In button visible?)
             sign_in_btn = page.locator("xpath=/html/body/div/div[2]/main/div/form/button")
             if sign_in_btn.count() and sign_in_btn.first.is_visible():
+                print("Sign In button found - logging in again...")
                 sign_in_btn.first.click()
                 page.wait_for_timeout(500 if FAST_MODE else 2000)
                 print("Recruiter profile is activated and logged in")
+            else:
+                # We might still be at the 'User not active' toast screen or login screen?
+                # If we are effectively logged in now (because activation happened), we might just need to reload.
+                print("No Sign In button found immediately. Checking if dashboard is accessible...")
+                try:
+                    page.locator("xpath=/html/body/div[1]/div[2]/div/div/ul").wait_for(state="visible", timeout=5000)
+                    print("Dashboard is visible. Session is valid.")
+                except:
+                    print("Dashboard not visible. Reloading page...")
+                    page.reload() 
+                    page.wait_for_timeout(2000)
+                    
+                    # Check again for Sign In
+                    sign_in_text = page.locator("text=Sign in")
+                    if sign_in_text.count() > 0 and sign_in_text.first.is_visible():
+                         # Login if needed
+                         login_benchsale_recruiter_pw(page, user_id=REC_ID, password=REC_PASSWORD)
         except Exception as e:
-            print(f"WARNING: Could not click recruiter Sign In after activation: {e}")
+            print(f"WARNING: Could not handle post-activation login state: {e}")
     else:
         print("Logged into the Recruiter profile")
         page.wait_for_timeout(300 if FAST_MODE else 2000)

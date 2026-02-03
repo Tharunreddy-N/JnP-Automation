@@ -11,8 +11,9 @@ start "Dashboard Launcher" /min python utils\dashboard_launcher.py
 timeout /t 3 /nobreak >nul
 echo.
 echo ✅ Dashboard is opening in your browser...
+start http://127.0.0.1:8888
 echo.
-echo The dashboard will be available at: http://localhost:8888
+echo The dashboard will be available at: http://127.0.0.1:8888
 echo.
 echo Keep this window minimized. Close it to stop the server.
 echo.

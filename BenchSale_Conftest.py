@@ -83,6 +83,8 @@ def _detect_run_scope() -> str:
         return "admin"
     if "test_benchsale_recruiter_test_cases.py".lower() in argv:
         return "recruiter"
+    if "test_employer_test_cases.py".lower() in argv:
+        return "employer"
     return "all"
 
 
@@ -103,6 +105,8 @@ def setup_logging():
         log_name = "benchsale_admin.log"
     elif scope == "recruiter":
         log_name = "benchsale_recruiter.log"
+    elif scope == "employer":
+        log_name = "employer.log"
     else:
         log_name = "benchsale_test.log"
     log_file = os.path.join(log_dir, log_name)
@@ -1039,26 +1043,52 @@ def goto_fast(page: PWPage, url: str, timeout: int = 60000):
     Faster navigation: domcontentloaded is usually enough for SPA apps.
     For dashboard/login URLs, use 'load' to ensure redirects complete without waiting for networkidle.
     Has fallback mechanism if 'load' times out.
+    
+    IMPORTANT: Always use this function instead of page.goto() directly to avoid timeout issues.
+    This function has multiple fallback strategies to handle slow page loads.
+    
+    Example:
+        goto_fast(page, "https://jobsnprofiles.com/Login")  # ✅ Good
+        page.goto("https://jobsnprofiles.com/Login")  # ❌ Bad - may timeout
     """
+    # Use shorter timeout for fallbacks to avoid long waits
+    fallback_timeout = min(30000, timeout // 2)  # Use half of original timeout or 30s, whichever is smaller
+    commit_timeout = min(15000, timeout // 4)  # Even shorter for commit
+    
     # For dashboard/login URLs, use 'load' instead of 'networkidle' to avoid timeout issues
     # 'load' waits for page load event (redirects complete) but doesn't wait for network to be idle
     if "dashboard" in url.lower() or "login" in url.lower() or "EmpLogin" in url or "Empdashboard" in url:
         # Try 'load' first, but fallback to 'domcontentloaded' if it times out
         try:
             page.goto(url, wait_until="load", timeout=timeout)
-            # Additional wait for DOM to be ready
-            page.wait_for_load_state("domcontentloaded", timeout=10000)
+            # Additional wait for DOM to be ready (with shorter timeout)
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=10000)
+            except Exception:
+                logger.debug(f"goto_fast: domcontentloaded wait skipped for {url}")
         except Exception as e:
             # If 'load' times out, try faster 'domcontentloaded' approach
             logger.warning(f"goto_fast: 'load' timed out for {url}, trying 'domcontentloaded'...")
             try:
-                page.goto(url, wait_until="domcontentloaded", timeout=timeout)
-                page.wait_for_load_state("domcontentloaded", timeout=10000)
+                page.goto(url, wait_until="domcontentloaded", timeout=fallback_timeout)
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=5000)
+                except Exception:
+                    logger.debug(f"goto_fast: domcontentloaded wait skipped for {url}")
             except Exception as e2:
-                # Last resort: try with commit (fastest)
+                # Last resort: try with commit (fastest) - don't wait for load_state after commit
                 logger.warning(f"goto_fast: 'domcontentloaded' also failed for {url}, trying 'commit'...")
-                page.goto(url, wait_until="commit", timeout=timeout)
-                page.wait_for_load_state("domcontentloaded", timeout=10000)
+                try:
+                    page.goto(url, wait_until="commit", timeout=commit_timeout)
+                    # Don't wait for load_state after commit - it's already the fastest option
+                except Exception as e3:
+                    # Final fallback: just navigate without any wait condition
+                    logger.error(f"goto_fast: All navigation attempts failed for {url}, attempting basic navigation...")
+                    try:
+                        page.goto(url, wait_until="commit", timeout=10000)
+                    except Exception as final_e:
+                        logger.error(f"goto_fast: Complete navigation failure for {url}: {final_e}")
+                        raise
     else:
         # For other pages, use faster domcontentloaded
         try:
@@ -1066,8 +1096,13 @@ def goto_fast(page: PWPage, url: str, timeout: int = 60000):
         except Exception as e:
             # Fallback to commit if domcontentloaded fails
             logger.warning(f"goto_fast: 'domcontentloaded' timed out for {url}, trying 'commit'...")
-            page.goto(url, wait_until="commit", timeout=timeout)
-            page.wait_for_load_state("domcontentloaded", timeout=10000)
+            try:
+                page.goto(url, wait_until="commit", timeout=fallback_timeout)
+                # Don't wait for load_state after commit - commit is already fast enough
+            except Exception as e2:
+                # Final fallback: try with even shorter timeout
+                logger.warning(f"goto_fast: 'commit' also failed for {url}, trying with minimal timeout...")
+                page.goto(url, wait_until="commit", timeout=10000)
 
 
 def handle_job_fair_popup_pw(page):
@@ -1498,31 +1533,50 @@ def recruiter_page(pw_browser, request):
     goto_fast(page, BENCHSALE_URL)
     page.wait_for_timeout(2000)
     
-    # Check if redirected to login page (storage state might be invalid)
+    # Validating if we are truly logged in
+    # 1. Check if dashboard is already visible
     try:
+        page.locator("xpath=/html/body/div[1]/div[2]/div/div/ul").wait_for(state="visible", timeout=5000)
+        logger.debug("Dashboard sidebar found, session valid.")
+    except Exception:
+        # 2. If dashboard not found, we assume we need to login or we are on login page
+        logger.debug("Dashboard not visible, checking for login page...")
+        
+        # Check login page indicators
         login_indicator = page.locator("input[name='email'], input[type='email'], [id=':r0:']")
-        if login_indicator.count() > 0 and login_indicator.first.is_visible(timeout=3000):
-            # Storage state invalid, need to re-login
-            logger.debug("Storage state invalid, re-logging in...")
-            try:
-                tgl = page.locator(".css-1hw9j7s")
-                if tgl.count() and tgl.first.is_visible():
-                    tgl.first.click()
-                    page.wait_for_timeout(300 if FAST_MODE else 500)
-            except Exception:
-                pass
-            login_benchsale_recruiter_pw(page, user_id=REC_ID, password=REC_PASSWORD)
+        try:
+            if login_indicator.count() > 0:
+                 login_indicator.first.wait_for(state="visible", timeout=5000)
+            else:
+                 # Wait a bit just in case
+                 page.wait_for_selector("input[name='email'], input[type='email']", timeout=5000, state="visible")
+        except Exception:
+            # If neither dashboard nor login input is found, something is wrong. 
+            # But we will try to login anyway or force reload.
+            logger.warning("Neither dashboard nor login input found immediately. Reloading...")
+            page.reload(wait_until="domcontentloaded")
             page.wait_for_timeout(2000)
-            # Save updated storage state
-            context.storage_state(path=RECRUITER_STATE_PATH)
-    except Exception:
-        pass
+
+        # Force Login logic (if not on dashboard)
+        logger.debug("Attempting to ensure login...")
+        
+        # Check if we need to click "Sign in" toggle (sometimes req for admin/recruiter switch)
+        try:
+            tgl = page.locator(".css-1hw9j7s")
+            if tgl.count() and tgl.first.is_visible():
+                tgl.first.click()
+                page.wait_for_timeout(500)
+        except Exception:
+            pass
+            
+        login_benchsale_recruiter_pw(page, user_id=REC_ID, password=REC_PASSWORD)
+        
+        # Save updated storage state
+        context.storage_state(path=RECRUITER_STATE_PATH)
+
+    # Final check: Dashboard MUST be visible now
+    page.locator("xpath=/html/body/div[1]/div[2]/div/div/ul").wait_for(state="visible", timeout=30000)
     
-    # Wait for dashboard to load
-    try:
-        page.locator("xpath=/html/body/div[1]/div[2]/div/div/ul").wait_for(timeout=60000)
-    except Exception:
-        pass
     yield page
     
     # Proper cleanup: ensure all operations complete before closing
@@ -1733,6 +1787,7 @@ def _extract_locator_hint(error_text: str) -> str:
 def _capture_playwright_artifacts(page: PWPage, test_name: str):
     """
     Save screenshot + HTML + URL for easier debugging on failures.
+    MANDATORY: Screenshots MUST be captured on test failures - will retry with different strategies.
     """
     base_dir = os.path.dirname(__file__)
     reports_dir = os.path.join(base_dir, "reports", "failures")
@@ -1749,13 +1804,180 @@ def _capture_playwright_artifacts(page: PWPage, test_name: str):
     try:
         current_url = page.url
     except Exception:
-        pass
+        pass    
 
+    # MANDATORY SCREENSHOT CAPTURE - Multiple strategies with retries
+    screenshot_captured = False
+    screenshot_error = None
+    
+    # Save original timeout settings to restore later
+    original_default_timeout = None
     try:
-        page.screenshot(path=screenshot_path, full_page=True)
-    except Exception as e:
-        logger.debug(f"Could not take screenshot: {e}")
-
+        original_default_timeout = page.context.timeout if hasattr(page.context, 'timeout') else None
+    except Exception:
+        pass
+    
+    # Strategy 1: Try full page screenshot with timeout (prevents font loading wait)
+    for attempt in range(3):
+        try:
+            # Temporarily set a shorter default timeout to ensure our timeout parameter is respected
+            try:
+                if hasattr(page.context, 'set_default_timeout'):
+                    page.context.set_default_timeout(10000)  # Set to 10s to ensure our 8s timeout works
+            except Exception:
+                pass
+            
+            # Use shorter timeout to prevent hanging on font loading
+            # Playwright will try to capture even if fonts aren't fully loaded
+            page.screenshot(
+                path=screenshot_path, 
+                full_page=True,
+                timeout=8000  # 8 second timeout - prevents waiting for fonts indefinitely
+            )
+            screenshot_captured = True
+            logger.info(f"Screenshot captured successfully (attempt {attempt + 1})")
+            break
+        except Exception as e:
+            screenshot_error = e
+            logger.warning(f"Screenshot attempt {attempt + 1} failed: {e}")
+            if attempt < 2:  # Don't sleep on last attempt
+                time.sleep(0.5)
+        finally:
+            # Restore original timeout if we changed it
+            try:
+                if original_default_timeout is not None and hasattr(page.context, 'set_default_timeout'):
+                    page.context.set_default_timeout(original_default_timeout)
+            except Exception:
+                pass
+    
+    # Strategy 2: If full_page fails, try viewport-only screenshot (faster, no scrolling)
+    if not screenshot_captured:
+        try:
+            logger.warning("Full page screenshot failed, trying viewport-only screenshot...")
+            # Set even shorter timeout for viewport
+            try:
+                if hasattr(page.context, 'set_default_timeout'):
+                    page.context.set_default_timeout(6000)
+            except Exception:
+                pass
+            
+            page.screenshot(
+                path=screenshot_path,
+                full_page=False,  # Viewport only - much faster
+                timeout=5000  # Shorter timeout for viewport
+            )
+            screenshot_captured = True
+            logger.info("Viewport-only screenshot captured successfully")
+        except Exception as e:
+            screenshot_error = e
+            logger.warning(f"Viewport-only screenshot also failed: {e}")
+        finally:
+            # Restore original timeout
+            try:
+                if original_default_timeout is not None and hasattr(page.context, 'set_default_timeout'):
+                    page.context.set_default_timeout(original_default_timeout)
+            except Exception:
+                pass
+    
+    # Strategy 3: Try with even shorter timeout (emergency fallback)
+    if not screenshot_captured:
+        try:
+            logger.warning("Trying emergency screenshot with minimal timeout...")
+            # Set very short timeout
+            try:
+                if hasattr(page.context, 'set_default_timeout'):
+                    page.context.set_default_timeout(4000)
+            except Exception:
+                pass
+            
+            # Use the most basic screenshot options with very short timeout
+            page.screenshot(path=screenshot_path, timeout=3000, full_page=False)
+            screenshot_captured = True
+            logger.info("Emergency screenshot captured successfully")
+        except Exception as e:
+            screenshot_error = e
+            logger.warning(f"Emergency screenshot also failed: {e}")
+        finally:
+            # Restore original timeout
+            try:
+                if original_default_timeout is not None and hasattr(page.context, 'set_default_timeout'):
+                    page.context.set_default_timeout(original_default_timeout)
+            except Exception:
+                pass
+    
+    # Strategy 4: Last resort - try to capture body element screenshot
+    if not screenshot_captured:
+        try:
+            logger.warning("Trying body element screenshot as last resort...")
+            body = page.locator('body')
+            body.screenshot(path=screenshot_path, timeout=3000)
+            screenshot_captured = True
+            logger.info("Body element screenshot captured successfully")
+        except Exception as e:
+            screenshot_error = e
+            logger.warning(f"Body element screenshot also failed: {e}")
+    
+    # Strategy 5: Ultra-fast screenshot - try with absolute minimum timeout (1 second)
+    if not screenshot_captured:
+        try:
+            logger.warning("Trying ultra-fast screenshot with 1 second timeout...")
+            # Set page timeout to 1 second temporarily
+            original_timeout = page.context.timeout if hasattr(page.context, 'timeout') else None
+            try:
+                page.screenshot(path=screenshot_path, timeout=1000, full_page=False)
+                screenshot_captured = True
+                logger.info("Ultra-fast screenshot captured successfully")
+            finally:
+                # Restore original timeout if we changed it
+                pass
+        except Exception as e:
+            screenshot_error = e
+            logger.warning(f"Ultra-fast screenshot also failed: {e}")
+    
+    # Strategy 6: JavaScript-based screenshot capture (last resort)
+    if not screenshot_captured:
+        try:
+            logger.warning("Attempting JavaScript-based screenshot capture...")
+            # Try to use JavaScript to get page dimensions and capture
+            screenshot_data = page.evaluate("""
+                () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                        const ctx = canvas.getContext('2d');
+                        // This won't work for security reasons, but we can try to get page info
+                        return {
+                            width: window.innerWidth,
+                            height: window.innerHeight,
+                            url: window.location.href,
+                            title: document.title
+                        };
+                    } catch(e) {
+                        return {error: e.message};
+                    }
+                }
+            """)
+            # If JS worked, at least try one more time with the page dimensions
+            if screenshot_data and 'error' not in screenshot_data:
+                page.screenshot(path=screenshot_path, timeout=2000, full_page=False)
+                screenshot_captured = True
+                logger.info("JavaScript-assisted screenshot captured successfully")
+        except Exception as e:
+            screenshot_error = e
+            logger.warning(f"JavaScript-based screenshot also failed: {e}")
+    
+    # If screenshot still failed, create a placeholder file with error message
+    if not screenshot_captured:
+        try:
+            error_msg = f"Screenshot capture failed after all retry strategies.\nError: {screenshot_error}\nTest: {test_name}\nURL: {current_url}\nTimestamp: {ts}"
+            with open(screenshot_path.replace('.png', '_ERROR.txt'), "w", encoding="utf-8") as f:
+                f.write(error_msg)
+            logger.error(f"⚠️ CRITICAL: Screenshot capture failed for {test_name}. Error details saved to {screenshot_path.replace('.png', '_ERROR.txt')}")
+        except Exception as final_e:
+            logger.error(f"Could not even save screenshot error file: {final_e}")
+    
+    # HTML capture (non-critical, but try to save it)
     try:
         html = page.content()
         with open(html_path, "w", encoding="utf-8") as f:
@@ -1763,6 +1985,7 @@ def _capture_playwright_artifacts(page: PWPage, test_name: str):
     except Exception as e:
         logger.debug(f"Could not save HTML: {e}")
 
+    # URL capture (always try to save)
     try:
         with open(url_path, "w", encoding="utf-8") as f:
             f.write(current_url or "")
@@ -1775,6 +1998,7 @@ def _capture_playwright_artifacts(page: PWPage, test_name: str):
 def _refresh_dashboard_after_test(test_name: str, outcome: str):
     """Refresh dashboard after each test completes to show latest status.
     This runs after EVERY test (passed/failed/skipped) regardless of how the test was run.
+    Optimized for speed - minimal delays.
     """
     try:
         # Import here to avoid circular imports
@@ -1783,81 +2007,17 @@ def _refresh_dashboard_after_test(test_name: str, outcome: str):
         import time
         from pathlib import Path
         
-        # Longer delay to ensure log files are fully flushed and written to disk
-        # This is critical for dashboard to show accurate status (PASS/FAIL)
-        # Increased wait time to ensure test results are fully written before dashboard refresh
-        time.sleep(5.0)  # Increased to 5 seconds to ensure log files are fully flushed and latest status is captured
+        # Skip dashboard refresh after each test - only refresh at session end for speed
+        # Dashboard will be refreshed once at the end of all tests
+        # This saves significant time (30+ seconds per test)
+        return
         
-        # Force log file flush by importing logging and flushing all handlers
-        import logging
-        root_logger = logging.getLogger()
-        for handler in root_logger.handlers:
-            if hasattr(handler, 'flush'):
-                handler.flush()
-        
-        project_root = Path(__file__).parent
-        refresh_script = project_root / 'refresh_dashboard.py'
-        
-        if refresh_script.exists():
-            # Run refresh - don't capture output so we can see any errors
-            try:
-                logger.info(f"Refreshing dashboard after test: {test_name} ({outcome})")
-                result = subprocess.run(
-                    [sys.executable, str(refresh_script)],
-                    cwd=project_root,
-                    timeout=60,  # Increased timeout to 60 seconds for large dashboards
-                    capture_output=True,  # Capture to check for errors
-                    text=True
-                )
-                if result.returncode == 0:
-                    logger.info(f"✓ Dashboard refreshed successfully after test: {test_name} ({outcome})")
-                    # Additional wait to ensure file is written to disk
-                    time.sleep(0.5)
-                else:
-                    logger.warning(f"Dashboard refresh returned code {result.returncode} for test: {test_name}")
-                    if result.stderr:
-                        logger.warning(f"Dashboard refresh stderr: {result.stderr}")
-            except subprocess.TimeoutExpired:
-                logger.warning(f"Dashboard refresh timed out after 60 seconds for test: {test_name}")
-                # Try direct import as fallback
-                try:
-                    from utils.unified_log_viewer import generate_unified_dashboard
-                    logger.info("Attempting direct dashboard generation...")
-                    dashboard_path = generate_unified_dashboard()
-                    logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
-                except Exception as direct_err:
-                    logger.warning(f"Direct dashboard generation also failed: {direct_err}")
-            except Exception as refresh_err:
-                logger.warning(f"Error refreshing dashboard for test {test_name}: {refresh_err}")
-                # Try direct import as fallback
-                try:
-                    from utils.unified_log_viewer import generate_unified_dashboard
-                    logger.info("Attempting direct dashboard generation as fallback...")
-                    dashboard_path = generate_unified_dashboard()
-                    logger.info(f"✓ Dashboard generated directly (fallback): {dashboard_path}")
-                except Exception as direct_err:
-                    logger.warning(f"Direct dashboard generation (fallback) also failed: {direct_err}")
-        else:
-            logger.warning(f"Dashboard refresh script not found: {refresh_script}")
-            # Try direct import as fallback
-            try:
-                from utils.unified_log_viewer import generate_unified_dashboard
-                logger.info("Attempting direct dashboard generation (script not found)...")
-                dashboard_path = generate_unified_dashboard()
-                logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
-            except Exception as direct_err:
-                logger.warning(f"Direct dashboard generation failed: {direct_err}")
+        # OLD CODE - Disabled for speed optimization
+        # Minimal delay - just enough for log flush
+        # time.sleep(0.1)  # Reduced to minimal
     except Exception as e:
         # Always log the error but don't fail the test
         logger.warning(f"Could not refresh dashboard after test {test_name}: {e}")
-        # Try one more time with direct import
-        try:
-            from utils.unified_log_viewer import generate_unified_dashboard
-            logger.info("Final attempt: Direct dashboard generation...")
-            dashboard_path = generate_unified_dashboard()
-            logger.info(f"✓ Dashboard generated directly (final attempt): {dashboard_path}")
-        except Exception as final_err:
-            logger.error(f"All dashboard refresh attempts failed: {final_err}")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -1883,8 +2043,8 @@ def pytest_runtest_makereport(item, call):
                 if hasattr(handler, 'flush'):
                     handler.flush()
             
-            # Refresh dashboard after test completes
-            _refresh_dashboard_after_test(test_name, rep.outcome)
+            # Dashboard refresh disabled for speed - only refresh at session end
+            # _refresh_dashboard_after_test(test_name, rep.outcome)
         elif rep.outcome == "failed":
             error_msg = str(rep.longrepr) if rep.longrepr else "Test failed"
             locator_hint = _extract_locator_hint(error_msg)
@@ -1901,7 +2061,7 @@ def pytest_runtest_makereport(item, call):
             # If we have a Playwright page fixture, capture artifacts for debugging
             try:
                 pw_page = None
-                for key in ("admin_page", "recruiter_page", "page"):
+                for key in ("admin_page", "recruiter_page", "employer1_page", "employer2_page", "page"):
                     if hasattr(item, "funcargs") and key in item.funcargs:
                         pw_page = item.funcargs.get(key)
                         break
@@ -1934,8 +2094,8 @@ def pytest_runtest_makereport(item, call):
                 if hasattr(handler, 'flush'):
                     handler.flush()
             
-            # Refresh dashboard after test completes
-            _refresh_dashboard_after_test(test_name, rep.outcome)
+            # Dashboard refresh disabled for speed - only refresh at session end
+            # _refresh_dashboard_after_test(test_name, rep.outcome)
 
 
 @pytest.fixture(autouse=True)
@@ -2302,14 +2462,14 @@ def pytest_sessionfinish(session, exitstatus):
         # This ensures dashboard updates regardless of how tests were run (UI, command line, etc.)
         try:
             logger.info("Generating unified dashboard at session end...")
-            # Wait a moment to ensure all log files are fully written
-            time.sleep(1)
+            # Minimal wait - just for log flush
+            time.sleep(0.1)  # Reduced from 1 second
             dashboard_path = generate_unified_dashboard()
             logger.info(f"✓ Unified dashboard generated successfully: {dashboard_path}")
             html_files.append(dashboard_path)
             
-            # Additional wait to ensure file is written to disk
-            time.sleep(0.5)
+            # Minimal wait - just for file write
+            time.sleep(0.1)  # Reduced from 0.5 seconds
             logger.info("Dashboard update complete. UI will show latest status on next refresh.")
         except Exception as dashboard_err:
             logger.error(f"ERROR: Could not generate unified dashboard: {dashboard_err}")
@@ -2357,18 +2517,18 @@ def pytest_sessionfinish(session, exitstatus):
                     logger.warning("No HTML log files found to open")
                     return
             
-            def open_browser():
-                time.sleep(3)  # Delay to ensure all files are written and dashboard is ready
-                try:
-                    webbrowser.open(file_url)
-                    logger.info(f"Opened unified dashboard in browser: {file_url}")
-                except Exception as e:
-                    logger.warning(f"Could not open browser: {e}")
-                    logger.info(f"Please manually open: {file_url}")
-            
-            # Open in background thread to not block test completion
-            threading.Thread(target=open_browser, daemon=True).start()
-            logger.info(f"Dashboard will open automatically in browser: {file_url}")
+            # def open_browser():
+            #     time.sleep(3)  # Delay to ensure all files are written and dashboard is ready
+            #     try:
+            #         webbrowser.open(file_url)
+            #         logger.info(f"Opened unified dashboard in browser: {file_url}")
+            #     except Exception as e:
+            #         logger.warning(f"Could not open browser: {e}")
+            #         logger.info(f"Please manually open: {file_url}")
+            # 
+            # # Open in background thread to not block test completion
+            # # threading.Thread(target=open_browser, daemon=True).start()
+            # # logger.info(f"Dashboard will open automatically in browser: {file_url}")
         except Exception as browser_err:
             logger.debug(f"Could not open browser automatically: {browser_err}")
     except Exception as e:

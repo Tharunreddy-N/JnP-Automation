@@ -9,6 +9,7 @@ import os
 import time
 import socket
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from pathlib import Path
 import threading
 
@@ -22,10 +23,15 @@ def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
         try:
-            result = s.connect_ex(('localhost', port))
+            result = s.connect_ex(('127.0.0.1', port))
             return result == 0  # True if connection was successful (port is in use)
         except Exception:
             return False
+
+
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+    pass
 
 
 class HelperHandler(BaseHTTPRequestHandler):
@@ -36,12 +42,12 @@ class HelperHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Accept')
         self.end_headers()
     
     def do_GET(self):
         """Handle GET requests - check server status or start server."""
-        if self.path == '/status':
+        if self.path.startswith('/status'):
             # Check if main server is running
             is_running = is_port_in_use(8766)
             self.send_response(200)
@@ -113,10 +119,10 @@ class HelperHandler(BaseHTTPRequestHandler):
 
 def run_helper_server(port=8767):
     """Run the helper server."""
-    server_address = ('', port)
-    httpd = HTTPServer(server_address, HelperHandler)
+    server_address = ('127.0.0.1', port)
+    httpd = ThreadingHTTPServer(server_address, HelperHandler)
     
-    print(f"Helper server running on http://localhost:{port}")
+    print(f"Helper server running on http://127.0.0.1:{port}")
     print("This server helps auto-start the main test server.")
     
     try:

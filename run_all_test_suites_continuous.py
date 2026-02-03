@@ -39,7 +39,7 @@ def main():
         ("BENCHSALE ADMIN TESTS", "tests/benchsale/test_benchsale_admin_test_cases.py"),
         ("BENCHSALE RECRUITER TESTS", "tests/benchsale/test_benchsale_recruiter_test_cases.py"),
         ("EMPLOYER TESTS", "tests/employer/test_employer_test_cases.py"),
-        ("JOBSEEKER TESTS", "tests/jobseeker/test_jobseeker_test_cases.py"),
+        ("JOBSEEKER TESTS", "tests/jobseeker/"),  # Run all test files in jobseeker directory
     ]
     
     results = {}

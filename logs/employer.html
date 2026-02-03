@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0; url=../log_viewer_ui.html?module=employer&hideModules=true" />
+  <title>Redirecting to Log Viewer...</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { 
+      height: 100%; 
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .redirect-container {
+      text-align: center;
+      padding: 40px;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 24px;
+    }
+    p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 16px;
+    }
+    a {
+      color: white;
+      text-decoration: underline;
+      margin-top: 20px;
+      display: inline-block;
+    }
+  </style>
+  <script>
+    // Immediate redirect
+    window.location.href = '../log_viewer_ui.html?module=employer&hideModules=true';
+  </script>
+</head>
+<body>
+  <div class="redirect-container">
+    <div class="spinner"></div>
+    <h1>Redirecting to Log Viewer...</h1>
+    <p>You will be redirected to the 7-day history viewer.</p>
+    <a href="../log_viewer_ui.html?module=employer&hideModules=true">Click here if you are not redirected</a>
+  </div>
+</body>
+</html>

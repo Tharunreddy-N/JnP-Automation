@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Test Log Viewer - 7 Day History</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #F97316;
+            --primary-light: #FFEDD5;
+            --secondary: #6366f1;
+            --secondary-light: #EEF2FF;
+            --tertiary: #10b981;
+            --tertiary-light: #ECFDF5;
+            --bg-body: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --danger: #dc3545;
+            --danger-light: #f8d7da;
+            --success: #28a745;
+            --success-light: #d4edda;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(136deg, rgb(209 225 231) 0%, rgb(242 251 245) 50%, rgb(229 223 174) 100%);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            /* Prevent body scroll, handle in grids */
+        }
+
+        .container {
+            max-width: 100%;
+            height: 100vh;
+            margin: 0 auto;
+            padding: 24px 32px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            flex: 0 0 auto;
+            /* Don't shrink */
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease-out;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            /* Premium Navbar Look */
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 16px 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .close-button {
+            position: relative;
+            /* Reset absolute */
+            top: auto;
+            right: auto;
+            background: rgba(255, 255, 255, 0.5);
+            /* Slightly transparent on the white header */
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(220, 53, 69, 0.2);
+            border-radius: 12px;
+            padding: 10px 24px;
+            color: #dc3545;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-decoration: none;
+            height: fit-content;
+        }
+
+        .close-button:hover {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.25);
+        }
+
+        .close-button:hover svg {
+            stroke: white;
+        }
+
+        .close-button svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2.5;
+            transition: stroke 0.3s ease;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            margin-bottom: 2px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Animated gradient accent */
+        .header h1::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin-left: 8px;
+            margin-bottom: 4px;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .api-status {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+
+        .api-status.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .api-status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .api-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background-color: currentColor;
+        }
+
+        .api-status.connected .api-status-dot {
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 28% 1fr;
+            /* Left panel approx 28%, Right 72% */
+            gap: 24px;
+            flex: 1;
+            /* occupy remaining height */
+            min-height: 0;
+            /* Important for scroll within flex/grid item */
+        }
+
+        .left-panel {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .modules-section {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            /* Modules section size based on content */
+        }
+
+        .test-cases-section {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            flex: 1;
+            /* Takes remaining space in left panel */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #test-cases-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+            /* Space for scrollbar */
+        }
+
+        .test-cases-section h2,
+        .modules-section h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .module-item {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-item:hover {
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        .module-item.active {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .module-name {
+            font-weight: 600;
+            font-size: 1rem;
+            z-index: 1;
+        }
+
+        .download-btn {
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 0.75rem;
+            padding: 6px 12px;
+            color: var(--text-main);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .module-item.active .download-btn {
+            color: white;
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .module-item:not(.active) .download-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+        }
+
+        .test-case-item {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .test-case-item:hover {
+            border-color: var(--secondary);
+            background: var(--secondary-light);
+        }
+
+        .test-case-item.active {
+            background: linear-gradient(135deg, var(--secondary-light) 0%, var(--primary-light) 100%);
+            border-color: var(--secondary);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+        }
+
+        .test-case-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .log-header {
+            padding: 20px 25px;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .log-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .log-header .test-case-name {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+        }
+
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-card.pass {
+            border-bottom: 3px solid var(--success);
+        }
+
+        .stat-card.fail {
+            border-bottom: 3px solid var(--danger);
+        }
+
+        .stat-card.not-run {
+            border-bottom: 3px solid var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 5px;
+            color: var(--text-main);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .day-log {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+        }
+
+        .day-log.pass {
+            border-left: 4px solid var(--success);
+        }
+
+        .day-log.fail {
+            border-left: 4px solid var(--danger);
+        }
+
+        .day-log.not-run {
+            border-left: 4px solid var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .day-date {
+            font-weight: 700;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            min-width: fit-content;
+        }
+
+        .day-status {
+            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .day-status.pass {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .day-status.fail {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .day-status.not-run {
+            background: #f1f5f9;
+            color: var(--text-muted);
+        }
+
+        .detail-item {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .failure-section {
+            margin-top: 15px;
+            background: #fff5f5;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #fed7d7;
+        }
+
+        .failure-message {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #c53030;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #fee2e2;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* DB Solr Sync Structured Display */
+        .db-solr-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #fee2e2;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .summary-value.error-count {
+            color: #dc3545;
+        }
+
+        .error-jobs-table {
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+
+        .jobs-error-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .jobs-error-table thead {
+            background: linear-gradient(135deg, #dc3545 0%, #c53030 100%);
+            color: white;
+        }
+
+        .jobs-error-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .jobs-error-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.2s;
+        }
+
+        .jobs-error-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .jobs-error-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .jobs-error-table td {
+            padding: 12px 15px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            vertical-align: top;
+        }
+
+        .jobs-error-table .job-id {
+            font-weight: 600;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .jobs-error-table .job-title {
+            color: var(--text-main);
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .jobs-error-table .job-error {
+            color: #dc3545;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            min-width: 500px;
+            max-width: 800px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            overflow-y: visible;
+            padding: 12px 15px;
+            line-height: 1.6;
+        }
+
+        .jobs-error-table .job-error::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .jobs-error-table .job-error::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .jobs-error-table .job-error::-webkit-scrollbar-thumb {
+            background: #dc3545;
+            border-radius: 3px;
+        }
+
+        .jobs-error-table .job-error::-webkit-scrollbar-thumb:hover {
+            background: #c53030;
+        }
+
+        /* Make table horizontally scrollable for long error messages */
+        .error-jobs-table {
+            overflow-x: auto;
+            overflow-y: visible;
+            max-width: 100%;
+            margin-top: 15px;
+        }
+
+        .error-jobs-table::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .error-jobs-table::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .error-jobs-table::-webkit-scrollbar-thumb {
+            background: #dc3545;
+            border-radius: 4px;
+        }
+
+        /* Current Run Display for DB Solr Sync */
+        .db-solr-current-run {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .current-run-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .current-run-header h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .run-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .run-info .download-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            margin-left: auto;
+        }
+
+        .run-info .download-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .run-info .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .run-date {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: fit-content;
+        }
+
+        .run-status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .run-status.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .run-status.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .run-time {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .success-message {
+            padding: 20px;
+            background: #d4edda;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .success-message p {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #155724;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .loading,
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>📊 Test Activity Logs</h1>
+                <p>
+                    7-Day Historical Test Execution Data • Auto-deletes data older than 7 days
+                    <span id="api-status-indicator" class="api-status disconnected" title="Checking API connection...">
+                        <span class="api-status-dot"></span>
+                        <span id="api-status-text">Connecting...</span>
+                    </span>
+                </p>
+            </div>
+            <a href="logs/index.html" class="close-button" title="Back to Dashboard">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Close
+            </a>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Panel: Modules and Test Cases -->
+            <div class="left-panel">
+                <div class="modules-section">
+                    <h2>📁 Modules</h2>
+                    <div id="modules-list"></div>
+                </div>
+
+                <div class="test-cases-section">
+                    <h2>🧪 Test Cases</h2>
+                    <div id="test-cases-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">👈</div>
+                            <p>Select a module to view test cases</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: 7-Day Log Data -->
+            <div class="right-panel">
+                <div class="log-header">
+                    <h2>📈 7-Day Log History</h2>
+                    <div class="test-case-name" id="selected-test-name">Select a test case to view history</div>
+                </div>
+
+                <div class="log-content" id="log-content">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Select a test case to view its 7-day execution history</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:5001/api';
+        let currentModule = null;
+        let currentTestCase = null;
+        let isApiConnected = false;
+        let connectionRetryInterval = null;
+
+        // Timeout helper for older browsers that don't support AbortSignal.timeout
+        function createTimeoutSignal(ms) {
+            if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+                return AbortSignal.timeout(ms);
+            }
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), ms);
+            return controller.signal;
+        }
+
+        // CRITICAL: Global flag to prevent ALL auto-refresh when viewing test case
+        let isViewingTestCase = false;
+        let preventAutoRefresh = false;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkApiStatus();
+            // Poll API status every 5 minutes (300 seconds) - AS REQUESTED
+            setInterval(() => {
+                // CRITICAL: Stop checking status if user is viewing a test case to prevent ANY interference
+                if (currentTestCase || isViewingTestCase) {
+                    return;
+                }
+
+                // Only check status silently if auto-refresh is paused
+                if (preventAutoRefresh) {
+                    checkApiStatusSilent(); // Silent check - no data reload
+                } else {
+                    checkApiStatus(); // Normal check - can reload if needed
+                }
+            }, 300000);
+
+            // Auto-select module from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const moduleParam = urlParams.get('module');
+            if (moduleParam) {
+                // Wait for modules to load first (if checkApiStatus triggers loadModules)
+                // Or set a flag to select it after loadModules completes
+                window.autoSelectModuleId = moduleParam;
+            }
+        });
+
+        // Check API Server Status - UPDATED: Won't reload data if user is viewing test case
+        async function checkApiStatus() {
+            const indicator = document.getElementById('api-status-indicator');
+            const statusText = document.getElementById('api-status-text');
+
+            try {
+                const response = await fetch(`${API_BASE}/health?t=${Date.now()}`, {
+                    cache: 'no-cache',
+                    signal: createTimeoutSignal(3000) // Increased timeout to 3 seconds
+                });
+
+                if (response.ok) {
+                    if (!isApiConnected) {
+                        // Connection restored
+                        isApiConnected = true;
+                        if (indicator) {
+                            indicator.className = 'api-status connected';
+                        }
+                        if (statusText) {
+                            statusText.textContent = 'API Connected';
+                        }
+
+                        // CRITICAL: NEVER automatically load modules here. 
+                        // It causes the sidebar to flash/refresh unexpectedly.
+                        // Users can explicitely click "Retry" if needed.
+                        /*
+                        if (!currentTestCase) {
+                            const modulesList = document.getElementById('modules-list');
+                            if (modulesList && !modulesList.children.length) {
+                                loadModules();
+                            }
+                        }
+                        */
+                    }
+                    return true;
+                } else {
+                    throw new Error('API Error');
+                }
+            } catch (error) {
+                isApiConnected = false;
+                if (indicator) {
+                    indicator.className = 'api-status disconnected';
+                }
+                if (statusText) {
+                    statusText.textContent = 'API Disconnected';
+                }
+                return false;
+            }
+        }
+
+        // Silent API status check - only updates status indicator, never reloads data
+        async function checkApiStatusSilent() {
+            const indicator = document.getElementById('api-status-indicator');
+            const statusText = document.getElementById('api-status-text');
+
+            try {
+                const response = await fetch(`${API_BASE}/health?t=${Date.now()}`, {
+                    cache: 'no-cache',
+                    signal: createTimeoutSignal(2000)
+                });
+
+                if (response.ok) {
+                    if (!isApiConnected) {
+                        isApiConnected = true;
+                        if (indicator) {
+                            indicator.className = 'api-status connected';
+                        }
+                        if (statusText) {
+                            statusText.textContent = 'API Connected';
+                        }
+                    }
+                    return true;
+                } else {
+                    isApiConnected = false;
+                    if (indicator) {
+                        indicator.className = 'api-status disconnected';
+                    }
+                    if (statusText) {
+                        statusText.textContent = 'API Disconnected';
+                    }
+                    return false;
+                }
+            } catch (error) {
+                isApiConnected = false;
+                if (indicator) {
+                    indicator.className = 'api-status disconnected';
+                }
+                if (statusText) {
+                    statusText.textContent = 'API Disconnected';
+                }
+                return false;
+            }
+        }
+
+        // Load modules on page load - UPDATED: Won't reload if user is viewing test case
+        async function loadModules() {
+            // CRITICAL: Don't reload modules if user is viewing a test case
+            // This prevents auto-refresh when user is viewing test case details
+            if (preventAutoRefresh || currentTestCase || isViewingTestCase) {
+                console.log('⏸️ Skipping loadModules - user is viewing test case (preventAutoRefresh:', preventAutoRefresh, ')');
+                return;
+            }
+
+            const modulesList = document.getElementById('modules-list');
+            if (!modulesList) return;
+
+            if (!isApiConnected) {
+                // Try checking status silently first (don't trigger reloads)
+                await checkApiStatusSilent();
+                if (!isApiConnected) {
+                    if (modulesList) {
+                        modulesList.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">⚠️</div>
+                                <p>API Server Disconnected</p>
+                                <button onclick="loadModules()" style="margin-top:10px;padding:8px 16px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">Retry Connection</button>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/modules?t=${Date.now()}`, {
+                    cache: 'no-cache',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                const modules = await response.json();
+
+                const modulesSection = document.querySelector('.modules-section');
+
+                // Hide modules section if hideModules=true in URL
+                if (shouldHideModules()) {
+                    if (modulesSection) modulesSection.style.display = 'none';
+                    return;
+                }
+
+                if (modulesSection) modulesSection.style.display = 'block';
+
+                modulesList.innerHTML = '';
+
+                let autoSelected = false;
+
+                modules.forEach(module => {
+                    const moduleItem = document.createElement('div');
+                    moduleItem.className = 'module-item';
+                    moduleItem.innerHTML = `
+                        <span class="module-name">${module.name}</span>
+                        <button class="download-btn" onclick="downloadLog('${module.id}', event)">
+                            <span>📥</span> Download Log
+                        </button>
+                    `;
+                    moduleItem.onclick = (e) => {
+                        if (e.target.classList.contains('download-btn') || e.target.closest('.download-btn')) {
+                            return;
+                        }
+                        selectModule(module.id, module.name, e.currentTarget);
+                    };
+
+                    // Check for auto-selection - UPDATED: Only auto-select if not viewing test case
+                    if (window.autoSelectModuleId && module.id === window.autoSelectModuleId && !currentTestCase) {
+                        moduleItem.classList.add('active');
+                        selectModule(module.id, module.name, moduleItem);
+                        autoSelected = true;
+                    }
+
+                    modulesList.appendChild(moduleItem);
+                });
+
+                // Clear auto-select flag
+                window.autoSelectModuleId = null;
+            } catch (error) {
+                console.error('Error loading modules:', error);
+                modulesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <p>Failed to load modules</p>
+                        <button onclick="loadModules()" style="margin-top:10px;padding:8px 16px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Select a module - shows only that module's test cases
+        async function selectModule(moduleId, moduleName, element) {
+            currentModule = moduleId;
+            currentTestCase = null;
+
+            // Update Header Title dynamically
+            const headerTitle = document.querySelector('.header h1');
+            if (headerTitle) {
+                let icon = '📊';
+                let displayTitle = 'Test Activity Logs';
+
+                const id = moduleId.toLowerCase();
+                if (id.includes('jobseeker')) {
+                    icon = '👨‍💼';
+                    displayTitle = 'Job Seeker Test Activity Logs';
+                } else if (id.includes('employer')) {
+                    icon = '🏢';
+                    displayTitle = 'Employer Test Activity Logs';
+                } else if (id.includes('benchsale')) {
+                    icon = '💼';
+                    displayTitle = 'BenchSale Test Activity Logs';
+                } else {
+                    displayTitle = `${moduleName} Logs`;
+                }
+                // Update with animation reset
+                headerTitle.style.opacity = '0';
+                setTimeout(() => {
+                    headerTitle.innerHTML = `${icon} ${displayTitle}`;
+                    headerTitle.style.opacity = '1';
+                }, 200);
+
+                // Update Close Button Link to point to the correct Dashboard View
+                const closeBtn = document.querySelector('.close-button');
+                if (closeBtn) {
+                    if (id.includes('employer')) {
+                        closeBtn.href = 'logs/index.html?filter=employer';
+                    } else if (id.includes('jobseeker')) {
+                        closeBtn.href = 'logs/index.html?filter=jobseeker';
+                    } else {
+                        closeBtn.href = 'logs/index.html';
+                    }
+                }
+            }
+
+            // CRITICAL: Don't reload if user is viewing a test case and module hasn't changed
+            // This prevents auto-refresh when user is viewing test case details
+            if (preventAutoRefresh || (currentTestCase && currentModule === moduleId)) {
+                console.log('⏸️ Skipping module reload - user is viewing test case (preventAutoRefresh:', preventAutoRefresh, ')');
+                return; // Don't reload if already viewing a test case in this module
+            }
+
+            // Update UI
+            document.querySelectorAll('.module-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            }
+
+            // Load test cases for THIS module only
+            await loadTestCases(moduleId);
+
+            // Clear log content only if module changed or no test case selected
+            if (currentModule !== moduleId || !currentTestCase) {
+                currentTestCase = null; // Clear current test case if module changed
+                const logContent = document.getElementById('log-content');
+                if (logContent) {
+                    logContent.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <p>Select a test case to view its 7-day execution history</p>
+                        </div>
+                    `;
+                }
+                const selectedTestName = document.getElementById('selected-test-name');
+                if (selectedTestName) {
+                    selectedTestName.textContent = 'Select a test case to view history';
+                }
+            }
+        }
+
+        // Load test cases for a specific module only - STRICT FILTERING
+        async function loadTestCases(moduleId) {
+            // CRITICAL: Don't reload test cases if user is viewing a test case
+            // This prevents auto-refresh when user is viewing test case details
+            if (preventAutoRefresh || (currentTestCase && currentModule === moduleId)) {
+                console.log('⏸️ Skipping loadTestCases - user is viewing test case details (preventAutoRefresh:', preventAutoRefresh, ')');
+                return;
+            }
+
+            const testCasesList = document.getElementById('test-cases-list');
+            if (!testCasesList) return;
+
+            testCasesList.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading test cases...</div>';
+
+            try {
+                // Check API status silently before making request (don't trigger reloads)
+                await checkApiStatusSilent();
+                if (!isApiConnected) {
+                    throw new Error('API Server is disconnected');
+                }
+
+                const response = await fetch(`${API_BASE}/modules/${moduleId}/test-cases?t=${Date.now()}`, {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    },
+                    signal: createTimeoutSignal(10000) // 10 second timeout
+                });
+
+                if (!response.ok) {
+                    // Update API status silently if we get an error (don't trigger reloads)
+                    isApiConnected = false;
+                    await checkApiStatusSilent();
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const testCases = await response.json();
+
+                testCasesList.innerHTML = '';
+
+                if (!testCases || testCases.length === 0) {
+                    testCasesList.innerHTML += '<div class="empty-state"><p>No test cases found for this module</p></div>';
+                    return;
+                }
+
+                // CRITICAL: Double-check that all test cases belong to this module
+                // This is a safety check in case API returns any incorrect data
+                // STRICT filtering to ensure data isolation
+                const filteredTestCases = testCases.filter(testCase => {
+                    const testLower = testCase.toLowerCase();
+
+                    // For BenchSale modules, check patterns
+                    if (moduleId.startsWith('benchsale_')) {
+                        if (moduleId === 'benchsale_admin') {
+                            // Admin tests: t1_ pattern or admin keyword, exclude employer/jobseeker
+                            return (testLower.includes('t1_') || testLower.includes('admin')) &&
+                                !testLower.includes('employer') && !testLower.includes('jobseeker') &&
+                                !testLower.includes('js_from');
+                        } else if (moduleId === 'benchsale_recruiter') {
+                            // Recruiter tests: t2_ pattern or recruiter keyword, exclude employer/jobseeker
+                            return (testLower.includes('t2_') || testLower.includes('recruiter')) &&
+                                !testLower.includes('employer') && !testLower.includes('jobseeker') &&
+                                !testLower.includes('js_from');
+                        } else if (moduleId === 'benchsale_test') {
+                            // Main test: both t1_ and t2_, exclude employer/jobseeker
+                            return (testLower.includes('t1_') || testLower.includes('t2_') ||
+                                testLower.includes('admin') || testLower.includes('recruiter')) &&
+                                !testLower.includes('employer') && !testLower.includes('jobseeker') &&
+                                !testLower.includes('js_from');
+                        }
+                    }
+
+                    // For Employer: STRICT filtering - exclude jobseeker/admin/recruiter/benchsale
+                    if (moduleId === 'employer') {
+                        // Exclude BenchSale tests (do NOT exclude employer tests that use t1_/t2_)
+                        if (testLower.includes('benchsale')) {
+                            return false;
+                        }
+                        if (testLower.includes('admin') || testLower.includes('recruiter')) {
+                            return false;
+                        }
+                        // Exclude jobseeker-specific tests
+                        if (testLower.includes('js_from')) {
+                            return false; // Jobseeker applying from home page
+                        }
+                        // Include employer tests (even if they mention "js" in context like "js_dashboard")
+                        // But exclude if it's clearly a jobseeker action
+                        if (testLower.includes('jobseeker') && !testLower.includes('job_posting_displayed') &&
+                            !testLower.includes('shortlisting') && !testLower.includes('applicant')) {
+                            return false; // Has jobseeker keyword but not employer action
+                        }
+                        return true; // Employer test
+                    }
+
+                    // For JobSeeker: STRICT filtering - exclude employer/admin/recruiter/benchsale
+                    if (moduleId === 'jobseeker') {
+                        // Exclude BenchSale tests (do NOT exclude jobseeker tests that use t1_ pattern)
+                        if (testLower.includes('benchsale')) {
+                            return false;
+                        }
+                        if (testLower.includes('admin') || testLower.includes('recruiter')) {
+                            return false;
+                        }
+                        // Exclude employer-specific features
+                        if (testLower.includes('hotlist') || testLower.includes('hot_list')) {
+                            return false; // Hotlist = employer feature
+                        }
+                        // Exclude employer tests (even if they mention "js")
+                        if (testLower.includes('job_posting_displayed_in_js') ||
+                            testLower.includes('verification_of_job_posting_displayed_in_js')) {
+                            return false; // Employer verifying posting appears = employer test
+                        }
+                        if (testLower.includes('shortlisting') || testLower.includes('applicant') ||
+                            testLower.includes('closing') || testLower.includes('post_a_job')) {
+                            return false; // Employer actions = employer test
+                        }
+                        // Exclude if has employer keywords without clear jobseeker context
+                        if ((testLower.includes('employer') || testLower.includes('emp')) &&
+                            !testLower.includes('js_dashboard') && !testLower.includes('jobseeker')) {
+                            return false; // Has employer keywords but no jobseeker context
+                        }
+                        // After exclusions, allow all remaining tests for JobSeeker
+                        return true;
+                    }
+
+                    return true; // If unsure, include it (API should have filtered already)
+                });
+
+                if (filteredTestCases.length === 0) {
+                    testCasesList.innerHTML += '<div class="empty-state"><p>No test cases found for this module</p></div>';
+                    return;
+                }
+
+                filteredTestCases.forEach(testCase => {
+                    const testCaseItem = document.createElement('div');
+                    testCaseItem.className = 'test-case-item';
+                    testCaseItem.innerHTML = `
+                        <div class="test-case-name">${testCase}</div>
+                    `;
+                    // CRITICAL: Prevent multiple clicks and ensure only one call
+                    let isClicking = false;
+                    testCaseItem.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Prevent multiple simultaneous clicks
+                        if (isClicking) {
+                            console.log('⏸️ Click already in progress, ignoring duplicate click');
+                            return;
+                        }
+
+                        isClicking = true;
+                        selectTestCase(testCase, e.currentTarget).finally(() => {
+                            // Reset flag after a delay to allow the click to complete
+                            setTimeout(() => {
+                                isClicking = false;
+                            }, 1000);
+                        });
+                    };
+                    testCasesList.appendChild(testCaseItem);
+                });
+            } catch (error) {
+                console.error('Error loading test cases:', error);
+
+                // Update API status silently (don't trigger reloads)
+                isApiConnected = false;
+                await checkApiStatusSilent();
+
+                testCasesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Failed to load test cases</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">API Server may be disconnected</p>
+                        <button onclick="loadTestCases('${moduleId}')" style="margin-top:10px;padding:8px 16px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Select a test case - shows only that test case's 7-day history
+        async function selectTestCase(testCase, element) {
+            if (!currentModule) {
+                console.log('⏸️ No module selected, cannot load test case');
+                return;
+            }
+
+            // CRITICAL: Prevent duplicate calls - if already viewing this test case, don't reload
+            if (currentTestCase === testCase && preventAutoRefresh && isViewingTestCase) {
+                console.log('⏸️ Already viewing this test case, skipping reload to prevent refresh');
+                // Still update UI highlight
+                document.querySelectorAll('.test-case-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                if (element) {
+                    element.classList.add('active');
+                }
+                return;
+            }
+
+            // CRITICAL: Set flags to prevent auto-refresh BEFORE loading
+            currentTestCase = testCase;
+            isViewingTestCase = true;
+            preventAutoRefresh = true;
+
+            console.log('📊 Loading test case:', testCase, 'preventAutoRefresh:', preventAutoRefresh);
+
+            // Update UI
+            document.querySelectorAll('.test-case-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (element) {
+                element.classList.add('active');
+            }
+
+            // Load 7-day log data for THIS test case only
+            await loadLogHistory(currentModule, testCase, true);
+        }
+
+        // Load 7-day log history for a specific test case - STRICT MODULE VERIFICATION
+        async function loadLogHistory(moduleId, testCase, manualLoad = false) {
+            // CRITICAL: Prevent reload if already viewing the same test case
+            // This prevents auto-refresh when user is viewing test case details
+            if (!manualLoad && preventAutoRefresh && currentTestCase === testCase && currentModule === moduleId) {
+                console.log('⏸️ Skipping loadLogHistory - already viewing this test case (preventAutoRefresh:', preventAutoRefresh, ')');
+                return;
+            }
+
+            // Allow manual reload (when user clicks test case)
+            preventAutoRefresh = false; // Reset flag to allow this manual load
+
+            // CRITICAL: Ensure we're using the correct current module
+            if (!moduleId || moduleId !== currentModule) {
+                console.error(`Module mismatch: requested ${moduleId}, current ${currentModule}`);
+                moduleId = currentModule;
+            }
+
+            if (!moduleId) {
+                console.error('No module selected');
+                return;
+            }
+
+            const logContent = document.getElementById('log-content');
+            if (!logContent) {
+                console.error('log-content element not found');
+                return;
+            }
+
+            // CRITICAL: Only update loading state if not already showing this test case
+            if (currentTestCase !== testCase || !preventAutoRefresh) {
+                logContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading log history...</div>';
+            }
+
+            const selectedTestName = document.getElementById('selected-test-name');
+            if (selectedTestName) {
+                selectedTestName.textContent = testCase;
+            }
+
+            try {
+                // CRITICAL: For db_solr_sync test, add extra cache-busting and force refresh
+                // This ensures UI always gets latest data from JSON file
+                const isDbSolrSync = testCase.toLowerCase().includes('db_solr_sync');
+                // FIX: Use ? for first parameter, & for subsequent ones
+                const cacheBuster = isDbSolrSync ? `?_refresh=${Date.now()}&_force=1` : `?t=${Date.now()}`;
+                const url = `${API_BASE}/modules/${moduleId}/test-cases/${encodeURIComponent(testCase)}/history${cacheBuster}`;
+
+                console.log(`API-REQUEST: Fetching ${url} for ${testCase}`);
+
+                // For db_solr_sync, skip API status check - go directly to fetch
+                // This prevents false negatives from status check
+                if (!isDbSolrSync) {
+                    await checkApiStatusSilent();
+                    if (!isApiConnected) {
+                        console.warn('API-STATUS: API not connected, but attempting request anyway');
+                    }
+                }
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-store, no-cache, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0',
+                        'Accept': 'application/json'
+                    },
+                    signal: createTimeoutSignal(isDbSolrSync ? 60000 : 30000) // 60 second timeout for db_solr_sync, 30s for others (increased from 10s)
+                });
+
+                console.log(`API-RESPONSE: Status ${response.status}, OK: ${response.ok}, Content-Type: ${response.headers.get('Content-Type')}`);
+
+                if (!response.ok) {
+                    // Update API status silently if we get an error (don't trigger reloads)
+                    isApiConnected = false;
+                    await checkApiStatusSilent();
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const logData = await response.json();
+
+                // CRITICAL: Verify all returned data belongs to this module
+                // Filter out any entries that don't match the test case or module
+                const filteredLogData = logData.filter(entry => {
+                    const entryTestName = entry.test_name || entry.testName || '';
+                    return entryTestName === testCase;
+                });
+
+                // Check if this is db_solr_sync test
+                const isDbSolrSyncTest = testCase && testCase.toLowerCase().includes('db_solr_sync');
+
+                // Render log content
+                let html = '';
+
+                // Only show stats summary for non-db_solr_sync tests
+                if (!isDbSolrSyncTest) {
+                    // Calculate statistics from filtered data
+                    const stats = {
+                        pass: filteredLogData.filter(d => d.status === 'PASS').length,
+                        fail: filteredLogData.filter(d => d.status === 'FAIL').length,
+                        notRun: filteredLogData.filter(d => d.status === 'NOT_RUN').length
+                    };
+
+                    html = `
+                        <div class="stats-summary">
+                            <div class="stat-card pass">
+                                <div class="stat-value">${stats.pass}</div>
+                                <div class="stat-label">Days Passed</div>
+                            </div>
+                            <div class="stat-card fail">
+                                <div class="stat-value">${stats.fail}</div>
+                                <div class="stat-label">Days Failed</div>
+                            </div>
+                            <div class="stat-card not-run">
+                                <div class="stat-value">${stats.notRun}</div>
+                                <div class="stat-label">Days Not Run</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Sort filtered log data by date (newest first)
+                const sortedLogData = [...filteredLogData].sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    if (dateA.getTime() === dateB.getTime()) {
+                        if (a.datetime && b.datetime) {
+                            return new Date(b.datetime) - new Date(a.datetime);
+                        }
+                        return 0;
+                    }
+                    return dateB - dateA;
+                });
+
+                // For db_solr_sync test, only show the latest run in tabular format
+                if (isDbSolrSyncTest && sortedLogData.length > 0) {
+                    // Only show the latest run
+                    const latestRun = sortedLogData[0];
+
+                    // Store latest run data globally for download function
+                    window.currentRunData = latestRun;
+
+                    // Format date with time from datetime field if available
+                    let formattedDateTime = '';
+                    if (latestRun.datetime) {
+                        try {
+                            // Parse datetime - handle format like "2026-01-29T12:15:32.810665" or "2026-01-29T12:15:32.810665 to 2026-01-29T01:31:06"
+                            let datetimeStr = latestRun.datetime;
+                            // Extract start time (before "to" if present)
+                            if (datetimeStr.includes(' to ')) {
+                                datetimeStr = datetimeStr.split(' to ')[0];
+                            }
+                            // Parse the datetime
+                            const dt = new Date(datetimeStr);
+                            if (!isNaN(dt.getTime())) {
+                                formattedDateTime = dt.toLocaleString('en-US', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                });
+                            }
+                        } catch (e) {
+                            console.log('Error parsing datetime:', e);
+                        }
+                    }
+                    // Fallback to date only if datetime not available
+                    if (!formattedDateTime) {
+                        formattedDateTime = new Date(latestRun.date + 'T00:00:00').toLocaleString('en-US', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                    }
+
+                    // CRITICAL: Show failures if they exist, regardless of test status
+                    // This ensures failures are displayed even when test passes (e.g., ALLOW_SOLR_SYNC_FAILURES=1)
+                        const totalJobsFromHistory = latestRun.total_jobs || latestRun.totalJobs || 0;
+                        const errorJobsCountFromHistory = latestRun.error_jobs_count || latestRun.errorJobsCount || 0;
+                        const errorJobsFromHistory = latestRun.error_jobs || latestRun.errorJobs || [];
+                    const hasFailures = errorJobsCountFromHistory > 0 || (errorJobsFromHistory && errorJobsFromHistory.length > 0);
+
+                    if (hasFailures || (latestRun.status === 'FAIL' && latestRun.failure_message)) {
+                        // Show tabular format for failures
+                        html += `
+                            <div class="db-solr-current-run">
+                                <div class="current-run-header">
+                                    <h3>Current Run Report</h3>
+                                    <div class="run-info">
+                                        <span class="run-date">${formattedDateTime}</span>
+                                        <span class="run-status fail">❌ Failed</span>
+                                        <span class="run-time">⏱️ ${latestRun.running_time || 'N/A'}</span>
+                                        <button class="download-btn" onclick="downloadCurrentRunData()" title="Download current run data (JSON/CSV)">
+                                            📥 Download Report
+                                        </button>
+                                    </div>
+                                </div>
+                                ${parseDbSolrSyncError(latestRun.failure_message || '', currentTestCase, totalJobsFromHistory, errorJobsCountFromHistory, errorJobsFromHistory)}
+                            </div>
+                        `;
+                    } else if (latestRun.status === 'PASS') {
+                        // Show success message
+                        html += `
+                            <div class="db-solr-current-run">
+                                <div class="current-run-header">
+                                    <h3>Current Run Report</h3>
+                                    <div class="run-info">
+                                        <span class="run-date">${formattedDateTime}</span>
+                                        <span class="run-status pass">✅ Passed</span>
+                                        <span class="run-time">⏱️ ${latestRun.running_time || 'N/A'}</span>
+                                        <button class="download-btn" onclick="downloadCurrentRunData()" title="Download current run data (JSON/CSV)">
+                                            📥 Download Report
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="success-message">
+                                    <p>✅ All jobs synced successfully!</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // For other tests, show 7-day history as before
+                    sortedLogData.forEach(day => {
+                        const statusClass = day.status.toLowerCase().replace('_', '-');
+
+                        // Format date with time from datetime field if available
+                        let formattedDate = '';
+                        if (day.datetime) {
+                            try {
+                                // Parse datetime - handle format like "2026-01-29T12:15:32.810665" or "2026-01-29T12:15:32.810665 to 2026-01-29T01:31:06"
+                                let datetimeStr = day.datetime;
+                                // Extract start time (before "to" if present)
+                                if (datetimeStr.includes(' to ')) {
+                                    datetimeStr = datetimeStr.split(' to ')[0];
+                                }
+                                // Parse the datetime
+                                const dt = new Date(datetimeStr);
+                                if (!isNaN(dt.getTime())) {
+                                    formattedDate = dt.toLocaleString('en-US', {
+                                        weekday: 'short',
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: false
+                                    });
+                                }
+                            } catch (e) {
+                                console.log('Error parsing datetime:', e);
+                            }
+                        }
+                        // Fallback to date only if datetime not available
+                        if (!formattedDate) {
+                            const dateObj = new Date(day.date + 'T00:00:00');
+                            formattedDate = dateObj.toLocaleString('en-US', {
+                                weekday: 'short',
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: false
+                            });
+                        }
+
+                        // Only show essential information - clean UI (no start/end times)
+                        const statusIcon = day.status === 'PASS' ? '✅' : day.status === 'FAIL' ? '❌' : '⏸️';
+                        const statusText = day.status === 'PASS' ? 'Passed' : day.status === 'FAIL' ? 'Failed' : 'Not Run';
+
+                        html += `
+                            <div class="day-log ${statusClass}">
+                                <div class="day-header">
+                                    <div class="day-date">${formattedDate}</div>
+                                    <div class="day-status ${statusClass}">
+                                        <span class="status-icon">${statusIcon}</span>
+                                        <span class="status-text">${statusText}</span>
+                                    </div>
+                                </div>
+                                <div class="day-details">
+                                    <div class="detail-item runtime">
+                                        <span class="detail-icon">⏱️</span>
+                                        <span class="detail-label">Runtime:</span>
+                                        <span class="detail-value">${day.running_time || 'N/A'}</span>
+                                    </div>
+                                </div>
+                                ${day.status === 'FAIL' && day.failure_message ? `
+                                <div class="failure-section">
+                                    <div class="failure-header">
+                                        <span class="failure-icon">❌</span>
+                                        <span>Failure Details</span>
+                                    </div>
+                                    ${day.screenshot_path ? `
+                                    <div class="screenshot-section" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                                        <div style="font-weight: bold; margin-bottom: 10px; color: #333;">
+                                            📸 Screenshot:
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <img src="${day.screenshot_path}" 
+                                                 alt="Test Failure Screenshot" 
+                                                 style="max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;"
+                                                 onclick="window.open('${day.screenshot_path}', '_blank')"
+                                                 title="Click to open in full size"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                            <div style="display: none; color: #999; padding: 10px;">
+                                                Screenshot not found: ${day.screenshot_path}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                    ${parseDbSolrSyncError(day.failure_message, currentTestCase)}
+                                </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                }
+
+                // CRITICAL: Only update innerHTML if content actually changed
+                // This prevents visual "refresh" when same data is loaded again
+                const currentContent = logContent.innerHTML.trim();
+                const newContent = html.trim();
+
+                if (currentContent !== newContent) {
+                    logContent.innerHTML = html;
+                } else {
+                    console.log('⏸️ Content unchanged, skipping innerHTML update to prevent visual refresh');
+                }
+
+                // CRITICAL: Re-enable preventAutoRefresh after data is loaded
+                preventAutoRefresh = true;
+                isViewingTestCase = true;
+                currentTestCase = testCase; // Ensure this is set
+
+                // CRITICAL: Prevent unwanted navigation when clicking on log content
+                // This prevents the "glitch" where clicking on failure details causes back navigation
+                // Use setTimeout to ensure DOM is ready
+                setTimeout(() => {
+                    const updatedLogContent = document.getElementById('log-content');
+                    if (updatedLogContent) {
+                        // Prevent clicks on failure sections from causing navigation
+                        updatedLogContent.querySelectorAll('.failure-section, .day-log').forEach(section => {
+                            section.style.cursor = 'default';
+                            section.addEventListener('click', (e) => {
+                                // Mark user interaction to prevent any auto-refresh
+                                if (typeof isUserInteracting !== 'undefined') {
+                                    isUserInteracting = true;
+                                    lastInteractionTime = Date.now();
+                                }
+
+                                // Stop event propagation to prevent unwanted navigation
+                                e.stopPropagation();
+
+                                // Allow text selection
+                                if (window.getSelection().toString().length > 0) {
+                                    return;
+                                }
+
+                                // Allow links and buttons to work normally
+                                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' ||
+                                    e.target.closest('a') || e.target.closest('button')) {
+                                    return;
+                                }
+
+                                // Prevent default to avoid any unwanted behavior
+                                e.preventDefault();
+                            }, { passive: false });
+                        });
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Error loading log history:', error);
+
+                // CRITICAL: Re-enable preventAutoRefresh even on error to prevent auto-reloads while viewing error
+                preventAutoRefresh = true;
+                isViewingTestCase = true;
+                currentTestCase = testCase;
+
+                // Update API status silently (don't trigger reloads)
+                isApiConnected = false;
+                await checkApiStatusSilent();
+
+                // Show user-friendly error message with retry option
+                const errorMessage = error.message.includes('AbortError') ? 'Request Timed Out (Wait longer)' :
+                    error.message.includes('API Error') ? error.message :
+                        'API Connection Error';
+
+                logContent.innerHTML = `
+                    <div class="error" style="padding: 20px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">${errorMessage}</div>
+                        <div style="margin-bottom: 15px; color: #666;">
+                            Failed to load log history.
+                            ${error.message ? `<br><small>${error.toString()}</small>` : ''}
+                        </div>
+                        <button onclick="location.reload()" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 10px;">
+                            🔄 Retry
+                        </button>
+                        <button onclick="loadLogHistory('${moduleId}', '${testCase}', true)" style="padding: 10px 20px; background: #16A34A; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            🔁 Reload Data
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Download log file for a specific module
+        function downloadLog(moduleId, event) {
+            event.stopPropagation();
+            window.open(`${API_BASE}/modules/${moduleId}/download-log`, '_blank');
+        }
+
+        // Show error message
+        function showError(message) {
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            container.insertBefore(errorDiv, container.firstChild);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Parse and format db_solr_sync error messages
+        function parseDbSolrSyncError(failureMessage, testCase, totalJobsFromHistory = 0, errorJobsCountFromHistory = 0, errorJobsFromHistory = []) {
+            if (!failureMessage || !testCase || !testCase.toLowerCase().includes('db_solr_sync')) {
+                // Standard error display for other tests
+                return `<div class="failure-message">${escapeHtml(failureMessage.substring(0, 500)).replace(/\n/g, '<br>')}${failureMessage.length > 500 ? '...' : ''}</div>`;
+            }
+
+            // Parse structured error message for db_solr_sync
+            const lines = failureMessage.split('\n');
+            let totalJobs = totalJobsFromHistory || 0;  // Use from history first
+            let errorJobsCount = errorJobsCountFromHistory || 0;  // Use from history first
+            let errorJobs = errorJobsFromHistory.length > 0 ? errorJobsFromHistory : [];  // Use from history first
+            let inTableSection = false;
+            let foundHeader = false;
+
+            // Extract summary information from failure_message only if not available from history
+            // If history has errorJobs, skip parsing failure_message to avoid duplicate rows
+            if (errorJobs.length === 0 && (totalJobs === 0 || errorJobsCount === 0)) {
+                for (const line of lines) {
+                    // New format: "Total Jobs Checked: X" or "Total Jobs: X"
+                    if (line.includes('Total Jobs Checked:') || line.includes('Total Jobs:')) {
+                        const match = line.match(/Total Jobs (?:Checked:)?\s*(\d+)/i);
+                        if (match && totalJobs === 0) totalJobs = parseInt(match[1]);
+                    }
+                    // New format: "Total Failures: X" or "Jobs with Errors: X"
+                    if (line.includes('Total Failures:') || line.includes('Jobs with Errors:')) {
+                        const match = line.match(/(?:Total Failures|Jobs with Errors):\s*(\d+)/i);
+                        if (match && errorJobsCount === 0) errorJobsCount = parseInt(match[1]);
+                    }
+                }
+
+                // Only parse error jobs from failure_message if we don't have them from history
+                if (errorJobs.length === 0) {
+                    for (const line of lines) {
+                        // Detect new tabular format header: "ID           | Title                                               | Error"
+                        if (line.includes('|') && line.includes('ID') && line.includes('Title') && line.includes('Error')) {
+                            inTableSection = true;
+                            foundHeader = true;
+                            continue;
+                        }
+
+                        // Skip separator lines (dashes)
+                        if (inTableSection && /^[-]+$/.test(line.trim())) {
+                            continue;
+                        }
+
+                        // Parse new tabular format: "ID           | Title                                               | Error"
+                        if (inTableSection && foundHeader && line.includes('|')) {
+                            const parts = line.split('|').map(p => p.trim());
+                            if (parts.length >= 3 && parts[0] && !parts[0].includes('ID')) {
+                                // Skip header row if it appears again
+                                if (parts[0].toLowerCase() === 'id') continue;
+
+                                errorJobs.push({
+                                    id: parts[0] || '',
+                                    title: parts[1] || '',
+                                    error: parts[2] || ''
+                                });
+                            }
+                        }
+
+                        // Parse old format: "ID: xxx | Title: yyy | Error: zzz"
+                        if (!inTableSection && line.includes('ID:') && line.includes('Title:') && line.includes('Error:')) {
+                            const idMatch = line.match(/ID:\s*([^|]+)/);
+                            const titleMatch = line.match(/Title:\s*([^|]+)/);
+                            const errorMatch = line.match(/Error:\s*(.+)/);
+                            if (idMatch && titleMatch && errorMatch) {
+                                errorJobs.push({
+                                    id: idMatch[1].trim(),
+                                    title: titleMatch[1].trim(),
+                                    error: errorMatch[1].trim()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Build structured HTML display
+            let html = '';
+
+            // Summary section - always show if we have data (even if totalJobs is 0, show it)
+            // Use errorJobsCount from history or parsed, fallback to errorJobs.length
+            const finalErrorCount = errorJobsCount > 0 ? errorJobsCount : (errorJobs.length > 0 ? errorJobs.length : 0);
+            // De-duplicate by id+title+error in case parsing or history duplicates
+            if (errorJobs.length > 0) {
+                const seen = new Set();
+                errorJobs = errorJobs.filter(job => {
+                    const key = `${job.id || ''}|${job.title || ''}|${job.error || ''}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            }
+            // Safety: if history has stale extra rows, trim to the reported count
+            if (finalErrorCount > 0 && errorJobs.length > finalErrorCount) {
+                errorJobs = errorJobs.slice(0, finalErrorCount);
+            }
+
+            html += `
+                <div class="db-solr-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Jobs Checked:</span>
+                        <span class="summary-value">${totalJobs > 0 ? totalJobs : (totalJobs === 0 ? 0 : 'N/A')}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Total Failures:</span>
+                        <span class="summary-value error-count">${finalErrorCount}</span>
+                    </div>
+                </div>
+            `;
+
+            // Error jobs table
+            if (errorJobs.length > 0) {
+                html += `
+                    <div class="error-jobs-table">
+                        <table class="jobs-error-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                errorJobs.forEach(job => {
+                    html += `
+                        <tr>
+                            <td class="job-id">${escapeHtml(job.id)}</td>
+                            <td class="job-title">${escapeHtml(job.title)}</td>
+                            <td class="job-error">${escapeHtml(job.error)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else if (failureMessage) {
+                // Fallback to standard display if parsing didn't work
+                html += `<div class="failure-message">${escapeHtml(failureMessage.substring(0, 500)).replace(/\n/g, '<br>')}${failureMessage.length > 500 ? '...' : ''}</div>`;
+            }
+
+            return html;
+        }
+
+        // Check and start server if needed
+        async function checkAndStartServer() {
+            try {
+                const response = await fetch(`${API_BASE}/health?t=${Date.now()}`, {
+                    method: 'GET',
+                    signal: createTimeoutSignal(2000),
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Log Viewer API server is running');
+                    return true;
+                }
+            } catch (error) {
+                console.log('⚠️ Log Viewer API server not running');
+                return false;
+            }
+        }
+
+        // Show server status notification
+        function showServerStatus(isRunning) {
+            // Remove existing notification
+            const existing = document.getElementById('server-status-notification');
+            if (existing) {
+                existing.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.id = 'server-status-notification';
+            notification.style.cssText = 'position:fixed;top:20px;right:20px;padding:15px 25px;border-radius:8px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.2);font-weight:600;color:white;';
+
+            if (isRunning) {
+                notification.style.background = '#10b981';
+                notification.innerHTML = '✅ API Server Running';
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            } else {
+                notification.style.background = '#dc3545';
+                notification.innerHTML = `
+                    ⚠️ API Server Not Running<br>
+                    <small style="opacity:0.9;display:block;margin-top:8px;">
+                        Run: <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">START_LOG_VIEWER_API.bat</code><br>
+                        Or: <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">python utils\\log_history_api.py</code>
+                    </small>
+                `;
+                document.body.appendChild(notification);
+            }
+        }
+
+        // Auto-update all modules data
+        async function updateAllModules() {
+            // DISABLED: Auto-update disabled to prevent interruption when viewing test cases
+            // Only update if explicitly called (not automatically)
+            // This prevents data refresh while user is viewing test case details
+            if (currentTestCase) {
+                console.log('⏸️ Skipping auto-update - user is viewing test case details');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/update-all`, { method: 'POST' });
+                if (response.ok) {
+                    console.log('✅ All modules updated');
+                }
+            } catch (error) {
+                console.log('Could not auto-update modules:', error);
+            }
+        }
+
+        // Check URL parameters for module selection
+        function getModuleFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('module');
+        }
+
+        // Check if modules list should be hidden
+        function shouldHideModules() {
+            const params = new URLSearchParams(window.location.search);
+            const hideParam = params.get('hideModules') === 'true';
+            const hasModule = !!params.get('module');
+            // If a module is specified, hide the modules list to avoid cross-module confusion
+            return hideParam || hasModule;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            // Check server status first
+            const serverRunning = await checkAndStartServer();
+            showServerStatus(serverRunning);
+
+            if (serverRunning) {
+                // DISABLED: Auto-update on load to prevent interruption
+                // await updateAllModules(); // Disabled - only update when needed
+
+                // Load modules
+                await loadModules();
+
+                // Check if module is specified in URL
+                const urlModule = getModuleFromURL();
+                if (urlModule) {
+                    const moduleMap = {
+                        'benchsale_admin': 'BenchSale Admin',
+                        'benchsale_recruiter': 'BenchSale Recruiter',
+                        'benchsale_test': 'BenchSale Main Test',
+                        'employer': 'Employer',
+                        'jobseeker': 'JobSeeker'
+                    };
+                    const moduleName = moduleMap[urlModule];
+
+                    if (shouldHideModules()) {
+                        // Directly select module without waiting for modules list
+                        await selectModule(urlModule, moduleName, null);
+                    } else {
+                        // Wait for modules to load, then auto-select
+                        setTimeout(async () => {
+                            const moduleElement = Array.from(document.querySelectorAll('.module-item')).find(el => {
+                                const elModuleName = el.querySelector('.module-name')?.textContent;
+                                return elModuleName === moduleName;
+                            });
+                            if (moduleElement) {
+                                await selectModule(urlModule, moduleName, moduleElement);
+                            } else if (moduleName) {
+                                // Fallback: select even if element not found
+                                await selectModule(urlModule, moduleName, null);
+                            }
+                        }, 1500);
+                    }
+                }
+            } else {
+                // Show error message in main content
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.style.cssText = 'margin:20px;padding:20px;background:#f8d7da;color:#721c24;border-left:4px solid #dc3545;border-radius:8px;';
+                errorDiv.innerHTML = `
+                    <strong>⚠️ API Server Not Running</strong><br><br>
+                    To start the server, run one of these commands:<br>
+                    <ul style="margin:10px 0;padding-left:20px;">
+                        <li><code>START_LOG_VIEWER_API.bat</code></li>
+                        <li><code>python utils\\log_history_api.py</code></li>
+                    </ul>
+                    <p style="margin:10px 0 0 0;font-size:0.9em;opacity:0.8;">The page will automatically refresh when the server is detected.</p>
+                `;
+                document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.main-content'));
+
+                // Auto-retry checking server every 5 seconds - UPDATED: Won't reload if viewing test case
+                const retryInterval = setInterval(async () => {
+                    // CRITICAL: Don't reload anything if user is viewing a test case
+                    if (preventAutoRefresh || currentTestCase || isViewingTestCase) {
+                        return; // Skip reload if user is viewing test case details
+                    }
+
+                    const running = await checkAndStartServer();
+                    if (running) {
+                        clearInterval(retryInterval);
+                        showServerStatus(true);
+                        errorDiv.remove();
+                        // DISABLED: Auto-update to prevent interruption
+                        // await updateAllModules(); // Disabled
+
+                        // Only load modules if not viewing a test case
+                        if (!currentTestCase) {
+                            await loadModules();
+                        }
+
+                        // Auto-select module from URL if specified (only if not viewing test case)
+                        if (!currentTestCase) {
+                            const urlModule = getModuleFromURL();
+                            if (urlModule) {
+                                const moduleMap = {
+                                    'benchsale_admin': 'BenchSale Admin',
+                                    'benchsale_recruiter': 'BenchSale Recruiter',
+                                    'benchsale_test': 'BenchSale Main Test',
+                                    'employer': 'Employer',
+                                    'jobseeker': 'JobSeeker'
+                                };
+                                const moduleName = moduleMap[urlModule];
+
+                                if (shouldHideModules()) {
+                                    // Directly select module without waiting for modules list
+                                    await selectModule(urlModule, moduleName, null);
+                                } else {
+                                    setTimeout(async () => {
+                                        const moduleElement = Array.from(document.querySelectorAll('.module-item')).find(el => {
+                                            const elModuleName = el.querySelector('.module-name')?.textContent;
+                                            return elModuleName === moduleName;
+                                        });
+                                        if (moduleElement) {
+                                            await selectModule(urlModule, moduleName, moduleElement);
+                                        } else if (moduleName) {
+                                            // Fallback: select even if element not found
+                                            await selectModule(urlModule, moduleName, null);
+                                        }
+                                    }, 1000);
+                                }
+                            }
+                        }
+                    }
+                }, 500000);
+            }
+
+            // DISABLED: Auto-refresh disabled to prevent interruption when viewing test cases
+            // Auto-refresh was causing page to refresh while user is viewing test case details
+            // Users can manually refresh by clicking on the test case again or using browser refresh
+
+            // Track user interactions for future use (if auto-refresh is re-enabled)
+            let isUserInteracting = false;
+            let lastInteractionTime = Date.now();
+
+            // Track user interactions
+            document.addEventListener('mousedown', () => {
+                isUserInteracting = true;
+                lastInteractionTime = Date.now();
+            });
+            document.addEventListener('keydown', () => {
+                isUserInteracting = true;
+                lastInteractionTime = Date.now();
+            });
+
+            // NOTE: Auto-refresh is disabled. To re-enable, uncomment the code below:
+            /*
+            setInterval(async () => {
+                // Don't auto-refresh if user is actively interacting or viewing a test case
+                if (isUserInteracting || Date.now() - lastInteractionTime < 60000 || currentTestCase) {
+                    return;
+                }
+                
+                if (await checkAndStartServer()) {
+                    if (currentModule && !currentTestCase) {
+                        // Only refresh test cases list, not individual test history
+                        await loadTestCases(currentModule);
+                    }
+                }
+            }, 60000); // 60 seconds - only refresh test cases list, not test history
+            */
+
+            // DISABLED: Auto-update modules disabled to prevent interruption
+            // Auto-update was causing data refresh while user is viewing test cases
+            // Users can manually refresh by clicking on test case again
+            // [REMOVED COMMENTED CODE BLOCK FOR CLARITY]
+            // Previous commented-out code for auto-update modules was here.
+            // It is strictly disabled.
+
+            // Check server status every 5 minutes (300 seconds) - AS REQUESTED
+            setInterval(async () => {
+                // CRITICAL: Only check status silently if user is viewing test case
+                if (preventAutoRefresh || currentTestCase || isViewingTestCase) {
+                    // Silent check - no notifications, no data reload
+                    await checkApiStatusSilent();
+                } else {
+                    const running = await checkAndStartServer();
+                    showServerStatus(running);
+                }
+            }, 300000); // 5 minutes
+
+            // Download current run data function
+            window.downloadCurrentRunData = function () {
+                try {
+                    // Get current run data from global variable
+                    const runData = window.currentRunData;
+                    if (!runData) {
+                        alert('No data available to download');
+                        return;
+                    }
+
+                    // Prepare data for download
+                    // De-duplicate error jobs by id+title+error to prevent duplicates in downloads
+                    const rawErrorJobs = runData.error_jobs || runData.errorJobs || [];
+                    const seenKeys = new Set();
+                    const dedupedErrorJobs = rawErrorJobs.filter(job => {
+                        const id = (job.id || job.ID || 'N/A').toString();
+                        const title = (job.title || job.Title || 'N/A').toString();
+                        const error = (job.error || job.Error || 'N/A').toString();
+                        const key = `${id}|${title}|${error}`;
+                        if (seenKeys.has(key)) return false;
+                        seenKeys.add(key);
+                        return true;
+                    });
+
+                    const downloadData = {
+                        test_name: runData.test_name || runData.testName || currentTestCase || 'db_solr_sync_test',
+                        status: runData.status || 'UNKNOWN',
+                        date: runData.date || new Date().toISOString().split('T')[0],
+                        datetime: runData.datetime || '',
+                        running_time: runData.running_time || 'N/A',
+                        total_jobs: runData.total_jobs || runData.totalJobs || 0,
+                        error_jobs_count: runData.error_jobs_count || runData.errorJobsCount || dedupedErrorJobs.length || 0,
+                        error_jobs: dedupedErrorJobs,
+                        failure_message: runData.failure_message || '',
+                        error_details: runData.error_details || ''
+                    };
+
+                    // Create JSON content
+                    const jsonContent = JSON.stringify(downloadData, null, 2);
+
+                    // Create CSV content
+                    let csvContent = 'Test Name,Status,Date,DateTime,Running Time,Total Jobs,Error Jobs Count\n';
+                    csvContent += `"${downloadData.test_name}","${downloadData.status}","${downloadData.date}","${downloadData.datetime}","${downloadData.running_time}",${downloadData.total_jobs},${downloadData.error_jobs_count}\n\n`;
+
+                    if (downloadData.error_jobs && downloadData.error_jobs.length > 0) {
+                        csvContent += '\nError Jobs Details:\n';
+                        csvContent += 'Job ID,Job Title,Error\n';
+                        downloadData.error_jobs.forEach(job => {
+                            const id = (job.id || job.ID || 'N/A').toString().replace(/"/g, '""');
+                            const title = (job.title || job.Title || 'N/A').toString().replace(/"/g, '""');
+                            const error = (job.error || job.Error || 'N/A').toString().replace(/"/g, '""');
+                            csvContent += `"${id}","${title}","${error}"\n`;
+                        });
+                    }
+
+                    // Create file name with timestamp
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                    const fileName = `db_solr_sync_report_${timestamp}`;
+
+                    // Create download links
+                    const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+                    const csvBlob = new Blob([csvContent], { type: 'text/csv' });
+
+                    const jsonUrl = URL.createObjectURL(jsonBlob);
+                    const csvUrl = URL.createObjectURL(csvBlob);
+
+                    // Ask user which format to download
+                    const format = confirm('Download format:\n\nOK = JSON format\nCancel = CSV format') ? 'json' : 'csv';
+
+                    const link = document.createElement('a');
+                    link.href = format === 'json' ? jsonUrl : csvUrl;
+                    link.download = `${fileName}.${format}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Clean up
+                    URL.revokeObjectURL(jsonUrl);
+                    URL.revokeObjectURL(csvUrl);
+                } catch (error) {
+                    console.error('Error downloading data:', error);
+                    alert('Error downloading data: ' + error.message);
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>

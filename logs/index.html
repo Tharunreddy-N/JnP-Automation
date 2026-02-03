@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BenchSale Test Dashboard - Unified Report</title>
@@ -1206,6 +1210,12 @@
             font-size: 1em;
         }
         
+        /* Hide employer and jobseeker log links by default (shown via JS for those dashboards) */
+        .log-link[href*="module=employer"],
+        .log-link[href*="module=jobseeker"] {
+            display: none;
+        }
+        
         .log-link:hover {
             background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
             color: white;
@@ -1405,10 +1415,10 @@
                             <h1 id="dashboard-title">Unified Test Report</h1>
                             <div id="server-status-indicator" style="font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.5); padding: 4px 10px; border-radius: 20px;">
                                 <span id="server-status-text" style="color: #64748B;">Checking Server...</span>
-                                <button id="start-server-btn" onclick="startServer()" style="display: none; background: var(--primary); color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Start Server</button>
+                                <button id="start-server-btn" onclick="startServer()" style="display: none; background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3); transition: all 0.3s ease;">▶ Start Server</button>
                             </div>
                         </div>
-                        <div class="subtitle">Auto-generated • Live Status • Last Run: <span id="last-run-time-main">22 Jan 2026, 04:17 PM</span></div>
+                        <div class="subtitle">Auto-generated • Live Status • Last Run: <span id="last-run-time-main">03 Feb 2026, 12:30 PM</span></div>
                     </div>
                 </div>
                 <div class="refresh-btn-wrapper">
@@ -1484,7 +1494,7 @@
                 </div>
                 <div class="stat-info">
                    <div class="label">Total Tests</div>
-                   <div class="number" id="stat-employer-total-num">22</div>
+                   <div class="number" id="stat-employer-total-num">20</div>
                 </div>
             </div>
             <div class="stat-card passed employer-stat" id="stat-employer-passed" style="display: none;" onclick="filterByStatus('pass')">
@@ -1495,7 +1505,7 @@
                 </div>
                 <div class="stat-info">
                    <div class="label">Passed</div>
-                   <div class="number" id="stat-employer-passed-num">22</div>
+                   <div class="number" id="stat-employer-passed-num">20</div>
                 </div>
             </div>
             <div class="stat-card failed employer-stat" id="stat-employer-failed" style="display: none;" onclick="filterByStatus('fail')">
@@ -1540,7 +1550,7 @@
                 </div>
                 <div class="stat-info">
                    <div class="label">Total Tests</div>
-                   <div class="number" id="stat-jobseeker-total-num">8</div>
+                   <div class="number" id="stat-jobseeker-total-num">10</div>
                 </div>
             </div>
             <div class="stat-card passed jobseeker-stat" id="stat-jobseeker-passed" style="display: none;" onclick="filterByStatus('pass')">
@@ -1551,7 +1561,7 @@
                 </div>
                 <div class="stat-info">
                    <div class="label">Passed</div>
-                   <div class="number" id="stat-jobseeker-passed-num">8</div>
+                   <div class="number" id="stat-jobseeker-passed-num">10</div>
                 </div>
             </div>
             <div class="stat-card failed jobseeker-stat" id="stat-jobseeker-failed" style="display: none;" onclick="filterByStatus('fail')">
@@ -1595,157 +1605,157 @@
             <button class="tab benchsale-tab" id="tab-admin" onclick="showSection('admin')">Admin Tests (11)</button>
             <button class="tab benchsale-tab" id="tab-recruiter" onclick="showSection('recruiter')">Recruiter Tests (2)</button>
             <!-- Employer tab (shown when filter=employer) -->
-            <button class="tab employer-tab" id="tab-employer" onclick="showSection('employer')" style="display: none;">Employer Tests (22)</button>
+            <button class="tab employer-tab" id="tab-employer" onclick="showSection('employer')" style="display: none;">Employer Tests (20)</button>
             <!-- Job Seeker tab (shown when filter=jobseeker) -->
-            <button class="tab jobseeker-tab" id="tab-jobseeker" onclick="showSection('jobseeker')" style="display: none;">Job Seeker Tests (8)</button>
+            <button class="tab jobseeker-tab" id="tab-jobseeker" onclick="showSection('jobseeker')" style="display: none;">Job Seeker Tests (10)</button>
         </div>
         
         <div id="all-tests" class="test-section active">
             <h2>
                 All Test Results (BenchSale Only - Admin + Recruiter)
-                <span class="test-source" style="margin-left: 15px; background: rgba(249, 115, 22, 0.1); color: var(--primary);">Last Run: <span id="last-run-time-benchsale">22 Jan 2026, 04:17 PM</span></span>
+                <span class="test-source" style="margin-left: 15px; background: rgba(249, 115, 22, 0.1); color: var(--primary);">Last Run: <span id="last-run-time-benchsale">03 Feb 2026, 12:30 PM</span></span>
             </h2>
             <div class="test-section-content">
                 <div class="test-list-container">
                     <div class="test-list">
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;15.02 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale_20260119_163000.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale_20260119_163000.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale_20260119_163000.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:00:58.911&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 01 Admin Verification Of Favourite Button Under Companies In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_admin_verification_of_adding_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:01:38.584&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_admin_verification_of_adding_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;52.17 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 02 Admin Verification Of Adding Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_admin_verification_of_adding_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_admin_verification_of_adding_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_admin_verification_of_adding_candidates_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:01:40.568&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_03_admin_verification_of_adding_candidates_in_benchsale_20260122_000748.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_03_admin_verification_of_adding_candidates_in_benchsale_20260122_000748.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_03_admin_verification_of_adding_candidates_in_benchsale_20260122_000748.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_admin_verification_of_adding_candidates_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;62.82 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 03 Admin Verification Of Adding Candidates In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_admin_verification_of_adding_candidates_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_admin_verification_of_adding_candidates_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;25.66 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale_20260119_161534.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale_20260119_161534.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale_20260119_161534.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;25.00 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 04 Admin Verification Of Allocating Candidate Under Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_admin_verification_of_sources_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;17.29 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_admin_verification_of_sources_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;19.53 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 05 Admin Verification Of Sources In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_admin_verification_of_sources_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_admin_verification_of_sources_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;16.48 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;13.87 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 08 Admin Verification Of Inactivating And Activating Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;17.35 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale_20260119_144123.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale_20260119_144123.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale_20260119_144123.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;17.20 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 09 Admin Verification Of Inactivating And Activating Candidate In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:01:37.511&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;12.62 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 10 Admin Verification Of Deleting A Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item skip" data-test-info="{&quot;name&quot;: &quot;test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;SKIP&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;36.85 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;36.39 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 11 Admin Verification Of Deleting A Candidate In Benchsale</div>
-                    <div class="test-badge skip">SKIP</div>
+                    <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:02:20.121&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile_20260119_163823.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile_20260119_163823.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile_20260119_163823.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;180.05 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 12 Admin Verification Of Allocating Candidate Under Recruiter And Verify In Recruiter Profile</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item fail" data-test-info="{&quot;name&quot;: &quot;test_t1_13_admin_verification_of_candidates_in_submission_job_flow&quot;, &quot;status&quot;: &quot;FAIL&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:18:28.334&quot;, &quot;failure_message&quot;: &quot;tests\\benchsale\\test_benchsale_admin_test_cases.py:4251: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow\nraise AssertionError(\&quot;Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\&quot;)\nE   AssertionError: Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\n00:20:20.756\tINFO\tFailure artifacts saved:\n00:20:20.756\tINFO\t  URL: https://bs.jobsnprofiles.com/my-candidates\n00:20:20.757\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.png\n00:20:20.757\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.html\n00:20:20.757\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.url.txt\nError details:\ntests\\benchsale\\test_benchsale_admin_test_cases.py:4251: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow\nraise AssertionError(\&quot;Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\&quot;)\nE   AssertionError: Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\n\u2713 Dashboard refreshed after test: test_t1_13_admin_verification_of_candidates_in_submission_job_flow (failed)\nClosing browser instance\n\n====================================================================================================\nFull Name: JnP benchSale\nStart / End / Elapsed: 20260122 00:02:06.390 / 20260122 00:20:34.723 / 00:18:28.334\nStatus: 11 tests total, 8 passed, 2 failed, 1 skipped\n====================================================================================================\n\nTest Statistics\n----------------------------------------------------------------------------------------------------\nTest                                                         Total    Pass     Fail     Skip     Elapsed\n----------------------------------------------------------------------------------------------------\ntest_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale 1        1        0        0        00:00:32.123\ntest_t1_02_admin_verification_of_adding_recruiter_in_benchsale 1        1        0        0        00:00:15.021\ntest_t1_03_admin_verification_of_adding_candidates_in_benchsale 1        0        1        0        00:01:38.584\ntest_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale 1        1        0        0        00:00:14.072\ntest_t1_05_admin_verification_of_sources_in_benchsale        1        1        0        0        00:00:25.705\ntest_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale 1        1        0        0        00:00:17.294\ntest_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale 1        1        0        0        00:00:16.493\ntest_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale 1        1        0        0        00:00:17.362\ntest_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale 1        0        0        1        00:01:37.511\ntest_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile 1        1        0        0        00:00:36.883\ntest_t1_13_admin_verification_of_candidates_in_submission_job_flow 1        0        1        0        00:02:20.121\n----------------------------------------------------------------------------------------------------\nAll Tests                                                    11       8        2        1        00:08:31.169\n----------------------------------------------------------------------------------------------------\n\n================================================================================\nTEST SESSION FINISHED\nSession end time: 2026-01-22 00:20:34\nExit status: 1\nTotal tests executed: 11\n\nRUNTIME SUMMARY:\n--------------------------------------------------------------------------------\nT1.01 Admin- Verification of &#x27;Favourite&#x27; button under Companies in BenchSale: 32.11 seconds\nT1.02 Admin- Verification of adding recruiter in BenchSale: 15.02 seconds\nT1.04 Admin- Verification of allocating candidate under recruiter: 14.06 seconds\nT1.05 Admin- Verification of Sources: 25.66 seconds\nT1.08 Admin- Verification of inactivating and activating recruiter: 17.29 seconds\nT1.09 Admin- Verification of inactivating and activating candidate: 16.48 seconds\nT1.10 Admin- Deleting a recruiter: 17.35 seconds\nT1.12 Admin - allocate candidate under recruiter and verify in Recruiter profile: 36.85 seconds\n--------------------------------------------------------------------------------\n================================================================================\n\nTest summary written to: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\test_summary.txt\nHTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nAdmin HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nRecruiter HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_recruiter.html\nUnified dashboard generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\index.html\nDashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:29:13.806\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:29:30.262\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:29:53.084\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:30:11.804\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:30:22.145\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================&quot;, &quot;failure_location&quot;: &quot;tests\\benchsale\\test_benchsale_admin_test_cases.py:4251: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_13_admin_verification_of_candidates_in_submission_job_flow&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:15:05.097&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 13 Admin Verification Of Candidates In Submission Job Flow</div>
-                    <div class="test-badge fail">FAIL</div>
+                    <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_13_admin_verification_of_candidates_in_submission_job_flow')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_13_admin_verification_of_candidates_in_submission_job_flow', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;00:01:43.488&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;12.24 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 01 Recruiter Dashboard Verification Recruiter Active Inactive</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Recruiter</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;00:00:46.236&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates_20260122_130622.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates_20260122_130622.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates_20260122_130622.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;00:01:39.419&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 02 Recruiter Verification Of Inactivating And Activating Candidates</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Recruiter</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -1763,122 +1773,122 @@
             <div class="test-section-content">
                 <div class="test-list-container">
                     <div class="test-list">
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;15.02 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale_20260119_163000.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale_20260119_163000.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale_20260119_163000.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:00:58.911&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 01 Admin Verification Of Favourite Button Under Companies In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_admin_verification_of_adding_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:01:38.584&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_admin_verification_of_adding_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;52.17 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 02 Admin Verification Of Adding Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_admin_verification_of_adding_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_admin_verification_of_adding_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_admin_verification_of_adding_candidates_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:01:40.568&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_03_admin_verification_of_adding_candidates_in_benchsale_20260122_000748.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_03_admin_verification_of_adding_candidates_in_benchsale_20260122_000748.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_03_admin_verification_of_adding_candidates_in_benchsale_20260122_000748.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_admin_verification_of_adding_candidates_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;62.82 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 03 Admin Verification Of Adding Candidates In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_admin_verification_of_adding_candidates_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_admin_verification_of_adding_candidates_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;25.66 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale_20260119_161534.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale_20260119_161534.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale_20260119_161534.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;25.00 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 04 Admin Verification Of Allocating Candidate Under Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_admin_verification_of_sources_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;17.29 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_admin_verification_of_sources_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;19.53 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 05 Admin Verification Of Sources In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_admin_verification_of_sources_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_admin_verification_of_sources_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;16.48 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;13.87 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 08 Admin Verification Of Inactivating And Activating Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;17.35 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale_20260119_144123.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale_20260119_144123.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale_20260119_144123.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;17.20 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 09 Admin Verification Of Inactivating And Activating Candidate In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:01:37.511&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;12.62 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 10 Admin Verification Of Deleting A Recruiter In Benchsale</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item skip" data-test-info="{&quot;name&quot;: &quot;test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;SKIP&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;36.85 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;36.39 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 11 Admin Verification Of Deleting A Candidate In Benchsale</div>
-                    <div class="test-badge skip">SKIP</div>
+                    <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:02:20.121&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile_20260119_163823.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile_20260119_163823.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile_20260119_163823.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;180.05 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 12 Admin Verification Of Allocating Candidate Under Recruiter And Verify In Recruiter Profile</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item fail" data-test-info="{&quot;name&quot;: &quot;test_t1_13_admin_verification_of_candidates_in_submission_job_flow&quot;, &quot;status&quot;: &quot;FAIL&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:18:28.334&quot;, &quot;failure_message&quot;: &quot;tests\\benchsale\\test_benchsale_admin_test_cases.py:4251: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow\nraise AssertionError(\&quot;Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\&quot;)\nE   AssertionError: Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\n00:20:20.756\tINFO\tFailure artifacts saved:\n00:20:20.756\tINFO\t  URL: https://bs.jobsnprofiles.com/my-candidates\n00:20:20.757\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.png\n00:20:20.757\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.html\n00:20:20.757\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.url.txt\nError details:\ntests\\benchsale\\test_benchsale_admin_test_cases.py:4251: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow\nraise AssertionError(\&quot;Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\&quot;)\nE   AssertionError: Final message (Congratulations or Rejected) not found after email submission. Checked multiple selectors and page content.\n\u2713 Dashboard refreshed after test: test_t1_13_admin_verification_of_candidates_in_submission_job_flow (failed)\nClosing browser instance\n\n====================================================================================================\nFull Name: JnP benchSale\nStart / End / Elapsed: 20260122 00:02:06.390 / 20260122 00:20:34.723 / 00:18:28.334\nStatus: 11 tests total, 8 passed, 2 failed, 1 skipped\n====================================================================================================\n\nTest Statistics\n----------------------------------------------------------------------------------------------------\nTest                                                         Total    Pass     Fail     Skip     Elapsed\n----------------------------------------------------------------------------------------------------\ntest_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale 1        1        0        0        00:00:32.123\ntest_t1_02_admin_verification_of_adding_recruiter_in_benchsale 1        1        0        0        00:00:15.021\ntest_t1_03_admin_verification_of_adding_candidates_in_benchsale 1        0        1        0        00:01:38.584\ntest_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale 1        1        0        0        00:00:14.072\ntest_t1_05_admin_verification_of_sources_in_benchsale        1        1        0        0        00:00:25.705\ntest_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale 1        1        0        0        00:00:17.294\ntest_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale 1        1        0        0        00:00:16.493\ntest_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale 1        1        0        0        00:00:17.362\ntest_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale 1        0        0        1        00:01:37.511\ntest_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile 1        1        0        0        00:00:36.883\ntest_t1_13_admin_verification_of_candidates_in_submission_job_flow 1        0        1        0        00:02:20.121\n----------------------------------------------------------------------------------------------------\nAll Tests                                                    11       8        2        1        00:08:31.169\n----------------------------------------------------------------------------------------------------\n\n================================================================================\nTEST SESSION FINISHED\nSession end time: 2026-01-22 00:20:34\nExit status: 1\nTotal tests executed: 11\n\nRUNTIME SUMMARY:\n--------------------------------------------------------------------------------\nT1.01 Admin- Verification of &#x27;Favourite&#x27; button under Companies in BenchSale: 32.11 seconds\nT1.02 Admin- Verification of adding recruiter in BenchSale: 15.02 seconds\nT1.04 Admin- Verification of allocating candidate under recruiter: 14.06 seconds\nT1.05 Admin- Verification of Sources: 25.66 seconds\nT1.08 Admin- Verification of inactivating and activating recruiter: 17.29 seconds\nT1.09 Admin- Verification of inactivating and activating candidate: 16.48 seconds\nT1.10 Admin- Deleting a recruiter: 17.35 seconds\nT1.12 Admin - allocate candidate under recruiter and verify in Recruiter profile: 36.85 seconds\n--------------------------------------------------------------------------------\n================================================================================\n\nTest summary written to: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\test_summary.txt\nHTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nAdmin HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nRecruiter HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_recruiter.html\nUnified dashboard generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\index.html\nDashboard will open automatically in browser: file:///C:/Users/Nityainc/OneDrive%20-%20Nitya%20Software%20Solutions%20Inc/Desktop/Automation_testing_pytest/logs/index.html\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:29:13.806\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:29:30.262\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:29:53.084\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:30:11.804\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale\nFull Name: JnP benchSale\nSource: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260122 09:30:22.145\n====================================================================================================\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: c:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================&quot;, &quot;failure_location&quot;: &quot;tests\\benchsale\\test_benchsale_admin_test_cases.py:4251: in test_t1_13_admin_verification_of_candidates_in_submission_job_flow&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t1_13_admin_verification_of_candidates_in_submission_job_flow_20260122_002018.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_13_admin_verification_of_candidates_in_submission_job_flow&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Admin&quot;, &quot;running_time&quot;: &quot;00:15:05.097&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 13 Admin Verification Of Candidates In Submission Job Flow</div>
-                    <div class="test-badge fail">FAIL</div>
+                    <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Admin</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_13_admin_verification_of_candidates_in_submission_job_flow')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_13_admin_verification_of_candidates_in_submission_job_flow', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -1896,23 +1906,23 @@
             <div class="test-section-content">
                 <div class="test-list-container">
                     <div class="test-list">
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;00:01:43.488&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;12.24 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 01 Recruiter Dashboard Verification Recruiter Active Inactive</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Recruiter</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;00:00:46.236&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates_20260122_130622.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates_20260122_130622.html&quot;, &quot;url_txt_url&quot;: &quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates_20260122_130622.url.txt&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Recruiter&quot;, &quot;running_time&quot;: &quot;00:01:39.419&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 02 Recruiter Verification Of Inactivating And Activating Candidates</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Recruiter</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -1928,149 +1938,149 @@
         <div id="employer-tests" class="test-section">
             <h2>
                 Employer Test Results
-                <span class="test-source" style="margin-left: 15px; background: rgba(217, 119, 6, 0.1); color: #D97706;">Last Run: <span id="last-run-time-employer">22 Jan 2026, 04:17 PM</span></span>
+                <span class="test-source" style="margin-left: 15px; background: rgba(217, 119, 6, 0.1); color: #D97706;">Last Run: <span id="last-run-time-employer">03 Feb 2026, 12:30 PM</span></span>
             </h2>
             <div class="test-section-content">
                 <div class="test-list-container">
                     <div class="test-list">
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_home_page&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:00:17.918&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_home_page&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;23.11 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 01 Home Page</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_home_page')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_home_page', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:01:19.326&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:01:10.766&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 02 Home Page Verify Jobs Not From Same Company Consecutively</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_home_page_verify_jobs_matched_with_searched_company&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;15.80 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_home_page_verify_jobs_matched_with_searched_company&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;98.50 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 03 Home Page Verify Jobs Matched With Searched Company</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_home_page_verify_jobs_matched_with_searched_company')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_home_page_verify_jobs_matched_with_searched_company', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_home_page_verify_job_posting_time&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;21.35 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_home_page_verify_job_posting_time&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;18.56 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 04 Home Page Verify Job Posting Time</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_home_page_verify_job_posting_time')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_home_page_verify_job_posting_time', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_home_page_verify_book_your_demo&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;247.14 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_home_page_verify_book_your_demo&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;299.59 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 05 Home Page Verify Book Your Demo</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_home_page_verify_book_your_demo')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_home_page_verify_book_your_demo', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:01:01.723&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:01:36.620&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 06 Home Page No Repetition Of Jobs In Similar Jobs</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_01_post_a_job_verification_and_verification_with_job_id&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:02:13.985&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_01_post_a_job_verification_and_verification_with_job_id_job_id_search_verified_20260122_120253.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_01_post_a_job_verification_and_verification_with_job_id&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;43.66 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 01 Post A Job Verification And Verification With Job Id</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_01_post_a_job_verification_and_verification_with_job_id')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_01_post_a_job_verification_and_verification_with_job_id', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_02_verification_of_applicants_and_shortlisting_in_js&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;110.20 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_02_verification_of_applicants_and_shortlisting_in_js_assertion_error_20260122_125456.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_02_verification_of_applicants_and_shortlisting_in_js&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;53.87 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 02 Verification Of Applicants And Shortlisting In Js</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_02_verification_of_applicants_and_shortlisting_in_js')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_02_verification_of_applicants_and_shortlisting_in_js', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_03_verification_of_closing_a_job_and_checking_with_job_id&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:03:12.849&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_03_verification_of_closing_a_job_and_checking_with_job_id&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;177.08 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 03 Verification Of Closing A Job And Checking With Job Id</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_03_verification_of_closing_a_job_and_checking_with_job_id')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_03_verification_of_closing_a_job_and_checking_with_job_id', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_04_verification_of_ai_search_with_description&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;45.31 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_04_verification_of_ai_search_with_description&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;45.62 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 04 Verification Of Ai Search With Description</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_04_verification_of_ai_search_with_description')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_04_verification_of_ai_search_with_description', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_06_verification_of_ai_search_without_description_and_saving_resume&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;32.18 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_06_verification_of_ai_search_without_description_and_saving_resume&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;33.56 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 06 Verification Of Ai Search Without Description And Saving Resume</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_06_verification_of_ai_search_without_description_and_saving_resume')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_06_verification_of_ai_search_without_description_and_saving_resume', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;46.93 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:00:34.665&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 12 Verification Of Sending Email To Contacts In Emp Contacts</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_13_verification_of_resumes_details_matched_with_posted_jobs&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:00:00.004&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_13_verification_of_resumes_details_matched_with_posted_jobs&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:06:30.926&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 13 Verification Of Resumes Details Matched With Posted Jobs</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_13_verification_of_resumes_details_matched_with_posted_jobs')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_13_verification_of_resumes_details_matched_with_posted_jobs', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -2081,95 +2091,73 @@
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_14_verification_of_advanced_ai_semantic_search')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_14_verification_of_advanced_ai_semantic_search', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:01:25.388&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;77.32 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 15 Verification Of Job Posting Displayed In Js Dashboard Job Title</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:01:23.582&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [&quot;file:///C:/Users/Nityainc/OneDrive - Nitya Software Solutions Inc/Desktop/Automation_testing_pytest/reports/failures/test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_exception_20260122_120832.png&quot;], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;40.97 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 16 Verification Of Job Posting Displayed In Js Dashboard Job Id</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_17_verification_of_hot_list_company_daily_update&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;100.92 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
-                    <div class="test-name">T2 17 Verification Of Hot List Company Daily Update</div>
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_17_verification_of_hot_list_recruiter_details_daily_update&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;102.91 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                    <div class="test-name">T2 17 Verification Of Hot List Recruiter Details Daily Update</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_17_verification_of_hot_list_company_daily_update')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_17_verification_of_hot_list_recruiter_details_daily_update', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_18_hotlist_company_daily_update_verification&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;184.12 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
-                    <div class="test-name">T2 18 Hotlist Company Daily Update Verification</div>
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_20_verification_of_boolean_search_after_ai_search_with_description&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;20.04 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                    <div class="test-name">T2 20 Verification Of Boolean Search After Ai Search With Description</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_18_hotlist_company_daily_update_verification')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_20_verification_of_boolean_search_after_ai_search_with_description', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_19_hotlist_search_by_job_title&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;56.12 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
-                    <div class="test-name">T2 19 Hotlist Search By Job Title</div>
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_21_verification_of_boolean_search_with_direct_search_input&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;98.35 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                    <div class="test-name">T2 21 Verification Of Boolean Search With Direct Search Input</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_19_hotlist_search_by_job_title')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_21_verification_of_boolean_search_with_direct_search_input', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_20_ai_search_with_boolean_description&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;21.37 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
-                    <div class="test-name">T2 20 Ai Search With Boolean Description</div>
-                    <div class="test-badge pass">PASS</div>
-                    <div class="test-source">Source: Employer</div>
-                    <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_20_ai_search_with_boolean_description')" title="Run this test">
-                            ▶ Run Test
-                        </button>
-                    </div>
-                </div>
-            
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_21_boolean_search_initial_bar&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:02:38.467&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
-                    <div class="test-name">T2 21 Boolean Search Initial Bar</div>
-                    <div class="test-badge pass">PASS</div>
-                    <div class="test-source">Source: Employer</div>
-                    <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_21_boolean_search_initial_bar')" title="Run this test">
-                            ▶ Run Test
-                        </button>
-                    </div>
-                </div>
-            
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_22_hotlist_duplicate_candidates&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:02:21.240&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t2_22_hotlist_duplicate_candidates&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Employer&quot;, &quot;running_time&quot;: &quot;00:37:21.443&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T2 22 Hotlist Duplicate Candidates</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Employer</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_22_hotlist_duplicate_candidates')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t2_22_hotlist_duplicate_candidates', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -2185,94 +2173,116 @@
         <div id="jobseeker-tests" class="test-section">
             <h2>
                 Job Seeker Test Results
-                <span class="test-source" style="margin-left: 15px; background: rgba(22, 163, 74, 0.1); color: #16A34A;">Last Run: <span id="last-run-time-jobseeker">22 Jan 2026, 04:17 PM</span></span>
+                <span class="test-source" style="margin-left: 15px; background: rgba(22, 163, 74, 0.1); color: #16A34A;">Last Run: <span id="last-run-time-jobseeker">03 Feb 2026, 12:30 PM</span></span>
             </h2>
             <div class="test-section-content">
                 <div class="test-list-container">
                     <div class="test-list">
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;53.45 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:01:28.220&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 01 Verify If A Job Can Be Applied By A Js From Home Page</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_verification_of_a_saved_job_from_home_page_in_js&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;338.34 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_02_verification_of_a_saved_job_from_home_page_in_js&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:04:05.450&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 02 Verification Of A Saved Job From Home Page In Js</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_verification_of_a_saved_job_from_home_page_in_js')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_02_verification_of_a_saved_job_from_home_page_in_js', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_verification_of_filters_in_traditional_search_in_js_dashboard&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:04:01.964&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_03_verification_of_filters_in_traditional_search_in_js_dashboard&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:04:15.425&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 03 Verification Of Filters In Traditional Search In Js Dashboard</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_verification_of_filters_in_traditional_search_in_js_dashboard')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_03_verification_of_filters_in_traditional_search_in_js_dashboard', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_verification_of_network_in_js_dashboard&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;72.45 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_04_verification_of_network_in_js_dashboard&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;33.43 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 04 Verification Of Network In Js Dashboard</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_verification_of_network_in_js_dashboard')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_04_verification_of_network_in_js_dashboard', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_verification_of_searching_job_with_company_name&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;245.94 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_05_verification_of_searching_job_with_company_name&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:01:35.736&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 05 Verification Of Searching Job With Company Name</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_verification_of_searching_job_with_company_name')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_05_verification_of_searching_job_with_company_name', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_parsed_resume_in_emp&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:00:41.123&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_parsed_resume_in_emp&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:09:10.882&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 06 Parse Resume In Resumes Option In Js Dashboard And Verify The Parsed Resume In Emp</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_parsed_resume_in_emp')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_06_parse_resume_in_resumes_option_in_js_dashboard_and_verify_the_parsed_resume_in_emp', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_07_make_resumes_manually_resume_builder_and_verify_jobs&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:01:01.035&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_07_make_resumes_manually_resume_builder_and_verify_jobs&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;30.96 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 07 Make Resumes Manually Resume Builder And Verify Jobs</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_07_make_resumes_manually_resume_builder_and_verify_jobs')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_07_make_resumes_manually_resume_builder_and_verify_jobs', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
                 </div>
             
-                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_08_verification_of_map_on_js_dashboard&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:14:53.281&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_08_verification_of_map_on_js_dashboard&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;22.54 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
                     <div class="test-name">T1 08 Verification Of Map On Js Dashboard</div>
                     <div class="test-badge pass">PASS</div>
                     <div class="test-source">Source: Job Seeker</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_08_verification_of_map_on_js_dashboard')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_08_verification_of_map_on_js_dashboard', event)" title="Run this test">
+                            ▶ Run Test
+                        </button>
+                    </div>
+                </div>
+            
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_09_db_solr_sync_verification&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;00:19:50.169&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}, &quot;total_jobs&quot;: 24479, &quot;error_jobs_count&quot;: 395}" onclick="showTestDetails(this)">
+                    <div class="test-name">T1 09 Db Solr Sync Verification</div>
+                    <div class="test-badge pass">PASS</div>
+                    <div class="test-source">Source: Job Seeker</div>
+                    <div class="test-actions">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_09_db_solr_sync_verification', event)" title="Run this test">
+                            ▶ Run Test
+                        </button>
+                    </div>
+                </div>
+            
+                <div class="test-item pass" data-test-info="{&quot;name&quot;: &quot;test_t1_10_verification_of_candidate_registration_through_job_fair&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;source&quot;: &quot;Job Seeker&quot;, &quot;running_time&quot;: &quot;30.96 seconds&quot;, &quot;failure_message&quot;: &quot;&quot;, &quot;failure_location&quot;: &quot;&quot;, &quot;xpath&quot;: &quot;&quot;, &quot;screenshots&quot;: [], &quot;artifacts&quot;: {&quot;html_url&quot;: &quot;&quot;, &quot;url_txt_url&quot;: &quot;&quot;}}" onclick="showTestDetails(this)">
+                    <div class="test-name">T1 10 Verification Of Candidate Registration Through Job Fair</div>
+                    <div class="test-badge pass">PASS</div>
+                    <div class="test-source">Source: Job Seeker</div>
+                    <div class="test-actions">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('test_t1_10_verification_of_candidate_registration_through_job_fair', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -2288,7 +2298,7 @@
         <div class="log-links" id="log-links-section">
             <h3>📋 Detailed Log Files</h3>
             <div id="log-links-content">
-                <a href="benchsale_admin.html" class="log-link" target="_blank">📊 Admin Log</a><a href="benchsale_recruiter.html" class="log-link" target="_blank">📊 Recruiter Log</a><a href="employer.log" class="log-link" target="_blank">📊 Employer Log</a><a href="jobseeker.log" class="log-link" target="_blank">📊 Job Seeker Log</a><a href="benchsale_test.html" class="log-link" target="_blank">📊 Main Test Log</a>
+                <a href="../log_viewer_ui.html?module=benchsale_admin&hideModules=true" class="log-link" target="_blank">📊 Admin Log History</a><a href="../log_viewer_ui.html?module=benchsale_recruiter&hideModules=true" class="log-link" target="_blank">📊 Recruiter Log History</a><a href="../log_viewer_ui.html?module=employer&hideModules=true" class="log-link" target="_blank">📊 Employer Log History</a><a href="../log_viewer_ui.html?module=jobseeker&hideModules=true" class="log-link" target="_blank">📊 Job Seeker Log History</a><a href="../log_viewer_ui.html?module=benchsale_test&hideModules=true" class="log-link" target="_blank">📊 Main Test Log History</a>
             </div>
         </div>
     </div>
@@ -2312,34 +2322,69 @@
             
             if (!statusIndicator) return;
 
-            // Check if main server is running (via helper if available, or direct)
-            // We use 8767 (helper) to check status of 8766 (main)
-            fetch('http://localhost:8767/status')
-            .then(response => response.json())
-            .then(data => {
-                if (data.running) {
-                    statusText.textContent = 'Server: Running';
-                    statusText.style.color = '#10B981'; // Green
-                    startBtn.style.display = 'none';
-                } else {
-                    statusText.textContent = 'Server: Stopped';
-                    statusText.style.color = '#EF4444'; // Red
-                    startBtn.style.display = 'inline-block';
+            // Check main server directly on port 8766 (more reliable)
+            fetch('http://127.0.0.1:8766/status?t=' + Date.now(), {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: {
+                    'Accept': 'application/json'
                 }
             })
-            .catch(() => {
-                // Helper not available, try checking main server directly
-                fetch('http://localhost:8766/status')
-                .then(r => r.json())
-                .then(d => {
-                     statusText.textContent = 'Server: Running';
-                     statusText.style.color = '#10B981';
-                     startBtn.style.display = 'none';
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error('Server returned ' + r.status);
+                }
+                return r.json();
+            })
+            .then(d => {
+                // Server is responding - any response means server is running
+                statusText.textContent = 'Server: Running';
+                statusText.style.color = '#10B981'; // Green
+                if (startBtn) {
+                    startBtn.style.display = 'none';
+                    startBtn.disabled = false;
+                }
+                console.log('Server status: Running (busy=' + (d.busy || false) + ', queue=' + (d.queue_size || 0) + ')');
+            })
+            .catch((error) => {
+                console.log('Server check failed on port 8766:', error.message);
+                // Server not responding, try helper server (port 8767) as fallback
+                fetch('http://127.0.0.1:8767/status?t=' + Date.now(), {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
                 })
-                .catch(() => {
+                .then(response => {
+                    if (!response.ok) throw new Error('Helper server returned ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.running) {
+                        statusText.textContent = 'Server: Running';
+                        statusText.style.color = '#10B981';
+                        if (startBtn) {
+                            startBtn.style.display = 'none';
+                            startBtn.disabled = false;
+                        }
+                    } else {
+                        statusText.textContent = 'Server: Stopped';
+                        statusText.style.color = '#EF4444'; // Red
+                        if (startBtn) {
+                            startBtn.style.display = 'inline-block';
+                            startBtn.disabled = false;
+                        }
+                    }
+                })
+                .catch((fallbackError) => {
+                    console.log('Both servers not responding:', fallbackError.message);
+                    // Both servers not responding
                     statusText.textContent = 'Server: Stopped';
-                    statusText.style.color = '#EF4444';
-                    startBtn.style.display = 'inline-block';
+                    statusText.style.color = '#EF4444'; // Red
+                    if (startBtn) {
+                        startBtn.style.display = 'inline-block';
+                        startBtn.disabled = false;
+                    }
                 });
             });
         }
@@ -2351,19 +2396,37 @@
                 startBtn.disabled = true;
             }
             
-            fetch('http://localhost:8767/start')
+            // First try helper server (port 8767) if available
+            fetch('http://127.0.0.1:8767/start', { method: 'POST', timeout: 3000 })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showNotification('success', 'Server Started', 'Test server is starting...', 3000);
-                    setTimeout(checkServerStatus, 2000);
+                    showNotification('success', 'Server Started', 'Test server is starting... Please wait 5 seconds.', 5000);
+                    setTimeout(checkServerStatus, 5000);
                 } else {
                     showNotification('info', 'Starting Server', 'Server start command sent.', 3000);
-                    setTimeout(checkServerStatus, 2000);
+                    setTimeout(checkServerStatus, 5000);
                 }
             })
             .catch(() => {
-                showNotification('warning', 'Start Failed', 'Could not start server. Please run START_ALWAYS_ON_SERVER.bat manually.', 5000);
+                // Helper server not available, show instructions
+                const message = `Server cannot be started automatically.\n\n` +
+                    `Please do ONE of the following:\n\n` +
+                    `1. Double-click: START_ALWAYS_ON_SERVER.bat\n` +
+                    `2. Or run in terminal: python utils\\always_on_server.py\n\n` +
+                    `The server will run on port 8766.\n` +
+                    `Keep the window open while using the dashboard.`;
+                
+                showNotification('warning', 'Start Server Manually', message, 10000);
+                
+                // Copy command to clipboard if possible
+                const command = 'python utils\always_on_server.py';
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(command).then(() => {
+                        console.log('Command copied to clipboard: ' + command);
+                    }).catch(() => {});
+                }
+                
                 if (startBtn) {
                     startBtn.textContent = 'Start Server';
                     startBtn.disabled = false;
@@ -2371,10 +2434,36 @@
             });
         }
 
-        // Check status on load and every 10 seconds
+        // Check if page is loaded via file:// protocol (CORS issue)
+        // Only show warning once per session to avoid annoying user
+        if (window.location.protocol === 'file:') {
+            const httpUrl = 'http://127.0.0.1:8888/logs/index.html' + window.location.search;
+            console.warn('⚠️ Dashboard loaded via file:// protocol - CORS will block server status checks!');
+            console.warn('💡 For full functionality, use: ' + httpUrl);
+            
+            // Only show notification once per browser session (check sessionStorage)
+            const warningShown = sessionStorage.getItem('fileProtocolWarningShown');
+            if (!warningShown) {
+                sessionStorage.setItem('fileProtocolWarningShown', 'true');
+                // Show notification about file:// protocol issue (shorter, less intrusive)
+                setTimeout(() => {
+                    const message = `Dashboard loaded via file:// protocol.\n\n` +
+                        `For full functionality, use:\n` +
+                        `http://127.0.0.1:8888/logs/index.html\n\n` +
+                        `Or run: OPEN_DASHBOARD.bat`;
+                    showNotification('warning', 'File Protocol Detected', message, 8000);
+                }, 3000); // Show after 3 seconds, not immediately
+            }
+        }
+        
+        // Check status on load and every 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
+            // Check server status immediately on page load
             checkServerStatus();
-            setInterval(checkServerStatus, 10000);
+            // Also check after a short delay to ensure everything is ready
+            setTimeout(checkServerStatus, 1000);
+            // Check server status every 5 seconds (more frequent for better UX)
+            setInterval(checkServerStatus, 5000);
         });
         
         // Global filter state
@@ -2617,10 +2706,10 @@
                 // Show Employer log link, hide BenchSale and Job Seeker log links
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'inline-block';
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                 }
             } else if (section === 'jobseeker') {
@@ -2638,10 +2727,10 @@
                 // Show Job Seeker log link, hide BenchSale and Employer log links
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'inline-block';
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
                 }
             } else {
@@ -2656,9 +2745,9 @@
                 // Hide Employer and Job Seeker log links in BenchSale dashboard
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                     
                     // Show/hide BenchSale log links based on selected section
@@ -2834,13 +2923,26 @@
                         <div class="test-details-info-label">Running Time</div>
                         <div class="test-details-info-value">${testData.running_time || 'N/A'}</div>
                     </div>
+                    ${testData.total_jobs ? `
+                    <div class="test-details-info-item">
+                        <div class="test-details-info-label">📊 24hrs Job Report</div>
+                        <div class="test-details-info-value">
+                            <strong>Total Jobs Checked:</strong> ${testData.total_jobs.toLocaleString()}<br>
+                            ${testData.error_jobs_count ? `<strong>Failures:</strong> ${testData.error_jobs_count.toLocaleString()}<br>` : ''}
+                            ${testData.total_jobs && testData.error_jobs_count ? `
+                            <strong>Success Rate:</strong> ${((testData.total_jobs - testData.error_jobs_count) / testData.total_jobs * 100).toFixed(2)}%
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 <div class="test-details-content">
             `;
             
-            // Add screenshot if available
-            if (testData.screenshots && testData.screenshots.length > 0) {
+            // Add screenshot ONLY if test failed and screenshot is available
+            // For passed tests, show empty space (no screenshot)
+            if ((status === 'FAIL' || status === 'FAILED') && testData.screenshots && testData.screenshots.length > 0) {
                 const screenshotUrl = testData.screenshots[0];
                 detailsHTML += `
                     <div class="test-details-screenshot">
@@ -2960,11 +3062,11 @@
                 // Show Employer log link
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'inline-block';
                     // Hide BenchSale and Job Seeker log links
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                 }
             } else if (filter === 'jobseeker') {
@@ -2988,11 +3090,11 @@
                 // Show Job Seeker log link
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'inline-block';
                     // Hide BenchSale and Employer log links
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
                 }
             } else {
@@ -3015,9 +3117,9 @@
                 // Hide Employer and Job Seeker log links in BenchSale dashboard
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                     
                     // Show all BenchSale log links by default (for "All Tests" view)
@@ -3058,14 +3160,45 @@
                 statusEl.style.background = 'rgba(255, 204, 0, 0.2)';
                 statusEl.style.color = '#ed8936';
             }
+            // Force a hard reload to clear cache and get fresh data
             setTimeout(function() {
-                location.reload();
+                location.reload(true);
             }, 500);
         }
         
+        // Auto-refresh dashboard every 6 hours if page is visible
+        // This ensures status updates even if test was run outside the UI
+        let autoRefreshInterval = null;
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {
+                // Only refresh if page is visible (not in background tab)
+                if (!document.hidden) {
+                    // Check if any test is currently running
+                    const runningButtons = document.querySelectorAll('.run-test-btn.running');
+                    
+                    // Check if user is viewing a test case (details panel open)
+                    const activeTestItems = document.querySelectorAll('.test-item.active');
+                    
+                    if (runningButtons.length === 0 && activeTestItems.length === 0) {
+                        // No tests running AND no test details being viewed, safe to refresh
+                        console.log('Auto-refreshing dashboard to check for status updates...');
+                        location.reload(true);
+                    } else if (activeTestItems.length > 0) {
+                        console.log('Skipping auto-refresh: User is viewing test details');
+                    }
+                }
+            }, 21600000); // Refresh every 6 hours
+        }
+        
+        // Start auto-refresh when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard loaded. Last updated: 22 Jan 2026, 04:17 PM');
+            const dashboardVersion = '2026-02-03 12:31:04';
+            console.log('Dashboard loaded. Last updated: 03 Feb 2026, 12:30 PM');
+            console.log('Dashboard generated at: ' + dashboardVersion);
             console.log('Dashboard auto-updates after each test run.');
+            console.log('Current browser time: ' + new Date().toISOString());
+            startAutoRefresh();
         });
         // Modal Functions
         function openModal(src) {
@@ -3137,12 +3270,43 @@
         }
         
         // Run test function
-        function runTest(testName) {
+        // Track running tests to prevent duplicates
+        const runningTests = new Set();
+        const buttonClickTimes = new Map(); // Track when button was last clicked
+        
+        function runTest(testName, event) {
+            // CRITICAL: Prevent default and stop propagation
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+            }
+            
+            // CRITICAL: Check if test is already running or queued FIRST (before debounce check)
+            if (runningTests.has(testName)) {
+                console.log('Test ' + testName + ' is already running or queued, ignoring duplicate request');
+                showNotification('warning', 'Test Already Running', 'Test "' + testName + '" is already running or queued. Please wait for it to complete.', 3000);
+                return;
+            }
+            
+            // CRITICAL: Debounce - prevent rapid clicks (within 3 seconds - increased from 2)
+            const now = Date.now();
+            const lastClickTime = buttonClickTimes.get(testName) || 0;
+            if (now - lastClickTime < 3000) {
+                console.log('Test ' + testName + ' clicked too soon after last click, ignoring');
+                showNotification('info', 'Please Wait', 'Test "' + testName + '" was just clicked. Please wait a moment.', 2000);
+                return;
+            }
+            buttonClickTimes.set(testName, now);
+            
+            // Mark test as running immediately (before any async operations)
+            runningTests.add(testName);
+            
             // Find the button that was clicked
             const buttons = document.querySelectorAll('.run-test-btn');
             let clickedButton = null;
             buttons.forEach(btn => {
-                if (btn.textContent.includes('Run Test') || btn.textContent.includes('Running')) {
+                if (btn.textContent.includes('Run Test') || btn.textContent.includes('Running') || btn.textContent.includes('Done')) {
                     const testItem = btn.closest('.test-item');
                     if (testItem && testItem.getAttribute('data-test-info')) {
                         try {
@@ -3167,30 +3331,48 @@
                 });
             }
             
+            // CRITICAL: Disable button IMMEDIATELY to prevent multiple clicks
             if (clickedButton) {
                 clickedButton.classList.add('running');
                 clickedButton.textContent = '⏳ Running...';
                 clickedButton.disabled = true;
+                clickedButton.style.pointerEvents = 'none'; // Prevent any clicks
+                clickedButton.style.opacity = '0.7'; // Visual feedback
+                clickedButton.style.cursor = 'not-allowed'; // Show disabled cursor
+                
+                // Remove onclick to prevent any clicks
+                clickedButton.removeAttribute('onclick');
+                
+                // Also prevent any event listeners
+                clickedButton.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                };
             }
             
             // Try to run via always-on server first (port 8766)
             // Falls back to regular server (port 8765) if needed
-            let serverUrl = 'http://localhost:8766/add-test';
+            let serverUrl = 'http://127.0.0.1:8766/add-test';
             let isAlwaysOnServer = true;
             
             // Helper function for polling
             let testWasStarted = false; // Track if test actually started
             function startPolling(port) {
-                // Poll for completion
-                const pollInterval = 2000; // Check every 2 seconds
-                const maxPolls = 300; // 5 minutes max
+                // Poll for completion - more aggressive polling
+                const pollInterval = 1000; // Check every 1 second (faster detection)
+                const maxPolls = 600; // 10 minutes max (600 seconds)
                 let pollCount = 0;
                 let wasBusy = false; // Track if server was ever busy (test was running)
+                let notBusyCount = 0; // Count consecutive "not busy" responses
+                const requiredNotBusyCount = 3; // Need 3 consecutive "not busy" to confirm test is done
                 
-                // Wait 3 seconds before starting to poll (give server time to start test and set lock)
+                // Wait 2 seconds before starting to poll (give server time to start test and set lock)
                 setTimeout(() => {
                     const timer = setInterval(() => {
-                        fetch(`http://localhost:${port}/status`)
+                        pollCount++;
+                        fetch(`http://127.0.0.1:${port}/status?t=${Date.now()}`) // Add cache-busting parameter
                             .then(r => {
                                 if (!r.ok) {
                                     throw new Error(`Server returned ${r.status}`);
@@ -3201,27 +3383,56 @@
                                 // Track if server was ever busy (means test was actually running)
                                 if (statusData.busy) {
                                     wasBusy = true;
-                                    console.log('Test is running... (poll count: ' + pollCount + ')');
-                                }
-                                
-                                // Only show "Test Completed" if:
-                                // 1. Test was actually started (wasBusy was true at some point)
-                                // 2. Server is now not busy (test finished)
-                                if (wasBusy && !statusData.busy) {
-                                    clearInterval(timer);
-                                    if (clickedButton) {
-                                        clickedButton.textContent = '✅ Done';
+                                    notBusyCount = 0; // Reset counter when busy
+                                    if (pollCount % 10 === 0) { // Log every 10 polls to reduce console spam
+                                        console.log('Test is running... (poll count: ' + pollCount + ')');
                                     }
-                                    showNotification('success', 'Test Completed', 'Reloading dashboard...', 1500);
-                                    setTimeout(() => location.reload(), 1500);
-                                } else if (!wasBusy && pollCount > 5) {
-                                    // If server was never busy after 5 polls (10 seconds), test probably didn't start
-                                    clearInterval(timer);
-                                    if (clickedButton) {
-                                        clickedButton.textContent = '▶ Run Test';
-                                        clickedButton.style.background = '';
+                                } else {
+                                    // Server is not busy
+                                    notBusyCount++;
+                                    
+                                    // If test was running and we've seen multiple "not busy" responses, test is done
+                                    if (wasBusy && notBusyCount >= requiredNotBusyCount) {
+                                        clearInterval(timer);
+                                        
+                                        // Remove from running set when test completes
+                                        runningTests.delete(testName);
+                                        
+                                        if (clickedButton) {
+                                            clickedButton.textContent = '✅ Done';
+                                            clickedButton.classList.remove('running');
+                                            clickedButton.style.opacity = '1';
+                                            
+                                            // Re-enable button after delay
+                                            setTimeout(() => {
+                                                clickedButton.disabled = false;
+                                                clickedButton.style.pointerEvents = 'auto';
+                                                clickedButton.style.cursor = 'pointer';
+                                                clickedButton.textContent = '▶ Run Test';
+                                                // Restore onclick
+                                                clickedButton.setAttribute('onclick', `event.stopPropagation(); runTest('${testName}', event)`);
+                                                clickedButton.onclick = function(e) {
+                                                    runTest(testName, e);
+                                                };
+                                            }, 3000);
+                                        }
+                                        showNotification('success', 'Test Completed', 'Waiting for log file to update, then reloading dashboard...', 3000);
+                                        // Wait longer (7 seconds) to ensure log file is written and dashboard is regenerated
+                                        setTimeout(() => {
+                                            // Force a hard reload to clear cache and get fresh data
+                                            console.log('Reloading dashboard to show updated status...');
+                                            location.reload(true);
+                                        }, 7000);
+                                    } else if (!wasBusy && notBusyCount >= 3) {
+                                        // Server was never busy and we've confirmed it multiple times
+                                        clearInterval(timer);
+                                        if (clickedButton) {
+                                            clickedButton.textContent = '▶ Run Test';
+                                            clickedButton.classList.remove('running');
+                                            clickedButton.disabled = false;
+                                        }
+                                        showNotification('error', 'Test Not Started', 'Server may not be running or test failed to start. Please check server status.', 5000);
                                     }
-                                    showNotification('error', 'Test Not Started', 'Server may not be running or test failed to start. Please check server status.', 5000);
                                 }
                             })
                             .catch(e => {
@@ -3229,30 +3440,42 @@
                                 pollCount += 2; // Accelerate timeout on errors
                                 
                                 // If server is not responding after many attempts, show error
-                                if (pollCount > 20) {
+                                if (pollCount > 30) {
                                     clearInterval(timer);
                                     if (clickedButton) {
                                         clickedButton.textContent = '▶ Run Test';
-                                        clickedButton.style.background = '';
+                                        clickedButton.classList.remove('running');
+                                        clickedButton.disabled = false;
                                     }
                                     showNotification('error', 'Server Not Responding', 'Cannot connect to test server. Please make sure the server is running.', 5000);
                                 }
                             });
                              
-                        pollCount++;
                         if (pollCount > maxPolls) {
                             clearInterval(timer);
                             if (clickedButton) {
                                 clickedButton.textContent = '▶ Run Test';
-                                clickedButton.style.background = '';
+                                clickedButton.classList.remove('running');
+                                clickedButton.disabled = false;
                             }
                             showNotification('warning', 'Timeout', 'Test is taking longer than expected. Reloading dashboard...', 3000);
-                            setTimeout(() => location.reload(), 3000);
+                            setTimeout(() => {
+                                // Force a hard reload to clear cache and get fresh data
+                                location.reload(true);
+                            }, 3000);
                         }
                     }, pollInterval);
-                }, 3000); // Wait 3 seconds before starting to poll
+                }, 2000); // Wait 2 seconds before starting to poll
             }
-
+            
+            // Also add a fallback: if polling doesn't detect completion, check after a reasonable time
+            // This handles cases where status endpoint might not be working correctly
+            setTimeout(() => {
+                // After 2 minutes, force a reload to check status (in case polling missed it)
+                console.log('Fallback: Checking dashboard status after 2 minutes...');
+                // This will be handled by the auto-refresh mechanism
+            }, 120000);
+            
             fetch(serverUrl, {
                 method: 'POST',
                 headers: {
@@ -3279,14 +3502,41 @@
                     // Start polling for completion
                     startPolling(8766);
                 } else {
+                    // Test failed to start - remove from running set
+                    runningTests.delete(testName);
+                    if (clickedButton) {
+                        clickedButton.disabled = false;
+                        clickedButton.style.pointerEvents = 'auto';
+                        clickedButton.style.opacity = '1';
+                        clickedButton.textContent = '▶ Run Test';
+                        clickedButton.classList.remove('running');
+                    }
                     throw new Error(data.error || 'Failed to run test');
                 }
             })
             .catch(error => {
+                // Remove from running set on error
+                runningTests.delete(testName);
+                
+                // Re-enable button on error
+                if (clickedButton) {
+                    clickedButton.disabled = false;
+                    clickedButton.style.pointerEvents = 'auto';
+                    clickedButton.style.opacity = '1';
+                    clickedButton.style.cursor = 'pointer';
+                    clickedButton.textContent = '▶ Run Test';
+                    clickedButton.classList.remove('running');
+                    // Restore onclick
+                    clickedButton.setAttribute('onclick', `event.stopPropagation(); runTest('${testName}', event)`);
+                    clickedButton.onclick = function(e) {
+                        runTest(testName, e);
+                    };
+                }
+                
                 // If always-on server failed, try regular server as fallback
                 if (isAlwaysOnServer) {
                     isAlwaysOnServer = false;
-                    serverUrl = 'http://localhost:8765/run-test';
+                    serverUrl = 'http://127.0.0.1:8765/run-test';
                     
                     // Retry with regular server
                     fetch(serverUrl, {
@@ -3305,10 +3555,12 @@
                             }
                             showNotification('success', 'Test Started', 'Test running. Dashboard will reload shortly.', 4000);
                             
-                            // Fallback server might not have status endpoint, just wait 10s then reload
+                            // Fallback server might not have status endpoint, wait longer then reload
+                            // Wait 15 seconds to ensure test completes and log file is written
                             setTimeout(() => {
-                                location.reload();
-                            }, 10000);
+                                // Force a hard reload to clear cache and get fresh data
+                                location.reload(true);
+                            }, 15000);
                         } else {
                             throw new Error(data.error || 'Failed to run test');
                         }
@@ -3321,11 +3573,18 @@
                             navigator.clipboard.writeText(command).catch(() => {});
                         }
                         
+                        const serverMessage = `Test server is not running!\n\n` +
+                            `To start the server:\n` +
+                            `1. Double-click: START_ALWAYS_ON_SERVER.bat\n` +
+                            `2. Or run: python utils\\always_on_server.py\n\n` +
+                            `Keep the server window open while using the dashboard.\n` +
+                            `Server runs on port 8766.`;
+                        
                         showNotification(
-                            'warning',
-                            'Test Runner Not Available',
-                            'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat. Command copied to clipboard.',
-                            6000
+                            'error',
+                            'Server Not Running',
+                            serverMessage,
+                            10000
                         );
                         
                         if (clickedButton) {

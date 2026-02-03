@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "D:/AutomationTesting"
+		},
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.robot": "robotframework",
+			"JnP_final.robot": "robotframework"
+		},
+		"robot.pythonpath": [
+			"${workspaceFolder}\\Jnp_automation\\automation_test_env\\Lib\\site-packages"
+		],
+		"robot.python.executable": "${workspaceFolder}\\Jnp_automation\\automation_test_env\\Scripts\\python.exe"
+	}
+}

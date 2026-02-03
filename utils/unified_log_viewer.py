@@ -159,14 +159,19 @@ def parse_test_results_from_log(log_file_path: str):
                     failure_message = ''
                     failure_location = ''
                     xpath = ''
+                    total_jobs = 0
+                    error_jobs_count = 0
                     
-                    # Look ahead for elapsed/runtime + failure details + xpath hint (within next ~120 lines)
+                    # For db_solr_sync test, search entire log file for job report data (it's logged much later)
+                    search_range = len(lines) if 'db_solr_sync' in test_name.lower() else min(line_no + 120, len(lines))
+                    
+                    # Look ahead for elapsed/runtime + failure details + xpath hint + job report data
                     # This is used for BOTH PASS and FAIL so runtime always shows in the right panel.
-                    for i in range(line_no, min(line_no + 120, len(lines))):
+                    for i in range(line_no, search_range):
                         if i < len(lines):
                             next_line = lines[i].strip()
-                            # Stop if another test starts (don't consume next test's runtime)
-                            if i != line_no and test_pattern.search(next_line):
+                            # Stop if another test starts (but continue for db_solr_sync to find job report data)
+                            if i != line_no and test_pattern.search(next_line) and 'db_solr_sync' not in test_name.lower():
                                 break
                             # Prefer the elapsed format from test_logger
                             m_elapsed = elapsed_pattern.search(next_line)
@@ -177,6 +182,19 @@ def parse_test_results_from_log(log_file_path: str):
                                 m_rt = runtime_seconds_pattern.search(next_line)
                                 if m_rt:
                                     running_time = f"{m_rt.group(1).strip()} seconds"
+                            
+                            # Extract 24hrs job report data for db_solr_sync test
+                            if 'db_solr_sync' in test_name.lower():
+                                # Look for "Total Jobs Available in DB (last 24h): X" or "Jobs Actually Checked: X"
+                                if 'Total Jobs Available in DB' in next_line or 'Jobs Actually Checked:' in next_line:
+                                    jobs_match = re.search(r'(?:Total Jobs Available in DB \(last 24h\):|Jobs Actually Checked:)\s*(\d+)', next_line, re.IGNORECASE)
+                                    if jobs_match and total_jobs == 0:
+                                        total_jobs = int(jobs_match.group(1))
+                                # Look for "Total Failures: X"
+                                if 'Total Failures:' in next_line:
+                                    failures_match = re.search(r'Total Failures:\s*(\d+)', next_line, re.IGNORECASE)
+                                    if failures_match:
+                                        error_jobs_count = int(failures_match.group(1))
 
                     if status == 'FAIL':
                         # Prefer the "Message:" block written by the test logger / conftest hook.
@@ -233,7 +251,7 @@ def parse_test_results_from_log(log_file_path: str):
                                 running_time = f"{m_rt.group(1).strip()} seconds"
                                 break
                     
-                    tests.append({
+                    test_entry = {
                         'name': test_name,
                         'status': status,
                         'line': line_no,
@@ -242,7 +260,14 @@ def parse_test_results_from_log(log_file_path: str):
                         'failure_message': failure_message,
                         'failure_location': failure_location,
                         'xpath': xpath
-                    })
+                    }
+                    # Add 24hrs job report data for db_solr_sync test
+                    if total_jobs > 0:
+                        test_entry['total_jobs'] = total_jobs
+                    if error_jobs_count > 0:
+                        test_entry['error_jobs_count'] = error_jobs_count
+                    
+                    tests.append(test_entry)
                 
                 # Check for test statistics to detect if tests were collected but not executed
                 stats_match = stats_pattern.search(line)
@@ -453,24 +478,30 @@ def discover_tests_from_code(project_root: Path):
                     }
         
         # Discover Job Seeker tests
-        jobseeker_test_file = project_root / 'tests' / 'jobseeker' / 'test_jobseeker_test_cases.py'
-        if jobseeker_test_file.exists():
-            with open(jobseeker_test_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                test_pattern = re.compile(r'def\s+(test_\w+)\(', re.MULTILINE)
-                for match in test_pattern.finditer(content):
-                    test_name = match.group(1)
-                    discovered_tests[test_name] = {
-                        'name': test_name,
-                        'source': 'Job Seeker',
-                        'status': 'NOT_RUN',
-                        'line': 0,
-                        'raw_line': f'Discovered from code: {jobseeker_test_file}',
-                        'running_time': 'N/A',
-                        'failure_message': '',
-                        'failure_location': '',
-                        'xpath': ''
-                    }
+        jobseeker_dir = project_root / 'tests' / 'jobseeker'
+        if jobseeker_dir.exists():
+            for jobseeker_test_file in jobseeker_dir.glob('test_*.py'):
+                try:
+                    with open(jobseeker_test_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        test_pattern = re.compile(r'def\s+(test_\w+)\(', re.MULTILINE)
+                        for match in test_pattern.finditer(content):
+                            test_name = match.group(1)
+                            # Only add if not already discovered (in case of name collisions, though unlikely)
+                            if test_name not in discovered_tests:
+                                discovered_tests[test_name] = {
+                                    'name': test_name,
+                                    'source': 'Job Seeker',
+                                    'status': 'NOT_RUN',
+                                    'line': 0,
+                                    'raw_line': f'Discovered from code: {jobseeker_test_file.name}',
+                                    'running_time': 'N/A',
+                                    'failure_message': '',
+                                    'failure_location': '',
+                                    'xpath': ''
+                                }
+                except Exception as e:
+                    print(f"Warning: Could not reading jobseeker test file {jobseeker_test_file}: {e}")
     except Exception as e:
         print(f"Warning: Could not discover tests from code: {e}")
     
@@ -637,16 +668,25 @@ def generate_unified_dashboard():
             else:
                 # Mtimes are close (within 2 seconds) - prefer higher line number (appears later in log)
                 # CRITICAL: Higher line number = more recent entry in same file = always prefer
-                if current_line > existing_line:
-                    # Current appears later in log - always use it (it's more recent)
+                # BUT: Prefer PASS/FAIL over SKIP when line numbers are close (SKIP means test wasn't run)
+                existing_status = existing.get('status', '')
+                current_status = test.get('status', '')
+                
+                # Priority: PASS/FAIL > SKIP (actual execution results are more important than skipped tests)
+                if current_status in ['PASS', 'FAIL'] and existing_status == 'SKIP':
+                    # Current is actual result (PASS/FAIL), existing is SKIP - prefer current
+                    test_dict[test_key] = test
+                elif current_status == 'SKIP' and existing_status in ['PASS', 'FAIL']:
+                    # Current is SKIP, existing is actual result - keep existing
+                    pass
+                elif current_line > existing_line:
+                    # Both are same type (both PASS/FAIL or both SKIP), prefer higher line number
                     test_dict[test_key] = test
                 elif current_line < existing_line:
                     # Existing appears later - keep existing
                     pass
                 else:
                     # Same line number - prefer PASS over FAIL, or newer mtime
-                    existing_status = existing.get('status', '')
-                    current_status = test.get('status', '')
                     if current_status == 'PASS' and existing_status == 'FAIL':
                         # Always prefer PASS over FAIL if line numbers are same
                         test_dict[test_key] = test
@@ -659,19 +699,31 @@ def generate_unified_dashboard():
 
     # Attach latest failure artifacts (screenshot/html/url) from reports/failures
     # so the right-side details panel can open them.
+    # IMPORTANT: Only attach screenshots for FAILED tests. For PASSED tests, clear any old screenshots.
     for (tname, _source), tinfo in list(test_dict.items()):
         try:
-            artifacts = find_failure_artifacts_for_test(tname, reports_dir)
-            # Keep existing screenshots logic, but also add html/url links
-            if artifacts.get("screenshot_url"):
-                tinfo.setdefault("screenshots", [])
-                # Do not duplicate
-                if not tinfo["screenshots"]:
-                    tinfo["screenshots"] = [artifacts["screenshot_url"]]
-            tinfo["artifacts"] = {
-                "html_url": artifacts.get("html_url", ""),
-                "url_txt_url": artifacts.get("url_txt_url", ""),
-            }
+            test_status = tinfo.get("status", "").upper()
+            # Only attach screenshots/artifacts for FAILED tests
+            if test_status == "FAIL" or test_status == "FAILED":
+                artifacts = find_failure_artifacts_for_test(tname, reports_dir)
+                # Keep existing screenshots logic, but also add html/url links
+                if artifacts.get("screenshot_url"):
+                    tinfo.setdefault("screenshots", [])
+                    # Do not duplicate
+                    if not tinfo["screenshots"]:
+                        tinfo["screenshots"] = [artifacts["screenshot_url"]]
+                tinfo["artifacts"] = {
+                    "html_url": artifacts.get("html_url", ""),
+                    "url_txt_url": artifacts.get("url_txt_url", ""),
+                }
+            else:
+                # For PASS/SKIP/NOT_RUN tests, explicitly clear screenshots and artifacts
+                # This ensures old screenshots from previous failed runs are not shown
+                tinfo["screenshots"] = []
+                tinfo["artifacts"] = {
+                    "html_url": "",
+                    "url_txt_url": "",
+                }
             test_dict[(tname, _source)] = tinfo
         except Exception:
             pass
@@ -749,10 +801,14 @@ def generate_unified_dashboard():
     skipped = len([t for t in benchsale_tests_for_stats if t['status'] == 'SKIP'])
     not_run = employer_not_run  # Only show NOT_RUN for Employer
     
-    # Find screenshots for failed tests
+    # Find screenshots ONLY for failed tests
+    # For passed tests, explicitly set screenshots to empty array to ensure no old screenshots are shown
     for test in all_tests:
         if test['status'] == 'FAIL':
             test['screenshots'] = find_screenshots_for_test(test['name'], reports_dir)
+        else:
+            # For PASS/SKIP/NOT_RUN tests, ensure no screenshots are shown
+            test['screenshots'] = []
     
     # Get last modified time of log files for "Last Updated" display
     # We calculate per-section timestamps AND an overall timestamp
@@ -805,6 +861,25 @@ def generate_unified_dashboard():
     dashboard_path = logs_dir / 'index.html'
     with open(dashboard_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
+        f.flush()  # Force write to buffer
+        try:
+            os.fsync(f.fileno())  # Force sync to disk (Unix/Windows)
+        except Exception:
+            pass  # Some systems don't support fsync
+    
+    # CRITICAL: Update file timestamp to ensure browser detects the change
+    # This forces browser to reload even if cache says file hasn't changed
+    try:
+        import time
+        current_time = time.time()
+        os.utime(dashboard_path, (current_time, current_time))  # Update both access and modify time
+    except Exception as e:
+        print(f"Warning: Could not update dashboard file timestamp: {e}")
+    
+    # Verify file was written
+    if dashboard_path.exists():
+        file_size = dashboard_path.stat().st_size
+        print(f"Dashboard written: {dashboard_path} (size: {file_size} bytes)")
     
     return str(dashboard_path)
 
@@ -841,6 +916,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BenchSale Test Dashboard - Unified Report</title>
@@ -2046,6 +2125,12 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             font-size: 1em;
         }}
         
+        /* Hide employer and jobseeker log links by default (shown via JS for those dashboards) */
+        .log-link[href*="module=employer"],
+        .log-link[href*="module=jobseeker"] {{
+            display: none;
+        }}
+        
         .log-link:hover {{
             background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
             color: white;
@@ -2245,7 +2330,7 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                             <h1 id="dashboard-title">Unified Test Report</h1>
                             <div id="server-status-indicator" style="font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.5); padding: 4px 10px; border-radius: 20px;">
                                 <span id="server-status-text" style="color: #64748B;">Checking Server...</span>
-                                <button id="start-server-btn" onclick="startServer()" style="display: none; background: var(--primary); color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Start Server</button>
+                                <button id="start-server-btn" onclick="startServer()" style="display: none; background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3); transition: all 0.3s ease;">▶ Start Server</button>
                             </div>
                         </div>
                         <div class="subtitle">Auto-generated • Live Status • Last Run: <span id="last-run-time-main">{last_updated_str}</span></div>
@@ -2536,34 +2621,69 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             
             if (!statusIndicator) return;
 
-            // Check if main server is running (via helper if available, or direct)
-            // We use 8767 (helper) to check status of 8766 (main)
-            fetch('http://localhost:8767/status')
-            .then(response => response.json())
-            .then(data => {{
-                if (data.running) {{
-                    statusText.textContent = 'Server: Running';
-                    statusText.style.color = '#10B981'; // Green
-                    startBtn.style.display = 'none';
-                }} else {{
-                    statusText.textContent = 'Server: Stopped';
-                    statusText.style.color = '#EF4444'; // Red
-                    startBtn.style.display = 'inline-block';
+            // Check main server directly on port 8766 (more reliable)
+            fetch('http://127.0.0.1:8766/status?t=' + Date.now(), {{
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: {{
+                    'Accept': 'application/json'
                 }}
             }})
-            .catch(() => {{
-                // Helper not available, try checking main server directly
-                fetch('http://localhost:8766/status')
-                .then(r => r.json())
-                .then(d => {{
-                     statusText.textContent = 'Server: Running';
-                     statusText.style.color = '#10B981';
-                     startBtn.style.display = 'none';
+            .then(r => {{
+                if (!r.ok) {{
+                    throw new Error('Server returned ' + r.status);
+                }}
+                return r.json();
+            }})
+            .then(d => {{
+                // Server is responding - any response means server is running
+                statusText.textContent = 'Server: Running';
+                statusText.style.color = '#10B981'; // Green
+                if (startBtn) {{
+                    startBtn.style.display = 'none';
+                    startBtn.disabled = false;
+                }}
+                console.log('Server status: Running (busy=' + (d.busy || false) + ', queue=' + (d.queue_size || 0) + ')');
+            }})
+            .catch((error) => {{
+                console.log('Server check failed on port 8766:', error.message);
+                // Server not responding, try helper server (port 8767) as fallback
+                fetch('http://127.0.0.1:8767/status?t=' + Date.now(), {{
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
                 }})
-                .catch(() => {{
+                .then(response => {{
+                    if (!response.ok) throw new Error('Helper server returned ' + response.status);
+                    return response.json();
+                }})
+                .then(data => {{
+                    if (data.running) {{
+                        statusText.textContent = 'Server: Running';
+                        statusText.style.color = '#10B981';
+                        if (startBtn) {{
+                            startBtn.style.display = 'none';
+                            startBtn.disabled = false;
+                        }}
+                    }} else {{
+                        statusText.textContent = 'Server: Stopped';
+                        statusText.style.color = '#EF4444'; // Red
+                        if (startBtn) {{
+                            startBtn.style.display = 'inline-block';
+                            startBtn.disabled = false;
+                        }}
+                    }}
+                }})
+                .catch((fallbackError) => {{
+                    console.log('Both servers not responding:', fallbackError.message);
+                    // Both servers not responding
                     statusText.textContent = 'Server: Stopped';
-                    statusText.style.color = '#EF4444';
-                    startBtn.style.display = 'inline-block';
+                    statusText.style.color = '#EF4444'; // Red
+                    if (startBtn) {{
+                        startBtn.style.display = 'inline-block';
+                        startBtn.disabled = false;
+                    }}
                 }});
             }});
         }}
@@ -2575,19 +2695,37 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 startBtn.disabled = true;
             }}
             
-            fetch('http://localhost:8767/start')
+            // First try helper server (port 8767) if available
+            fetch('http://127.0.0.1:8767/start', {{ method: 'POST', timeout: 3000 }})
             .then(response => response.json())
             .then(data => {{
                 if (data.success) {{
-                    showNotification('success', 'Server Started', 'Test server is starting...', 3000);
-                    setTimeout(checkServerStatus, 2000);
+                    showNotification('success', 'Server Started', 'Test server is starting... Please wait 5 seconds.', 5000);
+                    setTimeout(checkServerStatus, 5000);
                 }} else {{
                     showNotification('info', 'Starting Server', 'Server start command sent.', 3000);
-                    setTimeout(checkServerStatus, 2000);
+                    setTimeout(checkServerStatus, 5000);
                 }}
             }})
             .catch(() => {{
-                showNotification('warning', 'Start Failed', 'Could not start server. Please run START_ALWAYS_ON_SERVER.bat manually.', 5000);
+                // Helper server not available, show instructions
+                const message = `Server cannot be started automatically.\\n\\n` +
+                    `Please do ONE of the following:\\n\\n` +
+                    `1. Double-click: START_ALWAYS_ON_SERVER.bat\\n` +
+                    `2. Or run in terminal: python utils\\\\always_on_server.py\\n\\n` +
+                    `The server will run on port 8766.\\n` +
+                    `Keep the window open while using the dashboard.`;
+                
+                showNotification('warning', 'Start Server Manually', message, 10000);
+                
+                // Copy command to clipboard if possible
+                const command = 'python utils\\always_on_server.py';
+                if (navigator.clipboard && navigator.clipboard.writeText) {{
+                    navigator.clipboard.writeText(command).then(() => {{
+                        console.log('Command copied to clipboard: ' + command);
+                    }}).catch(() => {{}});
+                }}
+                
                 if (startBtn) {{
                     startBtn.textContent = 'Start Server';
                     startBtn.disabled = false;
@@ -2595,10 +2733,36 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
             }});
         }}
 
-        // Check status on load and every 10 seconds
+        // Check if page is loaded via file:// protocol (CORS issue)
+        // Only show warning once per session to avoid annoying user
+        if (window.location.protocol === 'file:') {{
+            const httpUrl = 'http://127.0.0.1:8888/logs/index.html' + window.location.search;
+            console.warn('⚠️ Dashboard loaded via file:// protocol - CORS will block server status checks!');
+            console.warn('💡 For full functionality, use: ' + httpUrl);
+            
+            // Only show notification once per browser session (check sessionStorage)
+            const warningShown = sessionStorage.getItem('fileProtocolWarningShown');
+            if (!warningShown) {{
+                sessionStorage.setItem('fileProtocolWarningShown', 'true');
+                // Show notification about file:// protocol issue (shorter, less intrusive)
+                setTimeout(() => {{
+                    const message = `Dashboard loaded via file:// protocol.\\n\\n` +
+                        `For full functionality, use:\\n` +
+                        `http://127.0.0.1:8888/logs/index.html\\n\\n` +
+                        `Or run: OPEN_DASHBOARD.bat`;
+                    showNotification('warning', 'File Protocol Detected', message, 8000);
+                }}, 3000); // Show after 3 seconds, not immediately
+            }}
+        }}
+        
+        // Check status on load and every 5 seconds
         document.addEventListener('DOMContentLoaded', function() {{
+            // Check server status immediately on page load
             checkServerStatus();
-            setInterval(checkServerStatus, 10000);
+            // Also check after a short delay to ensure everything is ready
+            setTimeout(checkServerStatus, 1000);
+            // Check server status every 5 seconds (more frequent for better UX)
+            setInterval(checkServerStatus, 5000);
         }});
         
         // Global filter state
@@ -2841,10 +3005,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Show Employer log link, hide BenchSale and Job Seeker log links
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {{
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'inline-block';
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                 }}
             }} else if (section === 'jobseeker') {{
@@ -2862,10 +3026,10 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Show Job Seeker log link, hide BenchSale and Employer log links
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {{
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'inline-block';
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
                 }}
             }} else {{
@@ -2880,9 +3044,9 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Hide Employer and Job Seeker log links in BenchSale dashboard
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {{
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                     
                     // Show/hide BenchSale log links based on selected section
@@ -3058,13 +3222,26 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                         <div class="test-details-info-label">Running Time</div>
                         <div class="test-details-info-value">${{testData.running_time || 'N/A'}}</div>
                     </div>
+                    ${{testData.total_jobs ? `
+                    <div class="test-details-info-item">
+                        <div class="test-details-info-label">📊 24hrs Job Report</div>
+                        <div class="test-details-info-value">
+                            <strong>Total Jobs Checked:</strong> ${{testData.total_jobs.toLocaleString()}}<br>
+                            ${{testData.error_jobs_count ? `<strong>Failures:</strong> ${{testData.error_jobs_count.toLocaleString()}}<br>` : ''}}
+                            ${{testData.total_jobs && testData.error_jobs_count ? `
+                            <strong>Success Rate:</strong> ${{((testData.total_jobs - testData.error_jobs_count) / testData.total_jobs * 100).toFixed(2)}}%
+                            ` : ''}}
+                        </div>
+                    </div>
+                    ` : ''}}
                 </div>
                 
                 <div class="test-details-content">
             `;
             
-            // Add screenshot if available
-            if (testData.screenshots && testData.screenshots.length > 0) {{
+            // Add screenshot ONLY if test failed and screenshot is available
+            // For passed tests, show empty space (no screenshot)
+            if ((status === 'FAIL' || status === 'FAILED') && testData.screenshots && testData.screenshots.length > 0) {{
                 const screenshotUrl = testData.screenshots[0];
                 detailsHTML += `
                     <div class="test-details-screenshot">
@@ -3184,11 +3361,11 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Show Employer log link
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {{
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'inline-block';
                     // Hide BenchSale and Job Seeker log links
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                 }}
             }} else if (filter === 'jobseeker') {{
@@ -3212,11 +3389,11 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Show Job Seeker log link
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {{
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'inline-block';
                     // Hide BenchSale and Employer log links
                     logLinks.querySelectorAll('a[href*="benchsale"]').forEach(link => link.style.display = 'none');
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
                 }}
             }} else {{
@@ -3239,9 +3416,9 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 // Hide Employer and Job Seeker log links in BenchSale dashboard
                 const logLinks = document.getElementById('log-links-content');
                 if (logLinks) {{
-                    const employerLogLink = logLinks.querySelector('a[href*="employer.log"]');
+                    const employerLogLink = logLinks.querySelector('a[href*="module=employer"]');
                     if (employerLogLink) employerLogLink.style.display = 'none';
-                    const jobseekerLogLink = logLinks.querySelector('a[href*="jobseeker.log"]');
+                    const jobseekerLogLink = logLinks.querySelector('a[href*="module=jobseeker"]');
                     if (jobseekerLogLink) jobseekerLogLink.style.display = 'none';
                     
                     // Show all BenchSale log links by default (for "All Tests" view)
@@ -3282,14 +3459,45 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 statusEl.style.background = 'rgba(255, 204, 0, 0.2)';
                 statusEl.style.color = '#ed8936';
             }}
+            // Force a hard reload to clear cache and get fresh data
             setTimeout(function() {{
-                location.reload();
+                location.reload(true);
             }}, 500);
         }}
         
+        // Auto-refresh dashboard every 6 hours if page is visible
+        // This ensures status updates even if test was run outside the UI
+        let autoRefreshInterval = null;
+        function startAutoRefresh() {{
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {{
+                // Only refresh if page is visible (not in background tab)
+                if (!document.hidden) {{
+                    // Check if any test is currently running
+                    const runningButtons = document.querySelectorAll('.run-test-btn.running');
+                    
+                    // Check if user is viewing a test case (details panel open)
+                    const activeTestItems = document.querySelectorAll('.test-item.active');
+                    
+                    if (runningButtons.length === 0 && activeTestItems.length === 0) {{
+                        // No tests running AND no test details being viewed, safe to refresh
+                        console.log('Auto-refreshing dashboard to check for status updates...');
+                        location.reload(true);
+                    }} else if (activeTestItems.length > 0) {{
+                        console.log('Skipping auto-refresh: User is viewing test details');
+                    }}
+                }}
+            }}, 21600000); // Refresh every 6 hours
+        }}
+        
+        // Start auto-refresh when page loads
         document.addEventListener('DOMContentLoaded', function() {{
+            const dashboardVersion = '{generated_at}';
             console.log('Dashboard loaded. Last updated: {last_updated_str}');
+            console.log('Dashboard generated at: ' + dashboardVersion);
             console.log('Dashboard auto-updates after each test run.');
+            console.log('Current browser time: ' + new Date().toISOString());
+            startAutoRefresh();
         }});
         // Modal Functions
         function openModal(src) {{
@@ -3361,12 +3569,43 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
         }}
         
         // Run test function
-        function runTest(testName) {{
+        // Track running tests to prevent duplicates
+        const runningTests = new Set();
+        const buttonClickTimes = new Map(); // Track when button was last clicked
+        
+        function runTest(testName, event) {{
+            // CRITICAL: Prevent default and stop propagation
+            if (event) {{
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+            }}
+            
+            // CRITICAL: Check if test is already running or queued FIRST (before debounce check)
+            if (runningTests.has(testName)) {{
+                console.log('Test ' + testName + ' is already running or queued, ignoring duplicate request');
+                showNotification('warning', 'Test Already Running', 'Test "' + testName + '" is already running or queued. Please wait for it to complete.', 3000);
+                return;
+            }}
+            
+            // CRITICAL: Debounce - prevent rapid clicks (within 3 seconds - increased from 2)
+            const now = Date.now();
+            const lastClickTime = buttonClickTimes.get(testName) || 0;
+            if (now - lastClickTime < 3000) {{
+                console.log('Test ' + testName + ' clicked too soon after last click, ignoring');
+                showNotification('info', 'Please Wait', 'Test "' + testName + '" was just clicked. Please wait a moment.', 2000);
+                return;
+            }}
+            buttonClickTimes.set(testName, now);
+            
+            // Mark test as running immediately (before any async operations)
+            runningTests.add(testName);
+            
             // Find the button that was clicked
             const buttons = document.querySelectorAll('.run-test-btn');
             let clickedButton = null;
             buttons.forEach(btn => {{
-                if (btn.textContent.includes('Run Test') || btn.textContent.includes('Running')) {{
+                if (btn.textContent.includes('Run Test') || btn.textContent.includes('Running') || btn.textContent.includes('Done')) {{
                     const testItem = btn.closest('.test-item');
                     if (testItem && testItem.getAttribute('data-test-info')) {{
                         try {{
@@ -3391,30 +3630,48 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 }});
             }}
             
+            // CRITICAL: Disable button IMMEDIATELY to prevent multiple clicks
             if (clickedButton) {{
                 clickedButton.classList.add('running');
                 clickedButton.textContent = '⏳ Running...';
                 clickedButton.disabled = true;
+                clickedButton.style.pointerEvents = 'none'; // Prevent any clicks
+                clickedButton.style.opacity = '0.7'; // Visual feedback
+                clickedButton.style.cursor = 'not-allowed'; // Show disabled cursor
+                
+                // Remove onclick to prevent any clicks
+                clickedButton.removeAttribute('onclick');
+                
+                // Also prevent any event listeners
+                clickedButton.onclick = function(e) {{
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }};
             }}
             
             // Try to run via always-on server first (port 8766)
             // Falls back to regular server (port 8765) if needed
-            let serverUrl = 'http://localhost:8766/add-test';
+            let serverUrl = 'http://127.0.0.1:8766/add-test';
             let isAlwaysOnServer = true;
             
             // Helper function for polling
             let testWasStarted = false; // Track if test actually started
             function startPolling(port) {{
-                // Poll for completion
-                const pollInterval = 2000; // Check every 2 seconds
-                const maxPolls = 300; // 5 minutes max
+                // Poll for completion - more aggressive polling
+                const pollInterval = 1000; // Check every 1 second (faster detection)
+                const maxPolls = 600; // 10 minutes max (600 seconds)
                 let pollCount = 0;
                 let wasBusy = false; // Track if server was ever busy (test was running)
+                let notBusyCount = 0; // Count consecutive "not busy" responses
+                const requiredNotBusyCount = 3; // Need 3 consecutive "not busy" to confirm test is done
                 
-                // Wait 3 seconds before starting to poll (give server time to start test and set lock)
+                // Wait 2 seconds before starting to poll (give server time to start test and set lock)
                 setTimeout(() => {{
                     const timer = setInterval(() => {{
-                        fetch(`http://localhost:${{port}}/status`)
+                        pollCount++;
+                        fetch(`http://127.0.0.1:${{port}}/status?t=${{Date.now()}}`) // Add cache-busting parameter
                             .then(r => {{
                                 if (!r.ok) {{
                                     throw new Error(`Server returned ${{r.status}}`);
@@ -3425,27 +3682,56 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                                 // Track if server was ever busy (means test was actually running)
                                 if (statusData.busy) {{
                                     wasBusy = true;
-                                    console.log('Test is running... (poll count: ' + pollCount + ')');
-                                }}
-                                
-                                // Only show "Test Completed" if:
-                                // 1. Test was actually started (wasBusy was true at some point)
-                                // 2. Server is now not busy (test finished)
-                                if (wasBusy && !statusData.busy) {{
-                                    clearInterval(timer);
-                                    if (clickedButton) {{
-                                        clickedButton.textContent = '✅ Done';
+                                    notBusyCount = 0; // Reset counter when busy
+                                    if (pollCount % 10 === 0) {{ // Log every 10 polls to reduce console spam
+                                        console.log('Test is running... (poll count: ' + pollCount + ')');
                                     }}
-                                    showNotification('success', 'Test Completed', 'Reloading dashboard...', 1500);
-                                    setTimeout(() => location.reload(), 1500);
-                                }} else if (!wasBusy && pollCount > 5) {{
-                                    // If server was never busy after 5 polls (10 seconds), test probably didn't start
-                                    clearInterval(timer);
-                                    if (clickedButton) {{
-                                        clickedButton.textContent = '▶ Run Test';
-                                        clickedButton.style.background = '';
+                                }} else {{
+                                    // Server is not busy
+                                    notBusyCount++;
+                                    
+                                    // If test was running and we've seen multiple "not busy" responses, test is done
+                                    if (wasBusy && notBusyCount >= requiredNotBusyCount) {{
+                                        clearInterval(timer);
+                                        
+                                        // Remove from running set when test completes
+                                        runningTests.delete(testName);
+                                        
+                                        if (clickedButton) {{
+                                            clickedButton.textContent = '✅ Done';
+                                            clickedButton.classList.remove('running');
+                                            clickedButton.style.opacity = '1';
+                                            
+                                            // Re-enable button after delay
+                                            setTimeout(() => {{
+                                                clickedButton.disabled = false;
+                                                clickedButton.style.pointerEvents = 'auto';
+                                                clickedButton.style.cursor = 'pointer';
+                                                clickedButton.textContent = '▶ Run Test';
+                                                // Restore onclick
+                                                clickedButton.setAttribute('onclick', `event.stopPropagation(); runTest('${{testName}}', event)`);
+                                                clickedButton.onclick = function(e) {{
+                                                    runTest(testName, e);
+                                                }};
+                                            }}, 3000);
+                                        }}
+                                        showNotification('success', 'Test Completed', 'Waiting for log file to update, then reloading dashboard...', 3000);
+                                        // Wait longer (7 seconds) to ensure log file is written and dashboard is regenerated
+                                        setTimeout(() => {{
+                                            // Force a hard reload to clear cache and get fresh data
+                                            console.log('Reloading dashboard to show updated status...');
+                                            location.reload(true);
+                                        }}, 7000);
+                                    }} else if (!wasBusy && notBusyCount >= 3) {{
+                                        // Server was never busy and we've confirmed it multiple times
+                                        clearInterval(timer);
+                                        if (clickedButton) {{
+                                            clickedButton.textContent = '▶ Run Test';
+                                            clickedButton.classList.remove('running');
+                                            clickedButton.disabled = false;
+                                        }}
+                                        showNotification('error', 'Test Not Started', 'Server may not be running or test failed to start. Please check server status.', 5000);
                                     }}
-                                    showNotification('error', 'Test Not Started', 'Server may not be running or test failed to start. Please check server status.', 5000);
                                 }}
                             }})
                             .catch(e => {{
@@ -3453,30 +3739,42 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                                 pollCount += 2; // Accelerate timeout on errors
                                 
                                 // If server is not responding after many attempts, show error
-                                if (pollCount > 20) {{
+                                if (pollCount > 30) {{
                                     clearInterval(timer);
                                     if (clickedButton) {{
                                         clickedButton.textContent = '▶ Run Test';
-                                        clickedButton.style.background = '';
+                                        clickedButton.classList.remove('running');
+                                        clickedButton.disabled = false;
                                     }}
                                     showNotification('error', 'Server Not Responding', 'Cannot connect to test server. Please make sure the server is running.', 5000);
                                 }}
                             }});
                              
-                        pollCount++;
                         if (pollCount > maxPolls) {{
                             clearInterval(timer);
                             if (clickedButton) {{
                                 clickedButton.textContent = '▶ Run Test';
-                                clickedButton.style.background = '';
+                                clickedButton.classList.remove('running');
+                                clickedButton.disabled = false;
                             }}
                             showNotification('warning', 'Timeout', 'Test is taking longer than expected. Reloading dashboard...', 3000);
-                            setTimeout(() => location.reload(), 3000);
+                            setTimeout(() => {{
+                                // Force a hard reload to clear cache and get fresh data
+                                location.reload(true);
+                            }}, 3000);
                         }}
                     }}, pollInterval);
-                }}, 3000); // Wait 3 seconds before starting to poll
+                }}, 2000); // Wait 2 seconds before starting to poll
             }}
-
+            
+            // Also add a fallback: if polling doesn't detect completion, check after a reasonable time
+            // This handles cases where status endpoint might not be working correctly
+            setTimeout(() => {{
+                // After 2 minutes, force a reload to check status (in case polling missed it)
+                console.log('Fallback: Checking dashboard status after 2 minutes...');
+                // This will be handled by the auto-refresh mechanism
+            }}, 120000);
+            
             fetch(serverUrl, {{
                 method: 'POST',
                 headers: {{
@@ -3503,14 +3801,41 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                     // Start polling for completion
                     startPolling(8766);
                 }} else {{
+                    // Test failed to start - remove from running set
+                    runningTests.delete(testName);
+                    if (clickedButton) {{
+                        clickedButton.disabled = false;
+                        clickedButton.style.pointerEvents = 'auto';
+                        clickedButton.style.opacity = '1';
+                        clickedButton.textContent = '▶ Run Test';
+                        clickedButton.classList.remove('running');
+                    }}
                     throw new Error(data.error || 'Failed to run test');
                 }}
             }})
             .catch(error => {{
+                // Remove from running set on error
+                runningTests.delete(testName);
+                
+                // Re-enable button on error
+                if (clickedButton) {{
+                    clickedButton.disabled = false;
+                    clickedButton.style.pointerEvents = 'auto';
+                    clickedButton.style.opacity = '1';
+                    clickedButton.style.cursor = 'pointer';
+                    clickedButton.textContent = '▶ Run Test';
+                    clickedButton.classList.remove('running');
+                    // Restore onclick
+                    clickedButton.setAttribute('onclick', `event.stopPropagation(); runTest('${{testName}}', event)`);
+                    clickedButton.onclick = function(e) {{
+                        runTest(testName, e);
+                    }};
+                }}
+                
                 // If always-on server failed, try regular server as fallback
                 if (isAlwaysOnServer) {{
                     isAlwaysOnServer = false;
-                    serverUrl = 'http://localhost:8765/run-test';
+                    serverUrl = 'http://127.0.0.1:8765/run-test';
                     
                     // Retry with regular server
                     fetch(serverUrl, {{
@@ -3529,10 +3854,12 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                             }}
                             showNotification('success', 'Test Started', 'Test running. Dashboard will reload shortly.', 4000);
                             
-                            // Fallback server might not have status endpoint, just wait 10s then reload
+                            // Fallback server might not have status endpoint, wait longer then reload
+                            // Wait 15 seconds to ensure test completes and log file is written
                             setTimeout(() => {{
-                                location.reload();
-                            }}, 10000);
+                                // Force a hard reload to clear cache and get fresh data
+                                location.reload(true);
+                            }}, 15000);
                         }} else {{
                             throw new Error(data.error || 'Failed to run test');
                         }}
@@ -3545,11 +3872,18 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                             navigator.clipboard.writeText(command).catch(() => {{}});
                         }}
                         
+                        const serverMessage = `Test server is not running!\\n\\n` +
+                            `To start the server:\\n` +
+                            `1. Double-click: START_ALWAYS_ON_SERVER.bat\\n` +
+                            `2. Or run: python utils\\\\always_on_server.py\\n\\n` +
+                            `Keep the server window open while using the dashboard.\\n` +
+                            `Server runs on port 8766.`;
+                        
                         showNotification(
-                            'warning',
-                            'Test Runner Not Available',
-                            'Start the always-on server: Double-click START_ALWAYS_ON_SERVER.bat. Command copied to clipboard.',
-                            6000
+                            'error',
+                            'Server Not Running',
+                            serverMessage,
+                            10000
                         );
                         
                         if (clickedButton) {{
@@ -3605,6 +3939,8 @@ def generate_test_list_html(tests):
             xpath = test.get('xpath', '')
             screenshots = test.get('screenshots', [])
             artifacts = test.get('artifacts', {}) or {}
+            total_jobs = test.get('total_jobs', 0)  # For db_solr_sync test - 24hrs job report
+            error_jobs_count = test.get('error_jobs_count', 0)  # For db_solr_sync test - failures count
             
             # Ensure screenshots is a list
             if not isinstance(screenshots, list):
@@ -3627,6 +3963,11 @@ def generate_test_list_html(tests):
                         'url_txt_url': artifacts.get('url_txt_url', '')
                     }
                 }
+                # Add 24hrs job report data for db_solr_sync test
+                if total_jobs > 0:
+                    test_data['total_jobs'] = int(total_jobs)
+                if error_jobs_count > 0:
+                    test_data['error_jobs_count'] = int(error_jobs_count)
                 test_data_json = escape(json.dumps(test_data))
                 # Escape quotes in JSON for HTML attribute
                 test_data_json_escaped = test_data_json.replace('"', '&quot;')
@@ -3647,7 +3988,7 @@ def generate_test_list_html(tests):
                     <div class="test-badge {status_lower}">{status_display}</div>
                     <div class="test-source">Source: {source}</div>
                     <div class="test-actions">
-                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('{original_name_escaped}')" title="Run this test">
+                        <button class="run-test-btn" onclick="event.stopPropagation(); runTest('{original_name_escaped}', event)" title="Run this test">
                             ▶ Run Test
                         </button>
                     </div>
@@ -3669,23 +4010,23 @@ def generate_log_links_html(admin_log, recruiter_log, employer_log, jobseeker_lo
     if admin_log and admin_log.exists():
         admin_html = admin_log.parent / 'benchsale_admin.html'
         if admin_html.exists():
-            links.append(f'<a href="benchsale_admin.html" class="log-link" target="_blank">📊 Admin Log</a>')
+            links.append(f'<a href="../log_viewer_ui.html?module=benchsale_admin&hideModules=true" class="log-link" target="_blank">📊 Admin Log History</a>')
     
     if recruiter_log and recruiter_log.exists():
         recruiter_html = recruiter_log.parent / 'benchsale_recruiter.html'
         if recruiter_html.exists():
-            links.append(f'<a href="benchsale_recruiter.html" class="log-link" target="_blank">📊 Recruiter Log</a>')
+            links.append(f'<a href="../log_viewer_ui.html?module=benchsale_recruiter&hideModules=true" class="log-link" target="_blank">📊 Recruiter Log History</a>')
     
     if employer_log and employer_log.exists():
-        links.append(f'<a href="employer.log" class="log-link" target="_blank">📊 Employer Log</a>')
+        links.append(f'<a href="../log_viewer_ui.html?module=employer&hideModules=true" class="log-link" target="_blank">📊 Employer Log History</a>')
     
     if jobseeker_log and jobseeker_log.exists():
-        links.append(f'<a href="jobseeker.log" class="log-link" target="_blank">📊 Job Seeker Log</a>')
+        links.append(f'<a href="../log_viewer_ui.html?module=jobseeker&hideModules=true" class="log-link" target="_blank">📊 Job Seeker Log History</a>')
     
     if main_log and main_log.exists():
         main_html = main_log.parent / 'benchsale_test.html'
         if main_html.exists():
-            links.append(f'<a href="benchsale_test.html" class="log-link" target="_blank">📊 Main Test Log</a>')
+            links.append(f'<a href="../log_viewer_ui.html?module=benchsale_test&hideModules=true" class="log-link" target="_blank">📊 Main Test Log History</a>')
     
     return ''.join(links) if links else '<p>No log files available</p>'
 

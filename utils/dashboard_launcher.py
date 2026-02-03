@@ -8,6 +8,7 @@ When you open http://localhost:8888 in any browser, it will:
 
 import http.server
 import socketserver
+from socketserver import ThreadingMixIn
 import subprocess
 import sys
 import os
@@ -23,6 +24,7 @@ DASHBOARD_HTML = PROJECT_ROOT / 'logs' / 'index.html'
 SERVER_SCRIPT = PROJECT_ROOT / 'utils' / 'always_on_server.py'
 HELPER_SCRIPT = PROJECT_ROOT / 'utils' / 'server_helper.py'
 AUTO_START_SCRIPT = PROJECT_ROOT / 'utils' / 'auto_start_server.py'
+LOG_API_SCRIPT = PROJECT_ROOT / 'utils' / 'log_history_api.py'
 
 PORT = 8888
 
@@ -31,7 +33,7 @@ def is_port_in_use(port):
     """Check if a port is already in use."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind(('localhost', port))
+            s.bind(('127.0.0.1', port))
             return False
         except OSError:
             return True
@@ -129,6 +131,19 @@ def ensure_servers_running():
         print("✅ Test server started successfully!")
     else:
         print("⚠️  Warning: Test server may not have started properly")
+        
+    # Check if Log API server is running (port 5001)
+    log_api_running = is_port_in_use(5001)
+    if not log_api_running:
+        print("Starting Log History API server (port 5001)...")
+        start_server_in_background(LOG_API_SCRIPT, 5001)
+        time.sleep(2)
+        if is_port_in_use(5001):
+            print("✅ Log History API server started successfully!")
+        else:
+            print("⚠️  Warning: Log History API server may not have started properly")
+    else:
+        print("✅ Log History API server is already running on port 5001")
 
 
 class DashboardHandler(http.server.SimpleHTTPRequestHandler):
@@ -155,7 +170,7 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         """Override to add CORS headers."""
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Accept')
         super().end_headers()
     
     def log_message(self, format, *args):
@@ -164,21 +179,26 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+class ThreadingTCPServer(ThreadingMixIn, socketserver.TCPServer):
+    """Handle requests in a separate thread."""
+    pass
+
+
 def run_dashboard_server(port=8888):
     """Run the dashboard launcher server."""
     # Check if port is available
     if is_port_in_use(port):
         print(f"❌ Port {port} is already in use!")
         print(f"   Another dashboard server might be running.")
-        print(f"   Try: http://localhost:{port}")
+        print(f"   Try: http://127.0.0.1:{port}")
         return
     
     # Ensure servers are running before starting
     ensure_servers_running()
     
     # Create server
-    with socketserver.TCPServer(("", port), DashboardHandler) as httpd:
-        url = f"http://localhost:{port}"
+    with ThreadingTCPServer(("127.0.0.1", port), DashboardHandler) as httpd:
+        url = f"http://127.0.0.1:{port}"
         
         print(f"""
 {'='*60}
@@ -187,8 +207,9 @@ def run_dashboard_server(port=8888):
 Server running on: {url}
 
 ✅ Test servers are running:
-   - Helper Server: http://localhost:8767
-   - Test Server: http://localhost:8766
+   - Helper Server: http://127.0.0.1:8767
+   - Test Server: http://127.0.0.1:8766
+   - Log API Server: http://127.0.0.1:5001
 
 📊 Dashboard: {url}
    

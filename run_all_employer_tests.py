@@ -29,11 +29,11 @@ EMPLOYER_TESTS = [
     'test_t2_14_verification_of_advanced_ai_semantic_search',
     'test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title',
     'test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id',
-    'test_t2_17_verification_of_hot_list_company_daily_update',
-    'test_t2_18_hotlist_company_daily_update_verification',
-    'test_t2_19_hotlist_search_by_job_title',
-    'test_t2_20_ai_search_with_boolean_description',
-    'test_t2_21_boolean_search_initial_bar',
+    'test_t2_17_verification_of_hot_list_recruiter_details_daily_update',
+    'test_t2_18_verification_of_hotlist_company_candidate_list',
+    'test_t2_19_verification_of_hotlist_job_title_search_results',
+    'test_t2_20_verification_of_boolean_search_after_ai_search_with_description',
+    'test_t2_21_verification_of_boolean_search_with_direct_search_input',
     'test_t2_22_hotlist_duplicate_candidates',
 ]
 

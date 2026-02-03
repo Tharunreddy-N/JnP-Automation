@@ -532,6 +532,7 @@ def jobseeker_page(pw_browser, request):
 def _refresh_dashboard_after_test(test_name: str, outcome: str):
     """Refresh dashboard after each test completes to show latest status.
     This runs after EVERY test (passed/failed/skipped) regardless of how the test was run.
+    Optimized for speed - minimal delays.
     """
     try:
         # Import here to avoid circular imports
@@ -540,9 +541,8 @@ def _refresh_dashboard_after_test(test_name: str, outcome: str):
         import time
         from pathlib import Path
         
-        # Longer delay to ensure log files are fully flushed and written to disk
-        # This is critical for dashboard to show accurate status
-        time.sleep(5.0)  # Increased to 5 seconds to ensure log files are fully flushed and latest status is captured
+        # Minimal delay - just enough for log flush (reduced from 5.0 to 0.5 seconds)
+        time.sleep(0.5)
         
         # Force log file flush by importing logging and flushing all handlers
         import logging
@@ -552,68 +552,37 @@ def _refresh_dashboard_after_test(test_name: str, outcome: str):
                 handler.flush()
         
         project_root = Path(__file__).parent
-        refresh_script = project_root / 'refresh_dashboard.py'
         
-        if refresh_script.exists():
-            # Run refresh - don't capture output so we can see any errors
-            try:
-                logger.info(f"Refreshing dashboard after test: {test_name} ({outcome})")
-                result = subprocess.run(
-                    [sys.executable, str(refresh_script)],
-                    cwd=project_root,
-                    timeout=60,  # Increased timeout to 60 seconds for large dashboards
-                    capture_output=True,  # Capture to check for errors
-                    text=True
-                )
-                if result.returncode == 0:
-                    logger.info(f"✓ Dashboard refreshed successfully after test: {test_name} ({outcome})")
-                    # Additional wait to ensure file is written to disk
-                    time.sleep(0.5)
-                else:
-                    logger.warning(f"Dashboard refresh returned code {result.returncode} for test: {test_name}")
-                    if result.stderr:
-                        logger.warning(f"Dashboard refresh stderr: {result.stderr}")
-            except subprocess.TimeoutExpired:
-                logger.warning(f"Dashboard refresh timed out after 60 seconds for test: {test_name}")
-                # Try direct import as fallback
+        # Use direct import instead of subprocess for faster execution
+        try:
+            from utils.unified_log_viewer import generate_unified_dashboard
+            logger.info(f"Refreshing dashboard after test: {test_name} ({outcome})")
+            dashboard_path = generate_unified_dashboard()
+            logger.info(f"✓ Dashboard refreshed successfully after test: {test_name} ({outcome})")
+        except Exception as direct_err:
+            # Fallback to subprocess if direct import fails
+            logger.warning(f"Direct dashboard generation failed, trying subprocess: {direct_err}")
+            refresh_script = project_root / 'refresh_dashboard.py'
+            if refresh_script.exists():
                 try:
-                    from utils.unified_log_viewer import generate_unified_dashboard
-                    logger.info("Attempting direct dashboard generation...")
-                    dashboard_path = generate_unified_dashboard()
-                    logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
-                except Exception as direct_err:
-                    logger.warning(f"Direct dashboard generation also failed: {direct_err}")
-            except Exception as refresh_err:
-                logger.warning(f"Error refreshing dashboard for test {test_name}: {refresh_err}")
-                # Try direct import as fallback
-                try:
-                    from utils.unified_log_viewer import generate_unified_dashboard
-                    logger.info("Attempting direct dashboard generation as fallback...")
-                    dashboard_path = generate_unified_dashboard()
-                    logger.info(f"✓ Dashboard generated directly (fallback): {dashboard_path}")
-                except Exception as direct_err:
-                    logger.warning(f"Direct dashboard generation (fallback) also failed: {direct_err}")
-        else:
-            logger.warning(f"Dashboard refresh script not found: {refresh_script}")
-            # Try direct import as fallback
-            try:
-                from utils.unified_log_viewer import generate_unified_dashboard
-                logger.info("Attempting direct dashboard generation (script not found)...")
-                dashboard_path = generate_unified_dashboard()
-                logger.info(f"✓ Dashboard generated directly: {dashboard_path}")
-            except Exception as direct_err:
-                logger.warning(f"Direct dashboard generation failed: {direct_err}")
+                    result = subprocess.run(
+                        [sys.executable, str(refresh_script)],
+                        cwd=project_root,
+                        timeout=30,  # Reduced timeout from 60 to 30 seconds
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        logger.info(f"✓ Dashboard refreshed via script: {test_name} ({outcome})")
+                    else:
+                        logger.warning(f"Dashboard refresh script returned code {result.returncode} for test: {test_name}")
+                except subprocess.TimeoutExpired:
+                    logger.warning(f"Dashboard refresh timed out after 30 seconds for test: {test_name}")
+                except Exception as refresh_err:
+                    logger.warning(f"Error refreshing dashboard via script for test {test_name}: {refresh_err}")
     except Exception as e:
         # Always log the error but don't fail the test
         logger.warning(f"Could not refresh dashboard after test {test_name}: {e}")
-        # Try one more time with direct import
-        try:
-            from utils.unified_log_viewer import generate_unified_dashboard
-            logger.info("Final attempt: Direct dashboard generation...")
-            dashboard_path = generate_unified_dashboard()
-            logger.info(f"✓ Dashboard generated directly (final attempt): {dashboard_path}")
-        except Exception as final_err:
-            logger.error(f"All dashboard refresh attempts failed: {final_err}")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -644,6 +613,34 @@ def pytest_runtest_makereport(item, call):
             error_msg = str(rep.longrepr) if rep.longrepr else "Test failed"
             elapsed = rep.duration if hasattr(rep, 'duration') else None
             test_logger.log_test_end(test_name, "FAIL", message=error_msg, elapsed=elapsed)
+            
+            # Capture screenshot on failure
+            try:
+                if hasattr(item, "_pw_page"):
+                    page = item._pw_page
+                    # Create timestamp for unique filename
+                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                    # Sanitize test name
+                    safe_test_name = "".join(c for c in test_name if c.isalnum() or c in ('-', '_')).rstrip()
+                    screenshot_name = f"screenshot_{safe_test_name}_{timestamp}.png"
+                    
+                    # Ensure failures directory exists
+                    failures_dir = os.path.join(os.path.dirname(__file__), 'reports', 'failures')
+                    os.makedirs(failures_dir, exist_ok=True)
+                    
+                    screenshot_path = os.path.join(failures_dir, screenshot_name)
+                    
+                    if page and not page.is_closed():
+                        page.screenshot(path=screenshot_path)
+                        logger.info(f"Captured failure screenshot: {screenshot_path}")
+                        
+                        # Log HTML link for the dashboard/log viewer
+                        # Use relative path for portability in HTML report
+                        rel_path = f"reports/failures/{screenshot_name}"
+                        test_logger.log_info(f"HTML: <a href='{rel_path}' target='_blank'>Failure Screenshot</a>")
+            except Exception as e:
+                logger.warning(f"Failed to capture screenshot: {e}")
+
             # Force flush to ensure log is written immediately
             import logging
             root_logger = logging.getLogger()
