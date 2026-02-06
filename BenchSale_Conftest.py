@@ -1133,44 +1133,17 @@ def handle_job_fair_popup_pw(page):
 
 
 def navigate_to_benchsale_pw(page, goto_home: bool = True):
-    """Navigate to BenchSale using Playwright"""
+    """Navigate directly to BenchSale login page using Playwright"""
     from utils.test_logger import get_test_logger
     test_logger = get_test_logger()
     
-    if goto_home:
-        # Go to homepage
-        test_logger.log_keyword_start("Go To", [BASE_URL])
-        start_time = time.time()
-        page.goto(BASE_URL, wait_until="load", timeout=60000)
-        elapsed = time.time() - start_time
-        test_logger.log_keyword_end("Go To", "PASS", elapsed=elapsed)
-    
-    # Handle job fair popup if any
-    handle_job_fair_popup_pw(page)
-    page.wait_for_timeout(1000)
-    
-    # Click BenchSales button
-    test_logger.log_keyword_start("Click Element", ["BenchSales button"])
+    # Direct navigation to BenchSale login page
+    login_url = f"{BENCHSALE_URL}login"
+    test_logger.log_keyword_start("Go To", [login_url])
     start_time = time.time()
-    page.locator("xpath=/html/body/div/div[2]/header/div/nav/ul/div[3]/button/p").click()
+    page.goto(login_url, wait_until="load", timeout=60000)
     elapsed = time.time() - start_time
-    test_logger.log_keyword_end("Click Element", "PASS", elapsed=elapsed)
-    
-    page.wait_for_timeout(1000)
-    
-    # Click Sign In link (may open in a new tab)
-    test_logger.log_keyword_start("Click Element", ["Sign In link"])
-    start_time = time.time()
-    try:
-        with page.context.expect_page(timeout=10000) as new_page_info:
-            page.locator("xpath=/html/body/div[2]/div[3]/ul/a[2]").click()
-        new_page = new_page_info.value
-        page = new_page
-    except PWTimeoutError:
-        # No new page opened; click happened in same tab
-        page.locator("xpath=/html/body/div[2]/div[3]/ul/a[2]").click()
-    elapsed = time.time() - start_time
-    test_logger.log_keyword_end("Click Element", "PASS", elapsed=elapsed)
+    test_logger.log_keyword_end("Go To", "PASS", elapsed=elapsed)
     
     page.wait_for_timeout(1000)
 
@@ -1180,7 +1153,7 @@ def navigate_to_benchsale_pw(page, goto_home: bool = True):
     except Exception:
         pass
     page.wait_for_timeout(1000)
-    logger.info("Navigated to BenchSale login page (Playwright)")
+    logger.info("Navigated directly to BenchSale login page (Playwright)")
     return page
 
 
@@ -1238,14 +1211,10 @@ def ensure_admin_storage_state(pw_browser) -> str:
     page = context.new_page()
 
     try:
-        goto_fast(page, BENCHSALE_URL)
-        try:
-            tgl = page.locator(".css-1hw9j7s")
-            if tgl.count() and tgl.first.is_visible():
-                tgl.first.click()
-                page.wait_for_timeout(300)
-        except Exception:
-            pass
+        # Navigate directly to BenchSale login page
+        login_url = f"{BENCHSALE_URL}login"
+        goto_fast(page, login_url)
+        page.wait_for_timeout(1000)
 
         # CRITICAL: Always use ADMIN credentials, never recruiter
         logger.debug(f"Logging in with ADMIN credentials: {USER_ID}")
@@ -1450,14 +1419,10 @@ def ensure_recruiter_storage_state(pw_browser) -> str:
     page = context.new_page()
 
     try:
-        goto_fast(page, BENCHSALE_URL)
-        try:
-            tgl = page.locator(".css-1hw9j7s")
-            if tgl.count() and tgl.first.is_visible():
-                tgl.first.click()
-                page.wait_for_timeout(300 if FAST_MODE else 500)
-        except Exception:
-            pass
+        # Navigate directly to BenchSale login page
+        login_url = f"{BENCHSALE_URL}login"
+        goto_fast(page, login_url)
+        page.wait_for_timeout(1000)
 
         login_benchsale_recruiter_pw(page, user_id=REC_ID, password=REC_PASSWORD)
         try:
@@ -2029,10 +1994,27 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     
+    test_name = item.name
+    test_file = str(item.fspath) if hasattr(item, 'fspath') else None
+    
+    # Handle setup errors - log them as FAIL so they appear in history
+    if rep.when == "setup" and rep.outcome == "failed":
+        error_msg = str(rep.longrepr) if rep.longrepr else "Test setup failed"
+        locator_hint = _extract_locator_hint(error_msg)
+        if locator_hint:
+            error_msg = f"{error_msg}\n\nLocator/XPath hint: {locator_hint}"
+        elapsed = rep.duration if hasattr(rep, 'duration') else None
+        test_logger.log_test_end(test_name, "FAIL", message=error_msg, elapsed=elapsed)
+        # Force flush to ensure log is written immediately
+        import logging
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers:
+            if hasattr(handler, 'flush'):
+                handler.flush()
+        if rep.longrepr:
+            logger.error(f"Setup error details:\n{rep.longrepr}")
+    
     if rep.when == "call":
-        test_name = item.name
-        test_file = str(item.fspath) if hasattr(item, 'fspath') else None
-        
         if rep.outcome == "passed":
             elapsed = rep.duration if hasattr(rep, 'duration') else None
             test_logger.log_test_end(test_name, "PASS", elapsed=elapsed)
@@ -2139,6 +2121,27 @@ def pytest_configure(config):
     if not stats.get("start_time"):
         suite_name = "JnP benchSale"
         source = str(getattr(config, "rootpath", "")) or None
+
+        def _detect_suite_name() -> str:
+            # Prefer requested test files/args to choose suite name
+            candidates = []
+            if hasattr(config, 'option') and hasattr(config.option, 'file_or_dir') and config.option.file_or_dir:
+                candidates.extend([str(p).lower() for p in config.option.file_or_dir])
+            if hasattr(config, 'option') and hasattr(config.option, 'args'):
+                candidates.extend([str(a).lower() for a in config.option.args])
+
+            for path_str in candidates:
+                if "test_employer" in path_str:
+                    return "JnP employer"
+                if "test_jobseeker" in path_str:
+                    return "JnP jobseeker"
+                if "test_benchsale_admin" in path_str:
+                    return "JnP benchSale Admin"
+                if "test_benchsale_recruiter" in path_str:
+                    return "JnP benchSale Recruiter"
+            return suite_name
+
+        suite_name = _detect_suite_name()
         try:
             test_logger.log_suite_start(suite_name, source)
         except Exception:

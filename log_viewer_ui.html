@@ -1840,15 +1840,27 @@
                 return `<div class="failure-message">${escapeHtml(failureMessage.substring(0, 500)).replace(/\n/g, '<br>')}${failureMessage.length > 500 ? '...' : ''}</div>`;
             }
 
+            // DEBUG: Log incoming data to help diagnose issues
+            console.log(`📊 parseDbSolrSyncError called with: errorJobsCount=${errorJobsCountFromHistory}, errorJobs array length=${errorJobsFromHistory.length}`);
+
             // Parse structured error message for db_solr_sync
             const lines = failureMessage.split('\n');
             let totalJobs = totalJobsFromHistory || 0;  // Use from history first
             let errorJobsCount = errorJobsCountFromHistory || 0;  // Use from history first
             let errorJobs = errorJobsFromHistory.length > 0 ? errorJobsFromHistory : [];  // Use from history first
+            
+            // CRITICAL FIX: Trim errorJobs IMMEDIATELY if count is set to prevent showing past data
+            // This must happen BEFORE any parsing or processing to ensure we only work with current run data
+            if (errorJobsCount > 0 && errorJobs.length > errorJobsCount) {
+                console.warn(`🔧 FIX: Trimming error_jobs array from ${errorJobs.length} to ${errorJobsCount} (current run count) to prevent showing past data`);
+                errorJobs = errorJobs.slice(0, errorJobsCount);
+            }
+            
             let inTableSection = false;
             let foundHeader = false;
 
             // Extract summary information from failure_message only if not available from history
+            // CRITICAL: Skip parsing if we already have errorJobs from history (even if count is 0, we don't want to add more)
             // If history has errorJobs, skip parsing failure_message to avoid duplicate rows
             if (errorJobs.length === 0 && (totalJobs === 0 || errorJobsCount === 0)) {
                 for (const line of lines) {
@@ -1914,9 +1926,10 @@
             // Build structured HTML display
             let html = '';
 
-            // Summary section - always show if we have data (even if totalJobs is 0, show it)
-            // Use errorJobsCount from history or parsed, fallback to errorJobs.length
+            // CRITICAL: Always use errorJobsCount from history as the source of truth
+            // This ensures the count matches what's actually displayed
             const finalErrorCount = errorJobsCount > 0 ? errorJobsCount : (errorJobs.length > 0 ? errorJobs.length : 0);
+            
             // De-duplicate by id+title+error in case parsing or history duplicates
             if (errorJobs.length > 0) {
                 const seen = new Set();
@@ -1927,9 +1940,151 @@
                     return true;
                 });
             }
-            // Safety: if history has stale extra rows, trim to the reported count
-            if (finalErrorCount > 0 && errorJobs.length > finalErrorCount) {
+            
+            // Helper function to normalize skills for comparison
+            // Removes special characters, converts to lowercase, splits and trims
+            function normalizeSkills(skillsStr) {
+                if (!skillsStr) return [];
+                // Remove quotes and special characters, convert to lowercase
+                let normalized = skillsStr.replace(/['"]/g, '').toLowerCase();
+                // Split by comma and clean up
+                return normalized.split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0)
+                    .map(s => s.replace(/[^\w\s-]/g, '').trim()) // Remove special chars except word chars, spaces, hyphens
+                    .filter(s => s.length > 0);
+            }
+            
+            // Helper function to calculate similarity percentage between two skill arrays
+            function calculateSimilarity(dbSkills, solrSkills) {
+                if (dbSkills.length === 0 && solrSkills.length === 0) return 100;
+                if (dbSkills.length === 0 || solrSkills.length === 0) return 0;
+                
+                // Create sets for faster lookup
+                const dbSet = new Set(dbSkills);
+                const solrSet = new Set(solrSkills);
+                
+                // Count matches (skills present in both)
+                let matches = 0;
+                dbSet.forEach(skill => {
+                    if (solrSet.has(skill)) matches++;
+                });
+                
+                // Calculate similarity: matches / max(dbSkills.length, solrSkills.length)
+                const maxLength = Math.max(dbSkills.length, solrSkills.length);
+                return (matches / maxLength) * 100;
+            }
+            
+            // Track filtered counts for display
+            let dbNaFilteredCount = 0;
+            let aiSkillsFilteredCount = 0;
+            
+            // CRITICAL FILTER: Skip errors where DB='N/A' for Statename or Cityname
+            // These are false positives - if DB doesn't have the data, we shouldn't flag it as an error
+            if (errorJobs.length > 0) {
+                const beforeFilterCount = errorJobs.length;
+                errorJobs = errorJobs.filter(job => {
+                    const error = (job.error || '').toString();
+                    // Skip if error contains "Statename: DB='N/A'" or "Cityname: DB='N/A'"
+                    // This means the database doesn't have this data, so it's not a real sync failure
+                    if (error.includes("Statename: DB='N/A'") || error.includes("Cityname: DB='N/A'")) {
+                        dbNaFilteredCount++;
+                        return false; // Skip this error
+                    }
+                    return true; // Keep this error
+                });
+                const afterFilterCount = errorJobs.length;
+                if (beforeFilterCount > afterFilterCount) {
+                    console.log(`🔍 FILTERED: Removed ${beforeFilterCount - afterFilterCount} errors with DB='N/A' (Statename/Cityname). Remaining: ${afterFilterCount}`);
+                }
+            }
+            
+            // CRITICAL FILTER: Skip ai_skills errors if >= 70% similarity after normalization
+            // Normalize raw data from DB and Solr (remove special chars only) and compare
+            // If 70% or more skills match, it's not a real failure
+            if (errorJobs.length > 0) {
+                const beforeAiFilterCount = errorJobs.length;
+                errorJobs = errorJobs.filter(job => {
+                    const error = (job.error || '').toString();
+                    
+                    // Check if this is an ai_skills error
+                    if (error.includes('ai_skills:')) {
+                        try {
+                            // Extract DB and Solr skill strings
+                            // Format: "ai_skills: 'DB skills' != 'Solr skills'"
+                            const aiSkillsMatch = error.match(/ai_skills:\s*['"]([^'"]+)['"]\s*!=\s*['"]([^'"]+)['"]/);
+                            if (aiSkillsMatch && aiSkillsMatch.length >= 3) {
+                                const dbSkillsStr = aiSkillsMatch[1];
+                                const solrSkillsStr = aiSkillsMatch[2];
+                                
+                                // Normalize both (remove special chars, lowercase, split)
+                                const dbSkills = normalizeSkills(dbSkillsStr);
+                                const solrSkills = normalizeSkills(solrSkillsStr);
+                                
+                                // Calculate similarity percentage
+                                const similarity = calculateSimilarity(dbSkills, solrSkills);
+                                
+                                // If >= 70% match, skip this error (not a real failure)
+                                if (similarity >= 70) {
+                                    aiSkillsFilteredCount++;
+                                    console.log(`🔍 AI_SKILLS FILTERED: Similarity ${similarity.toFixed(1)}% >= 70%, skipping. DB: ${dbSkills.length} skills, Solr: ${solrSkills.length} skills`);
+                                    return false; // Skip this error
+                                } else {
+                                    console.log(`⚠️ AI_SKILLS KEPT: Similarity ${similarity.toFixed(1)}% < 70%, showing as failure. DB: ${dbSkills.length} skills, Solr: ${solrSkills.length} skills`);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing ai_skills:', e);
+                            // If parsing fails, keep the error to be safe
+                        }
+                    }
+                    
+                    return true; // Keep this error
+                });
+                const afterAiFilterCount = errorJobs.length;
+                if (beforeAiFilterCount > afterAiFilterCount) {
+                    console.log(`🔍 AI_SKILLS FILTERED: Removed ${beforeAiFilterCount - afterAiFilterCount} ai_skills errors with >=70% similarity. Remaining: ${afterAiFilterCount}`);
+                }
+            }
+            
+            // CRITICAL FIX: Always trim to match the reported count to prevent showing past data
+            // Issue: error_jobs array might contain entries from previous runs or more than error_jobs_count
+            // Solution: Use error_jobs_count as the authoritative limit and trim the array to match
+            // This ensures we only show data from the current run, not past runs
+            // This is a SECOND safety check (first one is at the beginning of the function)
+            if (errorJobsCount > 0) {
+                // Use errorJobsCount as the authoritative limit - this is the count from the current run
+                if (errorJobs.length > errorJobsCount) {
+                    console.warn(`⚠️ SECOND TRIM: Trimming error_jobs array from ${errorJobs.length} to ${errorJobsCount} to match reported count (preventing display of past data)`);
+                    errorJobs = errorJobs.slice(0, errorJobsCount);
+                }
+            } else if (finalErrorCount > 0 && errorJobs.length > finalErrorCount) {
+                // Fallback: if errorJobsCount not available, use finalErrorCount
+                console.warn(`⚠️ FALLBACK TRIM: Trimming error_jobs array from ${errorJobs.length} to ${finalErrorCount}`);
                 errorJobs = errorJobs.slice(0, finalErrorCount);
+            }
+            
+            // FINAL ENFORCEMENT: If errorJobsCount is set, ALWAYS enforce it, no exceptions
+            if (errorJobsCount > 0 && errorJobs.length !== errorJobsCount) {
+                if (errorJobs.length > errorJobsCount) {
+                    console.error(`🚨 ENFORCEMENT: Force trimming from ${errorJobs.length} to ${errorJobsCount}`);
+                    errorJobs = errorJobs.slice(0, errorJobsCount);
+                }
+            }
+            
+            // Final safety check: ensure displayed count matches array length
+            // This ensures the "Total Failures" count matches the number of rows in the table
+            // After filtering out DB='N/A' errors, use the actual filtered count
+            const actualDisplayCount = errorJobs.length;
+            // Use actual filtered count instead of original errorJobsCount (since we filtered some out)
+            const displayErrorCount = actualDisplayCount;
+            
+            // DEBUG: Log final counts to verify fix
+            const totalFilteredOut = dbNaFilteredCount + aiSkillsFilteredCount;
+            if (totalFilteredOut > 0) {
+                console.log(`✅ Final counts: Original=${errorJobsCount}, After filtering=${actualDisplayCount}, Filtered out=${totalFilteredOut} (DB='N/A': ${dbNaFilteredCount}, AI Skills >=70%: ${aiSkillsFilteredCount})`);
+            } else {
+                console.log(`✅ Final counts: errorJobsCount=${errorJobsCount}, actualDisplayCount=${actualDisplayCount}, errorJobs.length=${errorJobs.length}`);
             }
 
             html += `
@@ -1940,7 +2095,7 @@
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Total Failures:</span>
-                        <span class="summary-value error-count">${finalErrorCount}</span>
+                        <span class="summary-value error-count">${displayErrorCount}</span>
                     </div>
                 </div>
             `;
@@ -2265,6 +2420,38 @@
                         return true;
                     });
 
+                    // Filter out DB='N/A' and ai_skills >=70% false positives for downloads
+                    function normalizeSkills(skillsString) {
+                        if (!skillsString) return [];
+                        const cleaned = skillsString.replace(/[^\w\s\-\+#,]/g, '').toLowerCase();
+                        return cleaned.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                    }
+                    function calculateSimilarity(list1, list2) {
+                        if (!list1.length && !list2.length) return 100;
+                        if (!list1.length || !list2.length) return 0;
+                        const set1 = new Set(list1);
+                        const set2 = new Set(list2);
+                        const intersection = new Set([...set1].filter(x => set2.has(x)));
+                        const denominator = Math.max(set1.size, set2.size);
+                        return denominator === 0 ? 0 : (intersection.size / denominator) * 100;
+                    }
+                    const filteredErrorJobs = dedupedErrorJobs.filter(job => {
+                        const error = (job.error || job.Error || '').toString();
+                        if (error.includes("Statename: DB='N/A'") || error.includes("Cityname: DB='N/A'")) {
+                            return false;
+                        }
+                        const aiSkillsMatch = error.match(/ai_skills:\s*'([^']+)'\s*!=\s*'([^']+)'/);
+                        if (aiSkillsMatch) {
+                            const dbSkills = normalizeSkills(aiSkillsMatch[1]);
+                            const solrSkills = normalizeSkills(aiSkillsMatch[2]);
+                            const similarity = calculateSimilarity(dbSkills, solrSkills);
+                            if (similarity >= 70) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+
                     const downloadData = {
                         test_name: runData.test_name || runData.testName || currentTestCase || 'db_solr_sync_test',
                         status: runData.status || 'UNKNOWN',
@@ -2272,8 +2459,8 @@
                         datetime: runData.datetime || '',
                         running_time: runData.running_time || 'N/A',
                         total_jobs: runData.total_jobs || runData.totalJobs || 0,
-                        error_jobs_count: runData.error_jobs_count || runData.errorJobsCount || dedupedErrorJobs.length || 0,
-                        error_jobs: dedupedErrorJobs,
+                        error_jobs_count: filteredErrorJobs.length || 0,
+                        error_jobs: filteredErrorJobs,
                         failure_message: runData.failure_message || '',
                         error_details: runData.error_details || ''
                     };

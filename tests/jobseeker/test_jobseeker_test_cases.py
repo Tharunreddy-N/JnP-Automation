@@ -402,11 +402,11 @@ def test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page(request, pw
         page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
         
         # Get all available job cards and their titles (matching Robot Framework)
-        # ${all_options} = Get Webelements css:.css-lfutto
-        all_options = page.locator(".css-lfutto")
+        # ${all_options} = Get Webelements css:.css-jffetk
+        all_options = page.locator(".css-jffetk")
         
-        # ${all_titles} = Get Webelements css:.css-lfutto h6.css-1awk4cg
-        all_titles = page.locator(".css-lfutto h6.css-1awk4cg")
+        # ${all_titles} = Get Webelements css:.css-jffetk p.job-title.css-1r3ipnv
+        all_titles = page.locator(".css-jffetk p.job-title.css-1r3ipnv")
         
         # ${visible_count} = Get Length ${all_options}
         visible_count = all_options.count()
@@ -438,12 +438,12 @@ def test_t1_01_verify_if_a_job_can_be_applied_by_a_js_from_home_page(request, pw
         selected_card.click()
         
         # Wait for job details panel to load and verify job title matches (matching Robot Framework)
-        # Wait Until Element Is Visible css:.css-hqvncj 30
-        job_details_title = page.locator(".css-hqvncj")
+        # Wait Until Element Is Visible css:.css-1cy6xy0 30
+        job_details_title = page.locator(".css-1cy6xy0")
         job_details_title.wait_for(state="visible", timeout=30000)
         page.wait_for_timeout(2000)  # Sleep 2 (matching Robot Framework: Sleep 2)
         
-        # ${details_job_title} = Get Text css:.css-hqvncj
+        # ${details_job_title} = Get Text css:.css-1cy6xy0
         details_job_title = job_details_title.inner_text()
         print(f"Details panel job title: {details_job_title}")
         

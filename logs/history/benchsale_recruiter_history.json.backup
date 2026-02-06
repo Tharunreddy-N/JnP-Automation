@@ -3,6 +3,30 @@
     {
       "test_name": "test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:18:18 to 2026-02-05T00:21:02",
+      "start_time": "20260205 00:19:48.765",
+      "end_time": "20260205 00:21:02.092",
+      "running_time": "00:00:12.240",
+      "line_no": 3531,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:32:29 to 2026-02-04T15:33:43",
+      "start_time": "20260204 15:32:57.378",
+      "end_time": "20260204 15:33:43.939",
+      "running_time": "00:00:20.011",
+      "line_no": 3416,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive",
+      "status": "PASS",
       "date": "2026-02-03",
       "datetime": "2026-02-03T00:17:33 to 2026-02-03T00:19:10",
       "start_time": "20260203 00:18:34.001",
@@ -59,29 +83,41 @@
       "line_no": 2411,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T11:10:59 to 2026-01-28T11:13:19",
-      "start_time": "20260128 11:12:42.554",
-      "end_time": "20260128 11:13:19.398",
-      "running_time": "00:00:12.302",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 2137
     }
   ],
   "test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates": [
     {
       "test_name": "test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:19:48 to 2026-02-05T00:21:03",
+      "start_time": "20260205 00:18:17.965",
+      "end_time": "20260205 00:21:03.382",
+      "running_time": "00:02:45.417",
+      "line_no": 3558,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:32:57 to 2026-02-05T00:19:47",
+      "start_time": "20260205 00:18:18.666",
+      "end_time": "20260205 00:19:47.680",
+      "running_time": "00:00:04.324",
+      "line_no": 3443,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates",
+      "status": "PASS",
       "date": "2026-02-03",
-      "datetime": "2026-02-03T00:18:34 to 2026-02-03T00:19:11",
-      "start_time": "20260203 00:17:32.302",
-      "end_time": "20260203 00:19:11.721",
-      "running_time": "00:01:39.419",
+      "datetime": "2026-02-03T00:18:34 to 2026-02-04T00:08:51",
+      "start_time": "20260204 00:07:14.316",
+      "end_time": "20260204 00:08:51.061",
+      "running_time": "00:01:36.745",
       "line_no": 3016,
       "error_jobs_count": 0,
       "error_jobs": []
@@ -143,18 +179,6 @@
       "end_time": "20260130 00:24:41.771",
       "running_time": "00:00:34.076",
       "line_no": 2440,
-      "error_jobs_count": 0,
-      "error_jobs": []
-    },
-    {
-      "test_name": "test_t2_02_recruiter_verification_of_inactivating_and_activating_candidates",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T11:12:42 to 2026-01-29T00:22:38",
-      "start_time": "20260129 00:20:42.446",
-      "end_time": "20260129 00:22:38.335",
-      "running_time": "00:00:32.848",
-      "line_no": 2320,
       "error_jobs_count": 0,
       "error_jobs": []
     }

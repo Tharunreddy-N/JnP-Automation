@@ -3,6 +3,32 @@
     {
       "test_name": "test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:02:09 to 2026-02-05T00:03:59",
+      "start_time": "20260205 00:03:14.838",
+      "end_time": "20260205 00:03:59.727",
+      "running_time": "00:00:14.247",
+      "line_no": 23762,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "13.92 seconds",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
+    {
+      "test_name": "test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale",
+      "status": "PASS",
       "date": "2026-02-03",
       "datetime": "2026-02-03T12:11:54 to 2026-02-03T12:12:52",
       "start_time": "20260203 12:11:53.468",
@@ -71,21 +97,35 @@
       "line_no": 16388,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:02:10 to 2026-01-28T00:07:50",
-      "start_time": "20260128 00:06:09.294",
-      "end_time": "20260128 00:07:50.696",
-      "running_time": "00:00:50.458",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 15974
     }
   ],
   "test_t1_02_admin_verification_of_adding_recruiter_in_benchsale": [
+    {
+      "test_name": "test_t1_02_admin_verification_of_adding_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:03:14 to 2026-02-05T00:05:40",
+      "start_time": "20260205 00:04:00.820",
+      "end_time": "20260205 00:05:40.907",
+      "running_time": "00:01:10.273",
+      "line_no": 23793,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_02_admin_verification_of_adding_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "14.29 seconds",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_02_admin_verification_of_adding_recruiter_in_benchsale",
       "status": "PASS",
@@ -136,6 +176,32 @@
     }
   ],
   "test_t1_03_admin_verification_of_adding_candidates_in_benchsale": [
+    {
+      "test_name": "test_t1_03_admin_verification_of_adding_candidates_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:04:00 to 2026-02-05T00:07:20",
+      "start_time": "20260205 00:05:42.022",
+      "end_time": "20260205 00:07:20.385",
+      "running_time": "00:01:02.202",
+      "line_no": 23824,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_03_admin_verification_of_adding_candidates_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:45.745",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_03_admin_verification_of_adding_candidates_in_benchsale",
       "status": "PASS",
@@ -207,21 +273,33 @@
       "line_no": 16454,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_03_admin_verification_of_adding_candidates_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:06:09 to 2026-01-28T00:10:43",
-      "start_time": "20260128 00:08:03.941",
-      "end_time": "20260128 00:10:43.619",
-      "running_time": "00:00:13.925",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16024
     }
   ],
   "test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale": [
+    {
+      "test_name": "test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:05:42 to 2026-02-05T00:09:30",
+      "start_time": "20260205 00:07:21.447",
+      "end_time": "20260205 00:09:30.882",
+      "running_time": "00:00:24.863",
+      "line_no": 23855,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:40:39 to 2026-02-05T00:03:13",
+      "start_time": "20260205 00:02:09.979",
+      "end_time": "20260205 00:03:13.759",
+      "running_time": "00:00:35.910",
+      "line_no": 23673,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
     {
       "test_name": "test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale",
       "status": "PASS",
@@ -293,21 +371,35 @@
       "line_no": 16871,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:08:03 to 2026-01-28T00:11:45",
-      "start_time": "20260128 00:10:56.940",
-      "end_time": "20260128 00:11:45.884",
-      "running_time": "00:00:24.543",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16061
     }
   ],
   "test_t1_05_admin_verification_of_sources_in_benchsale": [
+    {
+      "test_name": "test_t1_05_admin_verification_of_sources_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:07:21 to 2026-02-05T00:10:12",
+      "start_time": "20260205 00:09:32.000",
+      "end_time": "20260205 00:10:12.908",
+      "running_time": "00:00:17.038",
+      "line_no": 23888,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_05_admin_verification_of_sources_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:02.230",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_05_admin_verification_of_sources_in_benchsale",
       "status": "PASS",
@@ -379,21 +471,35 @@
       "line_no": 16556,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_05_admin_verification_of_sources_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:10:56 to 2026-01-28T00:12:41",
-      "start_time": "20260128 00:11:59.006",
-      "end_time": "20260128 00:12:41.761",
-      "running_time": "00:00:17.784",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16094
     }
   ],
   "test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale": [
+    {
+      "test_name": "test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:09:32 to 2026-02-05T00:10:53",
+      "start_time": "20260205 00:10:13.990",
+      "end_time": "20260205 00:10:53.735",
+      "running_time": "00:00:15.319",
+      "line_no": 23919,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:04.083",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale",
       "status": "PASS",
@@ -465,21 +571,35 @@
       "line_no": 16589,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:11:59 to 2026-01-28T00:15:32",
-      "start_time": "20260128 00:14:26.888",
-      "end_time": "20260128 00:15:32.863",
-      "running_time": "00:00:16.601",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16127
     }
   ],
   "test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale": [
+    {
+      "test_name": "test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:10:13 to 2026-02-05T00:11:46",
+      "start_time": "20260205 00:10:54.852",
+      "end_time": "20260205 00:11:46.167",
+      "running_time": "00:00:17.585",
+      "line_no": 23950,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:07.966",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale",
       "status": "PASS",
@@ -557,6 +677,32 @@
     {
       "test_name": "test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:10:54 to 2026-02-05T00:12:22",
+      "start_time": "20260205 00:11:47.233",
+      "end_time": "20260205 00:12:22.575",
+      "running_time": "00:00:12.700",
+      "line_no": 23981,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:02.282",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
+    {
+      "test_name": "test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale",
+      "status": "PASS",
       "date": "2026-02-03",
       "datetime": "2026-02-03T00:11:14 to 2026-02-03T00:12:39",
       "start_time": "20260203 00:12:00.143",
@@ -625,21 +771,35 @@
       "line_no": 16655,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:14:26 to 2026-01-28T00:16:27",
-      "start_time": "20260128 00:15:46.441",
-      "end_time": "20260128 00:16:27.795",
-      "running_time": "00:00:13.760",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16176
     }
   ],
   "test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale": [
+    {
+      "test_name": "test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:11:47 to 2026-02-05T00:13:08",
+      "start_time": "20260205 00:12:23.648",
+      "end_time": "20260205 00:13:08.509",
+      "running_time": "00:00:21.950",
+      "line_no": 24012,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:09.112",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale",
       "status": "PASS",
@@ -711,21 +871,35 @@
       "line_no": 16688,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:15:46 to 2026-01-28T00:17:46",
-      "start_time": "20260128 00:16:40.954",
-      "end_time": "20260128 00:17:46.286",
-      "running_time": "00:00:37.272",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16211
     }
   ],
   "test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile": [
+    {
+      "test_name": "test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:12:23 to 2026-02-05T00:17:35",
+      "start_time": "20260205 00:13:09.569",
+      "end_time": "20260205 00:17:35.491",
+      "running_time": "00:03:04.121",
+      "line_no": 24043,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:00:02.328",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile",
       "status": "PASS",
@@ -797,21 +971,35 @@
       "line_no": 16723,
       "error_jobs_count": 0,
       "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:16:40 to 2026-01-28T00:21:59",
-      "start_time": "20260128 00:17:59.490",
-      "end_time": "20260128 00:21:59.242",
-      "running_time": "00:03:04.743",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16244
     }
   ],
   "test_t1_13_admin_verification_of_candidates_in_submission_job_flow": [
+    {
+      "test_name": "test_t1_13_admin_verification_of_candidates_in_submission_job_flow",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:13:09 to 2026-02-05T00:17:36",
+      "start_time": "20260205 00:02:02.909",
+      "end_time": "20260205 00:17:36.883",
+      "running_time": "00:15:33.974",
+      "line_no": 24076,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_13_admin_verification_of_candidates_in_submission_job_flow",
+      "status": "FAIL",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T15:56:12.555161",
+      "start_time": "20260204 15:44:09",
+      "end_time": "",
+      "running_time": "00:04:08.840",
+      "line_no": 0,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "BenchSale_Conftest.py:1267: in admin_page\nstate_path = ensure_admin_storage_state(pw_browser)\nBenchSale_Conftest.py:1216: in ensure_admin_storage_state\ngoto_fast(page, login_url)\nBenchSale_Conftest.py:1088: in goto_fast\npage.goto(url, wait_until=\"commit\", timeout=10000)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:528: in wrap_api_call\nraise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nE   playwright._impl._errors.TargetClosedError: Page.goto: Target page, context or browser has been closed\nSetup error details:\nBenchSale_Conftest.py:1267: in admin_page\nstate_path = ensure_admin_storage_state(pw_browser)\nBenchSale_Conftest.py:1216: in ensure_admin_storage_state\ngoto_fast(page, login_url)\nBenchSale_Conftest.py:1088: in goto_fast\npage.goto(url, wait_until=\"commit\", timeout=10000)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:528: in wrap_api_call\nraise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nE   playwright._impl._errors.TargetClosedError: Page.goto: Target page, context or browser has been closed\nClosing browser instance\n\n====================================================================================================\nFull Name: JnP benchSale\nStart / End / Elapsed: 20260204 15:35:54.150 / 20260204 15:40:02.990 / 00:04:08.840\nStatus: 11 tests total, 4 passed, 7 failed, 0 skipped\n====================================================================================================\n\nTest Statistics\n----------------------------------------------------------------------------------------------------\nTest                                                         Total    Pass     Fail     Skip     Elapsed\n----------------------------------------------------------------------------------------------------\ntest_t1_01_admin_verification_of_favourite_button_under_companies_in_benchsale 1        1        0        0        00:00:29.140\ntest_t1_02_admin_verification_of_adding_recruiter_in_benchsale 1        1        0        0        00:00:13.920\ntest_t1_03_admin_verification_of_adding_candidates_in_benchsale 1        1        0        0        00:01:00.610\ntest_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale 1        1        0        0        00:00:13.728\ntest_t1_05_admin_verification_of_sources_in_benchsale        1        0        1        0        00:00:02.738\ntest_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_benchsale 1        0        1        0        00:00:02.230\ntest_t1_09_admin_verification_of_inactivating_and_activating_candidate_in_benchsale 1        0        1        0        00:00:04.083\ntest_t1_10_admin_verification_of_deleting_a_recruiter_in_benchsale 1        0        1        0        00:00:07.966\ntest_t1_11_admin_verification_of_deleting_a_candidate_in_benchsale 1        0        1        0        00:00:02.282\ntest_t1_12_admin_verification_of_allocating_candidate_under_recruiter_and_verify_in_recruiter_profile 1        0        1        0        00:00:09.112\ntest_t1_13_admin_verification_of_candidates_in_submission_job_flow 1        0        1        0        00:00:02.328\n----------------------------------------------------------------------------------------------------\nAll Tests                                                    11       4        7        0        00:02:28.135\n----------------------------------------------------------------------------------------------------\n\n================================================================================\nTEST SESSION FINISHED\nSession end time: 2026-02-04 15:40:02\nExit status: 1\nTotal tests executed: 11\n\nRUNTIME SUMMARY:\n--------------------------------------------------------------------------------\nT1.01 Admin- Verification of 'Favourite' button under Companies in BenchSale: 29.14 seconds\nT1.02 Admin- Verification of adding recruiter in BenchSale: 13.92 seconds\nT1.03 Admin- Verification of adding Candidates in BenchSale: 60.61 seconds\nT1.04 Admin- Verification of allocating candidate under recruiter: 13.73 seconds\n--------------------------------------------------------------------------------\n================================================================================\n\nTest summary written to: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\test_summary.txt\nHTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nAdmin HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nRecruiter HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_recruiter.html\nGenerating unified dashboard at session end...\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.log\n================================================================================\n====================================================================================================\nSUITE JnP benchSale Admin\nFull Name: JnP benchSale Admin\nSource: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260204 15:40:38.046\n====================================================================================================\n🧠 Smart Framework: Admin test file detected: tests/benchsale/test_benchsale_admin_test_cases.py\n🧠 Smart Framework: Test isolation enabled for: admin\n================================================================================\n🧠 SMART FRAMEWORK: Admin test file detected - auto-filtering recruiter tests\n✓ Admin tests: 11, ✗ Recruiter tests filtered: 0\n================================================================================\n✓ Final test execution: 11 tests (Admin: 11, Recruiter: 0)\nUsing proactor: IocpProactor\nAcquired browser lock (PID: 11820)\nCreating new browser instance (only one will be created across all processes)\n\n====================================================================================================\nTEST test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale\nFull Name: test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale\nSource: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\tests\\benchsale\\test_benchsale_admin_test_cases.py\nStart: 20260204 15:40:39.092\n====================================================================================================\nRunning ADMIN test: test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale\nCreating admin_page fixture for test: test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_benchsale\nCreating new admin storage state with ADMIN credentials: james@adamitcorp.com (browser will open for login)\nLogging in with ADMIN credentials: james@adamitcorp.com\n00:00:13.283KEYWORD Login credentials for BenchSale\nLogged in to BenchSale Admin successfully (Playwright)\nAdmin storage state created and saved successfully with credentials: james@adamitcorp.com\n✓ Unified dashboard generated successfully: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\index.html\nDashboard update complete. UI will show latest status on next refresh.\nAlready authenticated, dashboard visible",
+      "error_details": "BenchSale_Conftest.py:1267: in admin_page"
+    },
     {
       "test_name": "test_t1_13_admin_verification_of_candidates_in_submission_job_flow",
       "status": "PASS",
@@ -881,18 +1069,6 @@
       "end_time": "20260129 09:10:09.556",
       "running_time": "00:00:14.103",
       "line_no": 16758,
-      "error_jobs_count": 0,
-      "error_jobs": []
-    },
-    {
-      "test_name": "test_t1_13_admin_verification_of_candidates_in_submission_job_flow",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:17:59 to 2026-01-29T00:03:06",
-      "start_time": "20260129 00:02:09.634",
-      "end_time": "20260129 00:03:06.458",
-      "running_time": "00:00:33.208",
-      "line_no": 16277,
       "error_jobs_count": 0,
       "error_jobs": []
     }

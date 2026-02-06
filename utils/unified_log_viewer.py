@@ -43,6 +43,47 @@ VALID_EMPLOYER_TEST_NAMES = {
 }
 
 
+def _normalize_skills_for_similarity(skills_str: str) -> list:
+    """Normalize skills string for similarity comparison"""
+    if not skills_str:
+        return []
+    cleaned = re.sub(r"[^\w\s\-\+#,]", "", str(skills_str)).lower()
+    return [s.strip() for s in cleaned.split(",") if s.strip()]
+
+
+def _calculate_skills_similarity(list1: list, list2: list) -> float:
+    """Calculate similarity percentage between two skill lists"""
+    if not list1 and not list2:
+        return 100.0
+    if not list1 or not list2:
+        return 0.0
+    set1 = set(list1)
+    set2 = set(list2)
+    intersection = set1.intersection(set2)
+    denominator = max(len(set1), len(set2))
+    if denominator == 0:
+        return 0.0
+    return (len(intersection) / denominator) * 100.0
+
+
+def _should_filter_failure_message(error_msg: str) -> bool:
+    """Filter out false positive failures (DB='N/A' and ai_skills >=70% similarity)"""
+    if not error_msg:
+        return False
+    # Filter DB='N/A' false positives
+    if "Statename: DB='N/A'" in error_msg or "Cityname: DB='N/A'" in error_msg:
+        return True
+    # Filter ai_skills false positives (>=70% similarity)
+    match = re.search(r"ai_skills:\s*'([^']+)'\s*!=\s*'([^']+)'", error_msg)
+    if match:
+        db_skills = _normalize_skills_for_similarity(match.group(1))
+        solr_skills = _normalize_skills_for_similarity(match.group(2))
+        similarity = _calculate_skills_similarity(db_skills, solr_skills)
+        if similarity >= 70.0:
+            return True
+    return False
+
+
 def is_valid_employer_test(test_name: str) -> bool:
     """Check if a test name is a valid Employer test from JnP_final.robot"""
     # Explicitly exclude invalid test names (not in JnP_final.robot)
@@ -98,6 +139,9 @@ def is_valid_employer_test(test_name: str) -> bool:
 
 def parse_test_results_from_log(log_file_path: str):
     """Parse log file to extract test results with PASS/FAIL status."""
+    # Get project root for resolving JSON file paths
+    project_root = Path(__file__).parent.parent
+    
     tests = []
     current_test = None
     
@@ -183,14 +227,14 @@ def parse_test_results_from_log(log_file_path: str):
                                 if m_rt:
                                     running_time = f"{m_rt.group(1).strip()} seconds"
                             
-                            # Extract 24hrs job report data for db_solr_sync test
+                            # Extract 12hrs job report data for db_solr_sync test
                             if 'db_solr_sync' in test_name.lower():
-                                # Look for "Total Jobs Available in DB (last 24h): X" or "Jobs Actually Checked: X"
+                                # Look for "Total Jobs Available in DB (last 12h): X" or "Jobs Actually Checked: X"
                                 if 'Total Jobs Available in DB' in next_line or 'Jobs Actually Checked:' in next_line:
-                                    jobs_match = re.search(r'(?:Total Jobs Available in DB \(last 24h\):|Jobs Actually Checked:)\s*(\d+)', next_line, re.IGNORECASE)
+                                    jobs_match = re.search(r'(?:Total Jobs Available in DB \(last 12h\):|Jobs Actually Checked:)\s*(\d+)', next_line, re.IGNORECASE)
                                     if jobs_match and total_jobs == 0:
                                         total_jobs = int(jobs_match.group(1))
-                                # Look for "Total Failures: X"
+                                # Look for "Total Failures: X" (fallback - will be overridden by JSON if available)
                                 if 'Total Failures:' in next_line:
                                     failures_match = re.search(r'Total Failures:\s*(\d+)', next_line, re.IGNORECASE)
                                     if failures_match:
@@ -261,10 +305,45 @@ def parse_test_results_from_log(log_file_path: str):
                         'failure_location': failure_location,
                         'xpath': xpath
                     }
-                    # Add 24hrs job report data for db_solr_sync test
+                    
+                    # For db_solr_sync test, read filtered count from JSON file (same as log_history_api.py)
+                    json_read_success = False
+                    if 'db_solr_sync' in test_name.lower():
+                        json_failure_path = project_root / 'reports' / 'db_solr_sync_failures.json'
+                        if json_failure_path.exists():
+                            try:
+                                with open(json_failure_path, 'r', encoding='utf-8') as f:
+                                    json_data = json.load(f)
+                                # Get total jobs from JSON
+                                json_total_jobs = json_data.get('total_jobs_checked', json_data.get('total_jobs_available', 0))
+                                if json_total_jobs > 0:
+                                    total_jobs = json_total_jobs
+                                
+                                # Filter failures using same logic as log_history_api.py
+                                failures_list = json_data.get('failures', [])
+                                filtered_failures = []
+                                for f in failures_list:
+                                    error_msg = str(f.get('msg', '')).strip()
+                                    if not _should_filter_failure_message(error_msg):
+                                        filtered_failures.append(f)
+                                
+                                # Use filtered count instead of unfiltered count from log
+                                filtered_error_count = len(filtered_failures)
+                                # Always use filtered count (even if 0) to override log file count
+                                error_jobs_count = filtered_error_count
+                                json_read_success = True
+                            except Exception as e:
+                                # If JSON read fails, fall back to log file count
+                                print(f"Warning: Could not read JSON file for {test_name}: {e}")
+                    
+                    # Add 12hrs job report data for db_solr_sync test
                     if total_jobs > 0:
                         test_entry['total_jobs'] = total_jobs
-                    if error_jobs_count > 0:
+                    # For db_solr_sync test, always include error_jobs_count if JSON was read (even if 0)
+                    # For other tests, only include if > 0
+                    if 'db_solr_sync' in test_name.lower() and json_read_success:
+                        test_entry['error_jobs_count'] = error_jobs_count
+                    elif error_jobs_count > 0:
                         test_entry['error_jobs_count'] = error_jobs_count
                     
                     tests.append(test_entry)
@@ -598,6 +677,91 @@ def generate_unified_dashboard():
         main_results = get_tests_with_mtime(main_log, 'Main')
         all_tests.extend(main_results)
     
+    # CRITICAL: Also read from history files to get latest status (for tests that failed during setup)
+    # This ensures dashboard shows correct status even when log files don't have recent entries
+    try:
+        sys.path.insert(0, str(project_root))
+        from utils.log_history_api import load_historical_data
+        
+        # Map log sources to history modules
+        history_modules = {
+            'Admin': 'benchsale_admin',
+            'Recruiter': 'benchsale_recruiter',
+            'Employer': 'employer',
+            'Job Seeker': 'jobseeker'
+        }
+        
+        # Get latest test status from history for each module
+        for source, module in history_modules.items():
+            try:
+                history = load_historical_data(module, force_reload=False)
+                today = datetime.now().strftime('%Y-%m-%d')
+                history_count = 0
+                for test_name, entries in history.items():
+                    if entries:
+                        # Get the latest entry (first one is most recent)
+                        latest_entry = entries[0]
+                        status = latest_entry.get('status', 'NOT_RUN')
+                        date = latest_entry.get('date', '')
+                        datetime_str = latest_entry.get('datetime', '')
+                        running_time = latest_entry.get('running_time', 'N/A')
+                        
+                        # CRITICAL: Always add today's entries from history, even if log has old entries
+                        # Use actual datetime from history entry for proper timestamp comparison
+                        if date == today:
+                            # Parse datetime from history entry to get accurate timestamp
+                            history_datetime_str = latest_entry.get('datetime', '')
+                            history_mtime = datetime.now().timestamp()  # Default to now if no datetime
+                            
+                            if history_datetime_str:
+                                try:
+                                    # Try to parse ISO format datetime
+                                    if 'T' in history_datetime_str or '+' in history_datetime_str:
+                                        # ISO format: 2026-02-05T15:58:04.531000 or with timezone
+                                        dt_str = history_datetime_str.split('+')[0].split('.')[0]  # Remove timezone and microseconds
+                                        if len(dt_str) == 19:  # YYYY-MM-DDTHH:MM:SS
+                                            dt = datetime.strptime(dt_str, '%Y-%m-%dT%H:%M:%S')
+                                            history_mtime = dt.timestamp()
+                                        else:
+                                            # Try with microseconds
+                                            dt = datetime.fromisoformat(history_datetime_str.replace('Z', '+00:00'))
+                                            history_mtime = dt.timestamp()
+                                    else:
+                                        # Try other formats
+                                        dt = datetime.strptime(history_datetime_str, '%Y-%m-%d %H:%M:%S')
+                                        history_mtime = dt.timestamp()
+                                except Exception:
+                                    # If parsing fails, use current time
+                                    history_mtime = datetime.now().timestamp()
+                            
+                            # Use actual line number from log file if available, otherwise use a reasonable default
+                            # We'll compare by mtime and line number, not artificially inflated values
+                            test_entry = {
+                                'name': test_name,
+                                'status': status,
+                                'line': 0,  # History entries don't have line numbers - use 0, comparison will use mtime
+                                'raw_line': f'TEST {test_name}: {status}',
+                                'running_time': running_time,
+                                'failure_message': latest_entry.get('failure_message', '') or latest_entry.get('error_details', ''),
+                                'source': source,
+                                'mtime': history_mtime,  # Use actual datetime from history entry
+                                'from_history': True,  # Mark as from history for special handling
+                                'history_date': date,  # Store date for comparison
+                                'history_datetime': history_datetime_str  # Store original datetime string
+                            }
+                            all_tests.append(test_entry)
+                            history_count += 1
+                if history_count > 0:
+                    print(f"Added {history_count} test entries from {module} history for today")
+            except Exception as e:
+                # Log error but continue
+                print(f"Warning: Could not load history for {module}: {e}")
+                import traceback
+                traceback.print_exc()
+    except Exception:
+        # Silently continue if history import fails
+        pass
+    
     # Filter out warning messages (collected but not executed tests)
     # Only keep actual test results
     actual_tests = []
@@ -633,9 +797,15 @@ def generate_unified_dashboard():
         test_dict[test_key] = test_info
     
     # Then, update with actual test results from logs (overwrites NOT_RUN status)
-    # CRITICAL: Sort by (mtime, line) descending to process latest results first
-    # This ensures that when we encounter duplicate test results, the first one we process is the latest
-    actual_tests_sorted = sorted(actual_tests, key=lambda x: (x.get('mtime', 0), x.get('line', 0)), reverse=True)
+    # CRITICAL: Sort by (from_history flag, line, mtime) descending to process latest results first
+    # History entries for today should always be processed first to override old log entries
+    # Line number is the most reliable indicator of recency within the same log file
+    def sort_key(x):
+        from_history = 1 if (x.get('from_history', False) and x.get('history_date', '') == datetime.now().strftime('%Y-%m-%d')) else 0
+        # Prioritize: history flag > line number > mtime
+        # Higher line number = appears later in log = more recent = should be processed first
+        return (from_history, x.get('line', 0), x.get('mtime', 0))
+    actual_tests_sorted = sorted(actual_tests, key=sort_key, reverse=True)
     
     for test in actual_tests_sorted:
         test_key = (test['name'], test.get('source', 'Main'))
@@ -644,6 +814,49 @@ def generate_unified_dashboard():
         # Always use the LATEST result to ensure dashboard shows current PASS/FAIL status
         # Since we sorted by (mtime, line) descending, first entry for each test_key is the latest
         existing = test_dict.get(test_key)
+        
+        # CRITICAL: Compare timestamps when both entries are from today
+        # Always prefer the MOST RECENT result, regardless of source (history vs log)
+        today = datetime.now().strftime('%Y-%m-%d')
+        current_from_history = test.get('from_history', False)
+        current_history_date = test.get('history_date', '')
+        existing_from_history = existing.get('from_history', False) if existing else False
+        existing_history_date = existing.get('history_date', '') if existing else ''
+        
+        # If both are from today, compare timestamps to find the most recent
+        # Only history entries have reliable per-entry dates; log entries do not.
+        current_is_today = current_from_history and current_history_date == today
+        existing_is_today = (existing_from_history and existing_history_date == today) if existing else False
+        
+        if current_is_today and existing_is_today:
+            # Both are from today - compare timestamps (mtime) to find most recent
+            current_mtime = test.get('mtime', 0)
+            existing_mtime = existing.get('mtime', 0) if existing else 0
+            current_line = test.get('line', 0)
+            existing_line = existing.get('line', 0) if existing else 0
+            
+            # Prefer higher line number first (most reliable indicator of recency)
+            if current_line > existing_line:
+                test_dict[test_key] = test
+                continue
+            elif current_line < existing_line:
+                continue  # Keep existing
+            elif current_mtime > existing_mtime:
+                # Same line, but newer mtime
+                test_dict[test_key] = test
+                continue
+            else:
+                # Existing is newer or same - keep existing
+                continue
+        
+        # If only current is from today, use it
+        if current_is_today and not existing_is_today:
+            test_dict[test_key] = test
+            continue
+        
+        # If only existing is from today, keep it
+        if existing_is_today and not current_is_today:
+            continue
         
         if not existing or existing.get('status') == 'NOT_RUN':
             # No existing result or it's NOT_RUN - always use new result
@@ -655,20 +868,18 @@ def generate_unified_dashboard():
             existing_line = existing.get('line', 0)
             current_line = test.get('line', 0)
             
-            # CRITICAL: Always prefer result with higher (mtime, line) combination
-            # This ensures latest test run result is always shown
-            time_diff = current_mtime - existing_mtime
-            
-            if time_diff > 2.0:
-                # Newer file by more than 2 seconds - always use this result
+            # CRITICAL FIX: Always prefer result with higher line number FIRST (appears later in log = more recent)
+            # Line number is the most reliable indicator of recency within the same log file
+            # Only use mtime as tiebreaker when line numbers are equal
+            if current_line > existing_line:
+                # Current result appears later in log file = more recent = always use it
                 test_dict[test_key] = test
-            elif time_diff < -2.0:
-                # Existing is newer by more than 2 seconds - keep existing
+            elif current_line < existing_line:
+                # Existing result appears later in log file = more recent = keep existing
                 pass
             else:
-                # Mtimes are close (within 2 seconds) - prefer higher line number (appears later in log)
-                # CRITICAL: Higher line number = more recent entry in same file = always prefer
-                # BUT: Prefer PASS/FAIL over SKIP when line numbers are close (SKIP means test wasn't run)
+                # Same line number - use mtime and status as tiebreakers
+                time_diff = current_mtime - existing_mtime
                 existing_status = existing.get('status', '')
                 current_status = test.get('status', '')
                 
@@ -679,23 +890,16 @@ def generate_unified_dashboard():
                 elif current_status == 'SKIP' and existing_status in ['PASS', 'FAIL']:
                     # Current is SKIP, existing is actual result - keep existing
                     pass
-                elif current_line > existing_line:
-                    # Both are same type (both PASS/FAIL or both SKIP), prefer higher line number
+                elif time_diff > 2.0:
+                    # Newer file by more than 2 seconds - use this result
                     test_dict[test_key] = test
-                elif current_line < existing_line:
-                    # Existing appears later - keep existing
+                elif time_diff < -2.0:
+                    # Existing is newer by more than 2 seconds - keep existing
                     pass
-                else:
-                    # Same line number - prefer PASS over FAIL, or newer mtime
-                    if current_status == 'PASS' and existing_status == 'FAIL':
-                        # Always prefer PASS over FAIL if line numbers are same
-                        test_dict[test_key] = test
-                    elif current_status == 'FAIL' and existing_status == 'PASS':
-                        # Keep existing PASS
-                        pass
-                    elif current_mtime > existing_mtime:
-                        # Same status, prefer newer mtime
-                        test_dict[test_key] = test
+                elif current_mtime > existing_mtime:
+                    # Same line, same status type, but newer mtime - prefer current
+                    test_dict[test_key] = test
+                # Otherwise keep existing (same line, same mtime, same status type)
 
     # Attach latest failure artifacts (screenshot/html/url) from reports/failures
     # so the right-side details panel can open them.
@@ -3196,6 +3400,49 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                 console.error('Error parsing test data:', e);
                 return;
             }}
+
+            // Special handling for db_solr_sync to extract job report from failure message if not present
+            if (testData.name && (testData.name.includes('db_solr_sync') || testData.name.includes('DB Solr Sync')) && (!testData.total_jobs || testData.total_jobs === 0) && testData.failure_message) {{
+                 // Newer failure message format: "Solr Sync Failed for X/Y jobs checked"
+                 const quickMatch = testData.failure_message.match(/Solr Sync Failed for\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*jobs checked/i);
+                 if (quickMatch) {{
+                     testData.error_jobs_count = parseInt(quickMatch[1], 10);
+                     testData.total_jobs = parseInt(quickMatch[2], 10);
+                 }}
+                 // Try to find JSON report
+                 const jsonMatch = testData.failure_message.match(/JSON_REPORT_START\s*({{[:\s\S]*?}})\s*JSON_REPORT_END/);
+                 if (jsonMatch) {{
+                     try {{
+                         const report = JSON.parse(jsonMatch[1]);
+                         if (report.total_jobs) testData.total_jobs = report.total_jobs;
+                         if (report.error_jobs_count) testData.error_jobs_count = report.error_jobs_count;
+                     }} catch(e) {{}}
+                 }}
+                 
+                 // Try to find text table report
+                 if (!testData.total_jobs) {{
+                     const tableMatch = testData.failure_message.match(/Total Jobs Checked:\s*(\d+)/);
+                     if (tableMatch) {{
+                         testData.total_jobs = parseInt(tableMatch[1], 10);
+                         const failMatch = testData.failure_message.match(/Failures found:\s*(\d+)/);
+                         if (failMatch) {{
+                             testData.error_jobs_count = parseInt(failMatch[1], 10);
+                         }}
+                     }}
+                 }}
+                 
+                 // Try to find older text format
+                 if (!testData.total_jobs) {{
+                     const oldMatch = testData.failure_message.match(/Total Jobs Available in DB \(last 12h\):\s*(\d+)/);
+                     if (oldMatch) {{
+                         testData.total_jobs = parseInt(oldMatch[1], 10);
+                         const oldFailMatch = testData.failure_message.match(/Total Failures:\s*(\d+)/);
+                         if (oldFailMatch) {{
+                             testData.error_jobs_count = parseInt(oldFailMatch[1], 10);
+                         }}
+                     }}
+                 }}
+            }}
             
             // Find the details panel in the same section
             const testSection = testItem.closest('.test-section');
@@ -3223,15 +3470,26 @@ def generate_dashboard_html(tests, total, passed, failed, skipped,
                         <div class="test-details-info-value">${{testData.running_time || 'N/A'}}</div>
                     </div>
                     ${{testData.total_jobs ? `
-                    <div class="test-details-info-item">
-                        <div class="test-details-info-label">📊 24hrs Job Report</div>
-                        <div class="test-details-info-value">
-                            <strong>Total Jobs Checked:</strong> ${{testData.total_jobs.toLocaleString()}}<br>
-                            ${{testData.error_jobs_count ? `<strong>Failures:</strong> ${{testData.error_jobs_count.toLocaleString()}}<br>` : ''}}
-                            ${{testData.total_jobs && testData.error_jobs_count ? `
-                            <strong>Success Rate:</strong> ${{((testData.total_jobs - testData.error_jobs_count) / testData.total_jobs * 100).toFixed(2)}}%
-                            ` : ''}}
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+                        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">${{testData.total_jobs.toLocaleString()}}</div>
+                            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Total Jobs Checked</div>
                         </div>
+                        ${{testData.error_jobs_count !== undefined ? `
+                        <div style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; padding: 15px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 8px;">❌</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #dc3545; margin-bottom: 4px;">${{testData.error_jobs_count.toLocaleString()}}</div>
+                            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Failures</div>
+                        </div>
+                        ` : ''}}
+                        ${{testData.total_jobs && testData.error_jobs_count !== undefined ? `
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 8px;">📈</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #10b981; margin-bottom: 4px;">${{((testData.total_jobs - testData.error_jobs_count) / testData.total_jobs * 100).toFixed(2)}}%</div>
+                            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Success Rate</div>
+                        </div>
+                        ` : ''}}
                     </div>
                     ` : ''}}
                 </div>
@@ -3939,8 +4197,9 @@ def generate_test_list_html(tests):
             xpath = test.get('xpath', '')
             screenshots = test.get('screenshots', [])
             artifacts = test.get('artifacts', {}) or {}
-            total_jobs = test.get('total_jobs', 0)  # For db_solr_sync test - 24hrs job report
+            total_jobs = test.get('total_jobs', 0)  # For db_solr_sync test - 12hrs job report
             error_jobs_count = test.get('error_jobs_count', 0)  # For db_solr_sync test - failures count
+            is_db_solr_sync = 'db_solr_sync' in original_name.lower()
             
             # Ensure screenshots is a list
             if not isinstance(screenshots, list):
@@ -3963,10 +4222,14 @@ def generate_test_list_html(tests):
                         'url_txt_url': artifacts.get('url_txt_url', '')
                     }
                 }
-                # Add 24hrs job report data for db_solr_sync test
+                # Add 12hrs job report data for db_solr_sync test
                 if total_jobs > 0:
                     test_data['total_jobs'] = int(total_jobs)
-                if error_jobs_count > 0:
+                # For db_solr_sync test, always include error_jobs_count if it was set (even if 0)
+                # For other tests, only include if > 0
+                if is_db_solr_sync and 'error_jobs_count' in test:
+                    test_data['error_jobs_count'] = int(error_jobs_count)
+                elif error_jobs_count > 0:
                     test_data['error_jobs_count'] = int(error_jobs_count)
                 test_data_json = escape(json.dumps(test_data))
                 # Escape quotes in JSON for HTML attribute
@@ -4023,10 +4286,7 @@ def generate_log_links_html(admin_log, recruiter_log, employer_log, jobseeker_lo
     if jobseeker_log and jobseeker_log.exists():
         links.append(f'<a href="../log_viewer_ui.html?module=jobseeker&hideModules=true" class="log-link" target="_blank">📊 Job Seeker Log History</a>')
     
-    if main_log and main_log.exists():
-        main_html = main_log.parent / 'benchsale_test.html'
-        if main_html.exists():
-            links.append(f'<a href="../log_viewer_ui.html?module=benchsale_test&hideModules=true" class="log-link" target="_blank">📊 Main Test Log History</a>')
+    # Main Test Log History button removed as requested
     
     return ''.join(links) if links else '<p>No log files available</p>'
 

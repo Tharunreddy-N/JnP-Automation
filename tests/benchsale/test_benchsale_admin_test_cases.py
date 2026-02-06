@@ -803,11 +803,54 @@ def test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_ben
         page.wait_for_timeout(1000 if FAST_MODE else 2000)
         
         # Robot: Wait Until Page Contains Element    xpath:/html/body/div[1]/div[3]/div    30    # Toast message
-        toast = page.locator("xpath=/html/body/div[1]/div[3]/div")
+        # Use more specific locator to avoid matching AI assistant widget
+        # Try multiple selectors to find the toast message
+        toast = None
+        toast_selectors = [
+            "xpath=/html/body/div[1]/div[3]/div[.//div[contains(@class,'MuiAlert-message') or contains(@class,'css-1xsto0d')]]",
+            "xpath=/html/body/div[1]/div[3]/div[contains(@class,'MuiSnackbar')]",
+            "css=.MuiSnackbar-root",
+            "xpath=/html/body/div[1]/div[3]/div[not(contains(@class,'widget-toggle')) and not(contains(@class,'app-container'))]"
+        ]
+        for selector in toast_selectors:
+            try:
+                loc = page.locator(selector).first
+                if loc.count() > 0:
+                    toast = loc
+                    break
+            except Exception:
+                continue
+        
+        if not toast:
+            # Fallback to original selector but use first that has toast content
+            all_divs = page.locator("xpath=/html/body/div[1]/div[3]/div")
+            for i in range(all_divs.count()):
+                div = all_divs.nth(i)
+                text = div.inner_text().strip()
+                if "Successfully" in text or "Removed" in text or "Candidate" in text:
+                    toast = div
+                    break
+        
+        if not toast:
+            toast = page.locator("xpath=/html/body/div[1]/div[3]/div").first
+        
         toast.wait_for(state="visible", timeout=30000)
         
         # Robot: ${remove_msg}    Get Text    xpath:/html/body/div[1]/div[3]/div
-        remove_msg = toast.inner_text().strip()
+        # Try to get text from MuiAlert-message first, fallback to container text
+        try:
+            toast_msg_elem = toast.locator(".MuiAlert-message").first
+            if toast_msg_elem.count() > 0:
+                remove_msg = toast_msg_elem.inner_text().strip()
+            else:
+                # Try alternative selector
+                toast_msg_elem = toast.locator(".css-1xsto0d").first
+                if toast_msg_elem.count() > 0:
+                    remove_msg = toast_msg_elem.inner_text().strip()
+                else:
+                    remove_msg = toast.inner_text().strip()
+        except Exception:
+            remove_msg = toast.inner_text().strip()
         print(f"remove_msg: {remove_msg}")
         
         # Robot: Should Be Equal    '${remove_msg}'    'Candidate Removed Successfully'
@@ -938,11 +981,10 @@ def test_t1_04_admin_verification_of_allocating_candidate_under_recruiter_in_ben
         deallocate_btn.click()
         
         # Robot: Wait Until Page Contains Element    xpath:/html/body/div[1]/div[3]/div    30    # Toast message for de-allocation
-        toast = page.locator("xpath=/html/body/div[1]/div[3]/div")
-        toast.wait_for(state="visible", timeout=30000)
-        
-        # Robot: ${deallocation_msg}    Get Text     xpath:/html/body/div[1]/div[3]/div
-        deallocation_msg = toast.inner_text().strip()
+        # Use exact text to avoid matching AI assistant widget content
+        success_toast = page.get_by_text("Candidate Removed Successfully", exact=True)
+        success_toast.wait_for(state="visible", timeout=30000)
+        deallocation_msg = success_toast.inner_text().strip()
         print(f"deallocation_msg: {deallocation_msg}")
         
         # Robot: Should Be Equal    '${deallocation_msg}'     'Candidate Removed Successfully'
@@ -1153,7 +1195,42 @@ def test_t1_08_admin_verification_of_inactivating_and_activating_recruiter_in_be
         has_active = False
     
     def _read_toast_text(timeout_ms: int = 30000) -> str:
-        toast = page.locator("xpath=/html/body/div[1]/div[3]/div")
+        # Use more specific locator to avoid matching AI assistant widget
+        # Try multiple selectors to find the toast message
+        toast = None
+        toast_selectors = [
+            "xpath=/html/body/div[1]/div[3]/div[.//div[contains(@class,'MuiAlert-message') or contains(@class,'css-1xsto0d')]]",
+            "xpath=/html/body/div[1]/div[3]/div[contains(@class,'MuiSnackbar')]",
+            "css=.MuiSnackbar-root",
+            "xpath=/html/body/div[1]/div[3]/div[not(contains(@class,'widget-toggle')) and not(contains(@class,'app-container'))]"
+        ]
+        for selector in toast_selectors:
+            try:
+                loc = page.locator(selector).first
+                if loc.count() > 0:
+                    toast = loc
+                    break
+            except Exception:
+                continue
+        
+        if not toast:
+            # Fallback: find div that contains toast message text
+            all_divs = page.locator("xpath=/html/body/div[1]/div[3]/div")
+            for i in range(all_divs.count()):
+                div = all_divs.nth(i)
+                try:
+                    text = div.inner_text().strip()
+                    # Check if it's a toast message (contains success/error keywords)
+                    if any(keyword in text.lower() for keyword in ["successfully", "activated", "inactivated", "removed", "added", "deleted"]):
+                        toast = div
+                        break
+                except Exception:
+                    continue
+        
+        if not toast:
+            # Final fallback to first div
+            toast = page.locator("xpath=/html/body/div[1]/div[3]/div").first
+        
         toast.wait_for(state="visible", timeout=timeout_ms)
         loc = toast.locator("css=.MuiAlert-message")
         try:
@@ -4113,6 +4190,7 @@ def test_t1_13_admin_verification_of_candidates_in_submission_job_flow(
         # Wait for success/failure message after email is sent
         print("Waiting for success/failure message...")
         print(f"Current URL: {page.url}")
+        context = page.context
         message_found = False
         message_text = ""
         
@@ -4138,6 +4216,13 @@ def test_t1_13_admin_verification_of_candidates_in_submission_job_flow(
         
         # Wait longer for message to appear (email sending might take time)
         for i in range(60):  # Increased from 40 to 60 (2 minutes total)
+            if page.is_closed():
+                open_pages = [p for p in context.pages if not p.is_closed()]
+                if open_pages:
+                    page = open_pages[0]
+                    print("INFO: Active page was closed; switched to another open page for message check.")
+                else:
+                    pytest.fail("Browser page closed before final message could be verified")
             try:
                 # Try each selector
                 for selector in message_selectors:

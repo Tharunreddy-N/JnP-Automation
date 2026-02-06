@@ -188,9 +188,56 @@ def test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive(
     # Robot checks for toast after recruiter login (inactive recruiter case)
     toast_msg_test = ""
     try:
-        toast_element = page.locator("xpath=/html/body/div/div[3]/div")
-        toast_element.wait_for(state="visible", timeout=30000)
-        toast_msg_test = (toast_element.inner_text() or "").strip()
+        # Use more specific locator to avoid matching AI assistant widget
+        toast = None
+        toast_selectors = [
+            "xpath=/html/body/div/div[3]/div[.//div[contains(@class,'MuiAlert-message') or contains(@class,'css-1xsto0d')]]",
+            "xpath=/html/body/div/div[3]/div[contains(@class,'MuiSnackbar')]",
+            "css=.MuiSnackbar-root",
+            "xpath=/html/body/div/div[3]/div[not(contains(@class,'widget-toggle')) and not(contains(@class,'app-container'))]"
+        ]
+        for selector in toast_selectors:
+            try:
+                loc = page.locator(selector).first
+                if loc.count() > 0:
+                    toast = loc
+                    break
+            except Exception:
+                continue
+        
+        if not toast:
+            # Fallback: find div that contains toast message text
+            all_divs = page.locator("xpath=/html/body/div/div[3]/div")
+            for i in range(all_divs.count()):
+                div = all_divs.nth(i)
+                try:
+                    text = div.inner_text().strip()
+                    # Check if it's a toast message (contains success/error keywords)
+                    if any(keyword in text.lower() for keyword in ["successfully", "activated", "inactivated", "removed", "added", "deleted", "inactive"]):
+                        toast = div
+                        break
+                except Exception:
+                    continue
+        
+        if not toast:
+            # Final fallback to first div
+            toast = page.locator("xpath=/html/body/div/div[3]/div").first
+        
+        toast.wait_for(state="visible", timeout=30000)
+        # Try to get text from MuiAlert-message first, fallback to container text
+        try:
+            toast_msg_elem = toast.locator(".MuiAlert-message").first
+            if toast_msg_elem.count() > 0:
+                toast_msg_test = toast_msg_elem.inner_text().strip()
+            else:
+                # Try alternative selector
+                toast_msg_elem = toast.locator(".css-1xsto0d").first
+                if toast_msg_elem.count() > 0:
+                    toast_msg_test = toast_msg_elem.inner_text().strip()
+                else:
+                    toast_msg_test = toast.inner_text().strip()
+        except Exception:
+            toast_msg_test = toast.inner_text().strip()
         print(f"Toast message: {toast_msg_test}")
     except PWTimeoutError:
         toast_msg_test = ""
@@ -303,9 +350,54 @@ def test_t2_01_recruiter_dashboard_verification_recruiter_active_inactive(
                             )
                             admin_page.locator("xpath=/html/body/div[3]/div[3]/ul").click()
 
-                            success_toast = admin_page.locator("xpath=/html/body/div[1]/div[3]/div")
+                            # Use more specific locator to avoid matching AI assistant widget
+                            success_toast = None
+                            toast_selectors = [
+                                "xpath=/html/body/div[1]/div[3]/div[.//div[contains(@class,'MuiAlert-message') or contains(@class,'css-1xsto0d')]]",
+                                "xpath=/html/body/div[1]/div[3]/div[contains(@class,'MuiSnackbar')]",
+                                "css=.MuiSnackbar-root",
+                                "xpath=/html/body/div[1]/div[3]/div[not(contains(@class,'widget-toggle')) and not(contains(@class,'app-container'))]"
+                            ]
+                            for selector in toast_selectors:
+                                try:
+                                    loc = admin_page.locator(selector).first
+                                    if loc.count() > 0:
+                                        success_toast = loc
+                                        break
+                                except Exception:
+                                    continue
+                            
+                            if not success_toast:
+                                # Fallback: find div that contains toast message text
+                                all_divs = admin_page.locator("xpath=/html/body/div[1]/div[3]/div")
+                                for j in range(all_divs.count()):
+                                    div = all_divs.nth(j)
+                                    try:
+                                        text = div.inner_text().strip()
+                                        if "Successfully" in text or "Activated" in text:
+                                            success_toast = div
+                                            break
+                                    except Exception:
+                                        continue
+                            
+                            if not success_toast:
+                                success_toast = admin_page.locator("xpath=/html/body/div[1]/div[3]/div").first
+                            
                             success_toast.wait_for(state="visible", timeout=30000)
-                            activated_msg = (success_toast.inner_text() or "").strip()
+                            # Try to get text from MuiAlert-message first, fallback to container text
+                            try:
+                                toast_msg_elem = success_toast.locator(".MuiAlert-message").first
+                                if toast_msg_elem.count() > 0:
+                                    activated_msg = toast_msg_elem.inner_text().strip()
+                                else:
+                                    # Try alternative selector
+                                    toast_msg_elem = success_toast.locator(".css-1xsto0d").first
+                                    if toast_msg_elem.count() > 0:
+                                        activated_msg = toast_msg_elem.inner_text().strip()
+                                    else:
+                                        activated_msg = success_toast.inner_text().strip()
+                            except Exception:
+                                activated_msg = success_toast.inner_text().strip()
                             assert (
                                 activated_msg == "Recruiter Activated Successfully"
                             ), f"Expected activation message, got '{activated_msg}'"

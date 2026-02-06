@@ -22,7 +22,7 @@ from utils.connections import connections
 # CHANGE JOB IDs HERE - Add or remove IDs as needed
 # ============================================
 JOB_IDS = [
-    '6076803',
+    '6040331',
 ]
 
 

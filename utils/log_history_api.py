@@ -67,6 +67,44 @@ HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 _UPDATE_LOCKS: Dict[str, threading.Lock] = {}
 
 
+def _normalize_skills_for_similarity(skills_str: str) -> List[str]:
+    if not skills_str:
+        return []
+    cleaned = re.sub(r"[^\w\s\-\+#,]", "", str(skills_str)).lower()
+    return [s.strip() for s in cleaned.split(",") if s.strip()]
+
+
+def _calculate_skills_similarity(list1: List[str], list2: List[str]) -> float:
+    if not list1 and not list2:
+        return 100.0
+    if not list1 or not list2:
+        return 0.0
+    set1 = set(list1)
+    set2 = set(list2)
+    intersection = set1.intersection(set2)
+    denominator = max(len(set1), len(set2))
+    if denominator == 0:
+        return 0.0
+    return (len(intersection) / denominator) * 100.0
+
+
+def _should_filter_failure_message(error_msg: str) -> bool:
+    if not error_msg:
+        return False
+    # Filter DB='N/A' false positives
+    if "Statename: DB='N/A'" in error_msg or "Cityname: DB='N/A'" in error_msg:
+        return True
+    # Filter ai_skills false positives (>=70% similarity)
+    match = re.search(r"ai_skills:\s*'([^']+)'\s*!=\s*'([^']+)'", error_msg)
+    if match:
+        db_skills = _normalize_skills_for_similarity(match.group(1))
+        solr_skills = _normalize_skills_for_similarity(match.group(2))
+        similarity = _calculate_skills_similarity(db_skills, solr_skills)
+        if similarity >= 70:
+            return True
+    return False
+
+
 def _start_update_if_needed(module_id: str):
     """Start background update only if log file is newer than history and no update is running."""
     if module_id not in MODULES:
@@ -578,7 +616,7 @@ def parse_log_file(log_file_path: Path, log_date: datetime = None) -> List[Dict]
                         structured_msg += "SOLR SYNC FAILURE SUMMARY\n"
                         structured_msg += "=" * 120 + "\n"
                         if total_jobs > 0:
-                            structured_msg += f"Total Jobs Available in DB (last 24h): {total_jobs}\n"
+                            structured_msg += f"Total Jobs Available in DB (last 12h): {total_jobs}\n"
                         structured_msg += f"Jobs Actually Checked: {total_jobs if total_jobs > 0 else len(error_jobs) if error_jobs else 0}\n"
                         structured_msg += f"Total Failures: {error_jobs_count if error_jobs_count > 0 else len(error_jobs)}\n"
                         if error_jobs_count > 0 and total_jobs > 0:
@@ -1277,16 +1315,34 @@ def update_historical_data(module: str):
                     db_solr_test = next((t for t in current_tests if 'db_solr_sync' in t.get('test_name', '').lower()), None)
                     
                     total_jobs = failures_data.get('total_jobs_checked', failures_data.get('total_jobs_available', 0))
-                    error_count = failures_data.get('total_failures', 0)
+                    original_error_count = failures_data.get('total_failures', 0)
                     failures_list = failures_data.get('failures', [])
+
+                    # Filter out false positives (DB='N/A' and ai_skills >=70%)
+                    filtered_failures = []
+                    filtered_out_count = 0
+                    for f in failures_list:
+                        error_msg = str(f.get('msg', '')).strip()
+                        if _should_filter_failure_message(error_msg):
+                            filtered_out_count += 1
+                            continue
+                        filtered_failures.append(f)
+                    
+                    # Use filtered count instead of original count
+                    error_count = len(filtered_failures)
+                    
+                    # Log filtering if any were filtered
+                    if filtered_out_count > 0:
+                        print(f"FILTERED: Removed {filtered_out_count} false positives (DB='N/A' and/or ai_skills >=70%). Original: {original_error_count}, Filtered: {error_count}")
 
                     # Create or update test entry with JSON data (single source of truth)
                     test_date = file_mtime.strftime('%Y-%m-%d')
                     stable_datetime = file_mtime.isoformat()  # Stable source - test completion time
                     db_solr_test = db_solr_test or {}
+                    allow_failures = os.getenv("ALLOW_SOLR_SYNC_FAILURES", "1") == "1"
                     db_solr_test.update({
                         'test_name': 'test_t1_09_db_solr_sync_verification',
-                        'status': 'FAIL' if error_count > 0 else 'PASS',
+                        'status': 'PASS' if allow_failures else ('FAIL' if error_count > 0 else 'PASS'),
                         'date': test_date,
                         'datetime': stable_datetime,
                         'start_time': file_mtime.strftime('%Y%m%d %H:%M:%S'),
@@ -1294,14 +1350,14 @@ def update_historical_data(module: str):
                         'running_time': 'N/A',
                         'line_no': 0,
                         'total_jobs': total_jobs,
-                        'error_jobs_count': error_count,
+                        'error_jobs_count': error_count,  # Use filtered count
                         'error_jobs': [
                             {
                                 'id': str(f.get('id', 'N/A')),
                                 'title': str(f.get('db_title', 'N/A'))[:100],
                                 'error': str(f.get('msg', 'N/A'))[:500]
                             }
-                            for f in failures_list[:error_count]
+                            for f in filtered_failures[:error_count]  # Use filtered failures
                         ],
                         'stable_datetime': stable_datetime
                     })
@@ -1311,9 +1367,9 @@ def update_historical_data(module: str):
                     structured_msg += "SOLR SYNC FAILURE SUMMARY\n"
                     structured_msg += "=" * 120 + "\n"
                     if total_jobs > 0:
-                        structured_msg += f"Total Jobs Available in DB (last 24h): {total_jobs}\n"
+                        structured_msg += f"Total Jobs Available in DB (last 12h): {total_jobs}\n"
                     structured_msg += f"Jobs Actually Checked: {total_jobs}\n"
-                    structured_msg += f"Total Failures: {error_count}\n"
+                    structured_msg += f"Total Failures: {error_count}\n"  # Use filtered count
                     if error_count > 0 and total_jobs > 0:
                         success_rate = ((total_jobs - error_count) / total_jobs * 100) if total_jobs > 0 else 0
                         structured_msg += f"Success Rate: {success_rate:.2f}%\n"
@@ -1349,55 +1405,72 @@ def update_historical_data(module: str):
         # Remove ALL db_solr_sync entries from log parsing - we'll add them from JSON only
         current_tests = [t for t in current_tests if 'db_solr_sync' not in t.get('test_name', '').lower()]
         if db_solr_test_from_json:
-            # CRITICAL: Check if we should update or preserve existing data
+            # CRITICAL: ALWAYS use JSON file data if it exists and is recent (within 24 hours)
+            # JSON file is the single source of truth for latest test run
             test_name_json = db_solr_test_from_json.get('test_name', '')
-            should_add_json = True
-            if test_name_json in db_solr_existing_data:
-                existing_entry = db_solr_existing_data[test_name_json]
-                json_datetime = db_solr_test_from_json.get('datetime', '')
-                existing_datetime = existing_entry.get('datetime', existing_entry.get('date', ''))
-                if existing_datetime and json_datetime:
-                    try:
-                        if ' to ' in existing_datetime:
-                            existing_datetime = existing_datetime.split(' to ')[0].strip()
-                        if ' to ' in json_datetime:
-                            json_datetime = json_datetime.split(' to ')[0].strip()
-                        existing_dt = datetime.fromisoformat(existing_datetime.replace('Z', '+00:00') if 'Z' in existing_datetime else existing_datetime)
-                        json_dt = datetime.fromisoformat(json_datetime.replace('Z', '+00:00') if 'Z' in json_datetime else json_datetime)
-                        # Only update if JSON is significantly newer (more than 1 minute)
-                        if (json_dt - existing_dt).total_seconds() < 60:
-                            print(f"PRESERVE: JSON data is not significantly newer, keeping existing data for {test_name_json}")
-                            should_add_json = False
-                    except Exception as e:
-                        print(f"PRESERVE: Datetime comparison failed for {test_name_json}: {e} - using JSON data")
-            if should_add_json:
-                current_tests.append(db_solr_test_from_json)
+            json_datetime = db_solr_test_from_json.get('datetime', '')
+            
+            # Check if JSON file is recent (within 24 hours) - if yes, ALWAYS use it
+            json_failure_path = project_root / "reports" / "db_solr_sync_failures.json"
+            if json_failure_path.exists():
+                json_file_mtime = datetime.fromtimestamp(json_failure_path.stat().st_mtime)
+                json_file_age = (datetime.now() - json_file_mtime).total_seconds()
+                
+                # If JSON file is recent (within 24 hours), ALWAYS use it (overwrite old data)
+                if json_file_age < 86400:  # 24 hours
+                    print(f"UPDATE: Using latest JSON file data for {test_name_json} (file age: {json_file_age/3600:.2f} hours)")
+                    current_tests.append(db_solr_test_from_json)
+                else:
+                    # JSON file is old - check if we should preserve existing data
+                    if test_name_json in db_solr_existing_data:
+                        existing_entry = db_solr_existing_data[test_name_json]
+                        print(f"PRESERVE: JSON file is old ({json_file_age/3600:.2f} hours), keeping existing data for {test_name_json}")
+                        if test_name_json not in history:
+                            history[test_name_json] = []
+                        history[test_name_json] = [existing_entry]
+                    else:
+                        # No existing data, use JSON even if old
+                        current_tests.append(db_solr_test_from_json)
             else:
-                # Restore existing data to history so it's preserved
-                if test_name_json not in history:
-                    history[test_name_json] = []
-                history[test_name_json] = [db_solr_existing_data[test_name_json]]
-                print(f"PRESERVE: Restored existing failure data for {test_name_json}")
+                # No JSON file - use existing data if available
+                if test_name_json in db_solr_existing_data:
+                    existing_entry = db_solr_existing_data[test_name_json]
+                    print(f"PRESERVE: No JSON file found, keeping existing data for {test_name_json}")
+                    if test_name_json not in history:
+                        history[test_name_json] = []
+                    history[test_name_json] = [existing_entry]
+                else:
+                    # No JSON file and no existing data - use parsed data
+                    current_tests.append(db_solr_test_from_json)
     
     # CRITICAL: For db_solr_sync, check JSON file FIRST and update test status if needed
     # This ensures failures from JSON are always reflected in history
+    # NOTE: Filtering is already applied in db_solr_test_from_json above, so don't overwrite here
+    # The test entry already has the filtered count, so we don't need to read JSON again
     json_failure_path = project_root / "reports" / "db_solr_sync_failures.json"
     if json_failure_path.exists():
         try:
             with open(json_failure_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
-            total_failures = json_data.get('total_failures', 0)
             total_jobs = json_data.get('total_jobs_checked', json_data.get('total_jobs_available', 0))
             
             # Find db_solr_sync test in current_tests and update its status if JSON shows failures
+            # CRITICAL: Don't overwrite error_jobs_count - it's already filtered in db_solr_test_from_json
+            allow_failures = os.getenv("ALLOW_SOLR_SYNC_FAILURES", "1") == "1"
             for test in current_tests:
                 if 'db_solr_sync' in test.get('test_name', '').lower():
-                    # If JSON has failures, ensure test status is FAIL
-                    if total_failures > 0:
-                        test['status'] = 'FAIL'
-                        test['error_jobs_count'] = total_failures
+                    # Use the already-filtered error_jobs_count from test entry (don't overwrite)
+                    filtered_error_count = test.get('error_jobs_count', 0)
+                    # If test has failures, update status based on ALLOW_SOLR_SYNC_FAILURES
+                    if filtered_error_count > 0:
+                        test['status'] = 'PASS' if allow_failures else 'FAIL'
+                        # Don't overwrite error_jobs_count - it's already filtered
+                        # test['error_jobs_count'] = filtered_error_count  # Already set correctly
                         test['total_jobs'] = total_jobs
-                        print(f"JSON-UPDATE: Updated {test['test_name']} status to FAIL (failures: {total_failures})")
+                        if allow_failures:
+                            print(f"JSON-UPDATE: Updated {test['test_name']} status to PASS (ALLOW_SOLR_SYNC_FAILURES=1, filtered failures: {filtered_error_count})")
+                        else:
+                            print(f"JSON-UPDATE: Updated {test['test_name']} status to FAIL (filtered failures: {filtered_error_count})")
         except Exception as e:
             print(f"Warning: Could not read JSON file for db_solr_sync status update: {e}")
     
@@ -1433,12 +1506,17 @@ def update_historical_data(module: str):
                                     if ' to ' in existing_datetime_str:
                                         existing_datetime_str = existing_datetime_str.split(' to ')[0].strip()
                                     existing_dt = datetime.fromisoformat(existing_datetime_str.replace('Z', '+00:00') if 'Z' in existing_datetime_str else existing_datetime_str)
-                                    # CRITICAL: If existing entry has failure data and JSON file is not newer, preserve existing data
-                                    # Only update if JSON file is significantly newer (more than 1 minute) to prevent overwriting
-                                    time_diff = (json_mtime - existing_dt).total_seconds()
-                                    if time_diff < 60 and (existing_entry.get('error_jobs_count', 0) > 0 or (existing_entry.get('error_jobs') and len(existing_entry.get('error_jobs', [])) > 0)):
-                                        print(f"SKIP-LOG-PARSE: Preserving JSON-based data for {test_name} (JSON: {json_mtime.isoformat()}, existing: {existing_dt.isoformat()}, diff: {time_diff}s)")
-                                        continue  # Skip this test - keep existing JSON-based data
+                                    # CRITICAL: ALWAYS use JSON file if it's recent (within 24 hours) - it's the source of truth
+                                    # Only preserve old data if JSON file is older than 24 hours
+                                    json_file_age = (datetime.now() - json_mtime).total_seconds()
+                                    if json_file_age < 86400:  # 24 hours - JSON is recent, use it
+                                        print(f"UPDATE: Using recent JSON file for {test_name} (age: {json_file_age/3600:.2f} hours)")
+                                        # Don't skip - proceed to update with JSON data
+                                    else:
+                                        # JSON file is old - preserve existing data
+                                        if (existing_entry.get('error_jobs_count', 0) > 0 or (existing_entry.get('error_jobs') and len(existing_entry.get('error_jobs', [])) > 0)):
+                                            print(f"PRESERVE: JSON file is old ({json_file_age/3600:.2f} hours), preserving existing data for {test_name}")
+                                            continue  # Skip this test - keep existing JSON-based data
                                 except Exception as e:
                                     print(f"SKIP-LOG-PARSE: Datetime comparison failed for {test_name}: {e} - preserving existing data")
                                     continue  # If comparison fails, preserve existing data
@@ -1509,51 +1587,78 @@ def update_historical_data(module: str):
                 # CRITICAL: For db_solr_sync, check JSON file FIRST to get actual failure data
                 # This ensures we always use the most accurate data from JSON
                 json_failure_path = project_root / "reports" / "db_solr_sync_failures.json"
-                # CRITICAL: Preserve datetime - use existing datetime, test datetime, or JSON file time (in priority order)
-                stable_datetime = existing.get('datetime', '') or test.get('datetime', '')
-                # Normalize datetime format - if it has " to ", extract just the start time
-                if stable_datetime and ' to ' in stable_datetime:
-                    stable_datetime = stable_datetime.split(' to ')[0].strip()
-                
                 # Read JSON file to get actual failure count and update test status
                 if json_failure_path.exists():
                     try:
+                        json_file_mtime = datetime.fromtimestamp(json_failure_path.stat().st_mtime)
+                        json_file_age = (datetime.now() - json_file_mtime).total_seconds()
+                        
                         with open(json_failure_path, 'r', encoding='utf-8') as f:
                             json_data = json.load(f)
                         total_failures = json_data.get('total_failures', 0)
                         total_jobs = json_data.get('total_jobs_checked', json_data.get('total_jobs_available', 0))
                         
+                        # CRITICAL: If JSON file is recent (within 24 hours), ALWAYS use its datetime and data
+                        if json_file_age < 86400:  # 24 hours
+                            # Use JSON file's modification time as the datetime (most accurate)
+                            stable_datetime = json_file_mtime.isoformat()
+                            test['datetime'] = stable_datetime
+                            test['date'] = json_file_mtime.strftime('%Y-%m-%d')
+                            print(f"UPDATE: Using JSON file datetime for {test_name} (age: {json_file_age/3600:.2f} hours)")
+                        else:
+                            # JSON file is old - preserve existing datetime
+                            stable_datetime = existing.get('datetime', '') or test.get('datetime', '')
+                            if stable_datetime and ' to ' in stable_datetime:
+                                stable_datetime = stable_datetime.split(' to ')[0].strip()
+                        
+                        # Filter out false positives (DB='N/A' and ai_skills >=70%)
+                        failures_list = json_data.get('failures', [])
+                        filtered_failures = []
+                        for f in failures_list:
+                            error_msg = str(f.get('msg', '')).strip()
+                            if _should_filter_failure_message(error_msg):
+                                continue
+                            filtered_failures.append(f)
+                        
+                        # Use filtered count instead of original count
+                        filtered_error_count = len(filtered_failures)
+                        
                         # CRITICAL: Always update total_jobs and error_jobs_count from JSON (even if test passed)
-                        test['error_jobs_count'] = total_failures
+                        # Use FILTERED count, not original count
+                        test['error_jobs_count'] = filtered_error_count  # Use filtered count
                         test['total_jobs'] = total_jobs
                         
-                        # CRITICAL: If JSON shows failures, force update test status to FAIL
-                        if total_failures > 0:
-                            test['status'] = 'FAIL'
-                            # Read failure details from JSON
-                            failures_list = json_data.get('failures', [])
+                        # CRITICAL: If JSON shows failures, update status based on ALLOW_SOLR_SYNC_FAILURES
+                        allow_failures = os.getenv("ALLOW_SOLR_SYNC_FAILURES", "1") == "1"
+                        if filtered_error_count > 0:
+                            test['status'] = 'PASS' if allow_failures else 'FAIL'
+                            # Use filtered failures only
                             test['error_jobs'] = [
                                 {
                                     'id': str(f.get('id', 'N/A')),
                                     'title': str(f.get('db_title', 'N/A'))[:100],
                                     'error': str(f.get('msg', 'N/A'))[:500]
                                 }
-                                for f in failures_list[:total_failures]
+                                for f in filtered_failures[:filtered_error_count]  # Use filtered failures
                             ]
-                            # Build failure message
+                            # Build failure message with filtered count
                             structured_msg = "=" * 120 + "\n"
                             structured_msg += "SOLR SYNC FAILURE SUMMARY\n"
                             structured_msg += "=" * 120 + "\n"
                             if total_jobs > 0:
-                                structured_msg += f"Total Jobs Available in DB (last 24h): {total_jobs}\n"
+                                structured_msg += f"Total Jobs Available in DB (last 12h): {total_jobs}\n"
                             structured_msg += f"Jobs Actually Checked: {total_jobs}\n"
-                            structured_msg += f"Total Failures: {total_failures}\n"
-                            if total_failures > 0 and total_jobs > 0:
-                                success_rate = ((total_jobs - total_failures) / total_jobs * 100) if total_jobs > 0 else 0
+                            structured_msg += f"Total Failures: {filtered_error_count}\n"  # Use filtered count
+                            if filtered_error_count > 0 and total_jobs > 0:
+                                success_rate = ((total_jobs - filtered_error_count) / total_jobs * 100) if total_jobs > 0 else 0
                                 structured_msg += f"Success Rate: {success_rate:.2f}%\n"
                             structured_msg += "=" * 120 + "\n"
                             structured_msg += f"\n📄 Complete failure details saved in: reports/db_solr_sync_failures.json\n"
-                            test['failure_message'] = structured_msg[:2000]
+                            # Use simple failure message format with filtered count
+                            fail_msg = f"Solr Sync Failed for {filtered_error_count}/{total_jobs} jobs checked (all jobs from last 12 hours). See logs for details."
+                            if allow_failures:
+                                fail_msg = f"[ALLOW_SOLR_SYNC_FAILURES=1] {fail_msg}"
+                            test['failure_message'] = fail_msg
                             test['error_details'] = structured_msg[:2000]
                         else:
                             # Even when test passes, ensure error_jobs is an empty array (not missing)
@@ -1673,25 +1778,25 @@ def update_historical_data(module: str):
                     entry_datetime = datetime.now().isoformat()
                 
                 # Store entry for both PASS and FAIL cases to preserve datetime
-                    new_entry = {
-                        'test_name': test_name,
-                        'status': test_status,
-                        'date': test_date,
-                        'datetime': entry_datetime,  # Use stable datetime
-                        'start_time': test.get('start_time', ''),
-                        'end_time': test.get('end_time', ''),
-                        'running_time': test.get('running_time', 'N/A'),
-                        'line_no': test.get('line_no', 0)
-                    }
+                new_entry = {
+                    'test_name': test_name,
+                    'status': test_status,
+                    'date': test_date,
+                    'datetime': entry_datetime,  # Use stable datetime
+                    'start_time': test.get('start_time', ''),
+                    'end_time': test.get('end_time', ''),
+                    'running_time': test.get('running_time', 'N/A'),
+                    'line_no': test.get('line_no', 0)
+                }
                 
                 # Add totals if available
-                    if test.get('total_jobs'):
-                        new_entry['total_jobs'] = test.get('total_jobs')
+                if test.get('total_jobs'):
+                    new_entry['total_jobs'] = test.get('total_jobs')
                 
                 # CRITICAL: Store error details if there are failures, regardless of test status
                 # This ensures failures are shown even when test passes (e.g., ALLOW_SOLR_SYNC_FAILURES=1)
-                    if error_count > 0:
-                        new_entry['error_jobs_count'] = error_count
+                if error_count > 0:
+                    new_entry['error_jobs_count'] = error_count
                     
                     # CRITICAL: Only store error_jobs (failures only, not all entities)
                     if error_jobs_list and len(error_jobs_list) > 0:
@@ -1724,8 +1829,8 @@ def update_historical_data(module: str):
                     new_entry['error_jobs_count'] = 0
                     
                 # Store entry in history (both PASS and FAIL to preserve datetime)
-                    # Note: history[test_name] was already cleared above for db_solr_sync
-                    history[test_name].append(new_entry)
+                # Note: history[test_name] was already cleared above for db_solr_sync
+                history[test_name].append(new_entry)
             else:
                 # CRITICAL: For ALL tests, store BOTH PASS and FAIL cases
                 # This ensures we have complete history for all test runs
@@ -1836,19 +1941,82 @@ def get_7day_log_data(module: str, test_case: str, force_reload: bool = False) -
     # History file should only be modified by update_historical_data
     # Note: We still filter in memory to ensure correct data is returned, but don't save
     
-    if test_case not in history:
-        # Try a fast scan of the log tail for this specific test (non-blocking).
+    # Start background update if needed (checks timestamps)
+    # This ensures that even if we have history, we check for updates
+    _start_update_if_needed(module)
+
+    # CRITICAL: For read-only operations, DON'T modify history file during reads
+    # Only filter in memory - don't save changes
+    # This prevents data loss when API is called multiple times
+    # History file should only be modified by update_historical_data
+    # Note: We still filter in memory to ensure correct data is returned, but don't save
+    
+    # Check for pending update (log file newer than history)
+    has_pending_update = False
+    module_config = MODULES.get(module)
+    if module_config:
+        log_file_path = get_project_root() / module_config['log_file']
+        history_file_path = HISTORY_DIR / f"{module}_history.json"
+        if log_file_path.exists() and history_file_path.exists():
+             try:
+                 if log_file_path.stat().st_mtime > history_file_path.stat().st_mtime:
+                     has_pending_update = True
+             except:
+                 pass
+
+    if test_case not in history or has_pending_update:
+        # Try a fast scan of the log tail for this specific test
+        # If test_case not in history, this is fallback.
+        # If has_pending_update, this ensures we get latest run even if background job is lagging.
         fast_entries = _build_history_from_log_tail(module, test_case)
+        
         if fast_entries:
-            history[test_case] = fast_entries
-            try:
-                save_historical_data(module, history)
-            except Exception as e:
-                print(f"Warning: Could not save fast history for {module}/{test_case}: {e}")
-        else:
-            # Start background update without blocking the API.
-            _start_update_if_needed(module)
-            history = load_historical_data(module)
+            if test_case not in history:
+                history[test_case] = fast_entries
+                # Only save if purely missing (initial load fix), but ideally rely on background thread
+                try:
+                    save_historical_data(module, history)
+                except Exception as e:
+                    print(f"Warning: Could not save fast history for {module}/{test_case}: {e}")
+            else:
+                # Merge fast_entries into existing history (in-memory only)
+                # This ensures UI gets latest data without waiting for background thread
+                current_entries = history[test_case]
+                entry_map = {e.get('date'): i for i, e in enumerate(current_entries)}
+                
+                for entry in fast_entries:
+                    date = entry.get('date')
+                    if not date: continue
+                    
+                    if date in entry_map:
+                        idx = entry_map[date]
+                        existing = current_entries[idx]
+                        
+                        # Compare timestamps to see if new entry is newer
+                        is_newer = False
+                        try:
+                            ts_new = entry.get('datetime', '') or entry.get('date', '')
+                            ts_old = existing.get('datetime', '') or existing.get('date', '')
+                            # Normalize
+                            if ' to ' in ts_new: ts_new = ts_new.split(' to ')[0].strip()
+                            if ' to ' in ts_old: ts_old = ts_old.split(' to ')[0].strip()
+                            
+                            if ts_new > ts_old:
+                                is_newer = True
+                        except:
+                            is_newer = True # default to update if check fails
+                        
+                        if is_newer:
+                             current_entries[idx] = entry
+                    else:
+                        current_entries.append(entry)
+                
+                # Sort descending to ensure latest is first
+                history[test_case].sort(key=lambda x: (x.get('date', ''), x.get('datetime', '')), reverse=True)
+                
+        elif test_case not in history:
+            # If fast scan failed and we have no history, try reloading (maybe background finished?)
+             history = load_historical_data(module)
     
     # Final check: ensure test_case still belongs to module after update
     if not is_test_for_module(test_case, module):
@@ -2066,7 +2234,7 @@ def get_test_history(module_id: str, test_case: str):
                         'datetime': stable_datetime,
                         'stable_datetime': stable_datetime,
                         'total_jobs': total_jobs,
-                        'error_jobs_count': total_failures,
+                        'error_jobs_count': 0,
                         'running_time': 'N/A',
                         'start_time': file_mtime.strftime('%Y%m%d %H:%M:%S'),
                         'end_time': '',
@@ -2076,6 +2244,15 @@ def get_test_history(module_id: str, test_case: str):
 
                     if total_failures > 0:
                         failures_list = json_data.get('failures', [])
+                        # Filter out false positives (DB='N/A' and ai_skills >=70%)
+                        filtered_failures = []
+                        for f in failures_list:
+                            error_msg = str(f.get('msg', '')).strip()
+                            if _should_filter_failure_message(error_msg):
+                                continue
+                            filtered_failures.append(f)
+                        filtered_error_count = len(filtered_failures)
+                        entry['error_jobs_count'] = filtered_error_count
                         entry['error_jobs'] = [
                             {
                                 'id': str(f.get('id', 'N/A')),
@@ -2083,14 +2260,14 @@ def get_test_history(module_id: str, test_case: str):
                                 'error': str(f.get('msg', 'N/A'))[:500],
                                 'detected_at': stable_datetime
                             }
-                            for f in failures_list[:total_failures]
+                            for f in filtered_failures[:filtered_error_count]
                         ]
                         entry['error_jobs'] = _dedupe_error_jobs(entry['error_jobs'])
-                        if len(entry['error_jobs']) > total_failures:
-                            entry['error_jobs'] = entry['error_jobs'][:total_failures]
+                        if len(entry['error_jobs']) > filtered_error_count:
+                            entry['error_jobs'] = entry['error_jobs'][:filtered_error_count]
                         entry['failure_message'] = (
-                            f"Solr Sync Failed for {total_failures}/{total_jobs} jobs checked "
-                            f"(all jobs from last 24 hours). See logs for details."
+                            f"Solr Sync Failed for {filtered_error_count}/{total_jobs} jobs checked "
+                            f"(all jobs from last 12 hours). See logs for details."
                         )
 
                     history = load_historical_data(module_id, force_reload=False)

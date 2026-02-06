@@ -3,6 +3,32 @@
     {
       "test_name": "test_t1_01_home_page",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:24:23 to 2026-02-05T14:27:11",
+      "start_time": "20260205 14:26:15.265",
+      "end_time": "20260205 14:27:11.395",
+      "running_time": "00:00:26.048",
+      "line_no": 527829,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_01_home_page",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 17:27:34.038",
+      "end_time": "20260204 17:28:06.245",
+      "running_time": "26.13 seconds",
+      "line_no": 298376,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
+    {
+      "test_name": "test_t1_01_home_page",
+      "status": "PASS",
       "date": "2026-02-03",
       "datetime": "2026-02-03T00:19:36 to 2026-02-03T00:21:42",
       "start_time": "20260203 00:20:13.086",
@@ -71,21 +97,35 @@
       "line_no": 23669,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t1_01_home_page",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:29:35 to 2026-01-28T00:31:33",
-      "start_time": "20260128 00:30:35.714",
-      "end_time": "20260128 00:31:33.768",
-      "running_time": "00:00:41.205",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16759
     }
   ],
   "test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively": [
+    {
+      "test_name": "test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:26:43 to 2026-02-05T14:30:09",
+      "start_time": "20260205 14:26:43.555",
+      "end_time": "20260205 14:30:09.533",
+      "running_time": "00:03:25.706",
+      "line_no": 527889,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 17:28:06.499",
+      "end_time": "20260204 17:31:04.261",
+      "running_time": "00:01:32.190",
+      "line_no": 298403,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively",
       "status": "PASS",
@@ -145,21 +185,35 @@
       "line_no": 23701,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t1_02_home_page_verify_jobs_not_from_same_company_consecutively",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:30:35 to 2026-01-28T00:35:07",
-      "start_time": "20260128 00:31:58.184",
-      "end_time": "20260128 00:35:07.498",
-      "running_time": "00:02:49.035",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16790
     }
   ],
   "test_t1_03_home_page_verify_jobs_matched_with_searched_company": [
+    {
+      "test_name": "test_t1_03_home_page_verify_jobs_matched_with_searched_company",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:30:49 to 2026-02-05T14:33:27",
+      "start_time": "20260205 14:33:00.088",
+      "end_time": "20260205 14:33:27.658",
+      "running_time": "00:00:18.814",
+      "line_no": 528008,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_03_home_page_verify_jobs_matched_with_searched_company",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 16:19:20.200",
+      "end_time": "20260204 16:19:44.768",
+      "running_time": "14.89 seconds",
+      "line_no": 133715,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_03_home_page_verify_jobs_matched_with_searched_company",
       "status": "PASS",
@@ -231,21 +285,35 @@
       "line_no": 23729,
       "failure_message": "Message: BenchSale_Conftest.py:1069: in goto_fast\npage.goto(url, wait_until=\"domcontentloaded\", timeout=timeout)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(",
       "error_details": "Message: BenchSale_Conftest.py:1069: in goto_fast\npage.goto(url, wait_until=\"domcontentloaded\", timeout=timeout)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call("
-    },
-    {
-      "test_name": "test_t1_03_home_page_verify_jobs_matched_with_searched_company",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:31:58 to 2026-01-28T00:36:06",
-      "start_time": "20260128 00:35:31.828",
-      "end_time": "20260128 00:36:06.236",
-      "running_time": "00:00:14.309",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16821
     }
   ],
   "test_t1_04_home_page_verify_job_posting_time": [
+    {
+      "test_name": "test_t1_04_home_page_verify_job_posting_time",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:33:00 to 2026-02-05T14:35:05",
+      "start_time": "20260205 14:34:36.570",
+      "end_time": "20260205 14:35:05.862",
+      "running_time": "00:00:19.249",
+      "line_no": 528078,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_04_home_page_verify_job_posting_time",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 17:31:27.821",
+      "end_time": "20260204 17:31:58.911",
+      "running_time": "18.66 seconds",
+      "line_no": 298498,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_04_home_page_verify_job_posting_time",
       "status": "PASS",
@@ -305,21 +373,35 @@
       "line_no": 23830,
       "failure_message": "Message: BenchSale_Conftest.py:1069: in goto_fast\npage.goto(url, wait_until=\"domcontentloaded\", timeout=timeout)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(",
       "error_details": "Message: BenchSale_Conftest.py:1069: in goto_fast\npage.goto(url, wait_until=\"domcontentloaded\", timeout=timeout)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call("
-    },
-    {
-      "test_name": "test_t1_04_home_page_verify_job_posting_time",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:35:31 to 2026-01-28T00:37:05",
-      "start_time": "20260128 00:36:30.446",
-      "end_time": "20260128 00:37:05.317",
-      "running_time": "00:00:27.369",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16854
     }
   ],
   "test_t1_05_home_page_verify_book_your_demo": [
+    {
+      "test_name": "test_t1_05_home_page_verify_book_your_demo",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:34:36 to 2026-02-05T14:35:30",
+      "start_time": "20260205 14:30:49.093",
+      "end_time": "20260205 14:35:30.348",
+      "running_time": "00:04:06.777",
+      "line_no": 528113,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_05_home_page_verify_book_your_demo",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 17:31:59.170",
+      "end_time": "20260204 17:36:06.356",
+      "running_time": "00:01:23.330",
+      "line_no": 298527,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_05_home_page_verify_book_your_demo",
       "status": "PASS",
@@ -391,21 +473,35 @@
       "line_no": 23932,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t1_05_home_page_verify_book_your_demo",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:36:30 to 2026-01-28T00:41:36",
-      "start_time": "20260128 00:37:29.586",
-      "end_time": "20260128 00:41:36.682",
-      "running_time": "00:04:00.319",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16885
     }
   ],
   "test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs": [
+    {
+      "test_name": "test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:38:15 to 2026-02-05T14:39:44",
+      "start_time": "20260205 14:35:07.557",
+      "end_time": "20260205 14:39:44.419",
+      "running_time": "00:04:36.314",
+      "line_no": 528267,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 00:22:25.719",
+      "end_time": "20260204 00:24:33.219",
+      "running_time": "00:01:28.648",
+      "line_no": 45581,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs",
       "status": "PASS",
@@ -477,21 +573,35 @@
       "line_no": 23964,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:37:29 to 2026-01-28T00:44:15",
-      "start_time": "20260128 00:42:01.069",
-      "end_time": "20260128 00:44:15.243",
-      "running_time": "00:01:39.295",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16916
     }
   ],
   "test_t2_01_post_a_job_verification_and_verification_with_job_id": [
+    {
+      "test_name": "test_t2_01_post_a_job_verification_and_verification_with_job_id",
+      "status": "FAIL",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:42:13 to 2026-02-05T14:42:45",
+      "start_time": "20260205 14:42:43.253",
+      "end_time": "20260205 14:42:45.146",
+      "running_time": "00:00:01.639",
+      "line_no": 528347,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_01_post_a_job_verification_and_verification_with_job_id",
+      "status": "FAIL",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 17:37:40",
+      "end_time": "",
+      "running_time": "00:01:28.648",
+      "line_no": 298652,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "tests\\employer\\test_employer_test_cases.py:2452: in test_t2_01_post_a_job_verification_and_verification_with_job_id\ngoto_fast(page, f\"{EMPLOYER_URL}myJobs\")\nBenchSale_Conftest.py:1105: in goto_fast\npage.goto(url, wait_until=\"commit\", timeout=10000)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:528: in wrap_api_call\nraise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nE   playwright._impl._errors.TargetClosedError: Page.goto: Target page, context or browser has been closed\nScreenshot attempt 1 failed: Page.screenshot: Target page, context or browser has been closed\nScreenshot attempt 2 failed: Page.screenshot: Target page, context or browser has been closed\nScreenshot attempt 3 failed: Page.screenshot: Target page, context or browser has been closed\nFull page screenshot failed, trying viewport-only screenshot...\nViewport-only screenshot also failed: Page.screenshot: Target page, context or browser has been closed\nTrying emergency screenshot with minimal timeout...\nEmergency screenshot also failed: Page.screenshot: Target page, context or browser has been closed\nTrying body element screenshot as last resort...\nBody element screenshot also failed: Locator.screenshot: Target page, context or browser has been closed\nTrying ultra-fast screenshot with 1 second timeout...\nUltra-fast screenshot also failed: Page.screenshot: Target page, context or browser has been closed\nAttempting JavaScript-based screenshot capture...\nJavaScript-based screenshot also failed: Page.evaluate: Target page, context or browser has been closed\n⚠️ CRITICAL: Screenshot capture failed for test_t2_01_post_a_job_verification_and_verification_with_job_id. Error details saved to C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_01_post_a_job_verification_and_verification_with_job_id_20260204_173756_ERROR.txt\nCould not save HTML: Page.content: Target page, context or browser has been closed\n17:37:57.475\tINFO\tFailure artifacts saved:\n17:37:57.476\tINFO\t  URL: https://jobsnprofiles.com/myJobs\n17:37:57.476\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_01_post_a_job_verification_and_verification_with_job_id_20260204_173756.png\n17:37:57.476\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_01_post_a_job_verification_and_verification_with_job_id_20260204_173756.html\n17:37:57.476\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_01_post_a_job_verification_and_verification_with_job_id_20260204_173756.url.txt\nError details:\ntests\\employer\\test_employer_test_cases.py:2452: in test_t2_01_post_a_job_verification_and_verification_with_job_id\ngoto_fast(page, f\"{EMPLOYER_URL}myJobs\")\nBenchSale_Conftest.py:1105: in goto_fast\npage.goto(url, wait_until=\"commit\", timeout=10000)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:528: in wrap_api_call\nraise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nE   playwright._impl._errors.TargetClosedError: Page.goto: Target page, context or browser has been closed\nError during employer1_page cleanup: Page.wait_for_timeout: Target page, context or browser has been closed\n\n====================================================================================================\nTEST test_t2_02_verification_of_applicants_and_shortlisting_in_js\nFull Name: test_t2_02_verification_of_applicants_and_shortlisting_in_js\nSource: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\tests\\employer\\test_employer_test_cases.py\nStart: 20260204 17:37:57.908\n====================================================================================================\nCreating employer1_page fixture for test: test_t2_02_verification_of_applicants_and_shortlisting_in_js\nCleared all cookies for fresh session (employer1)\nAttempting to maximize employer1 browser window...\nNavigating to EmpLogin for fresh employer login...\nStarting authorization phase\nThe provided initial strategy is mysql_native_password\nmysql_native_password completed succesfully\nExecuting DB Query for jobs modified in last 24 hours...\nQuery time: 2026-02-04 17:38:02\nOn EmpLogin page. Performing fresh login...\n00:00:10.263KEYWORD Login credentials for Employer1\nLogged in to Employer1 successfully (Playwright)\n================================================================================\nStarted runtime measurement for: T2.02 Verification of applicants and shortlisting in JS\nStart time: 2026-02-04 17:38:18\n================================================================================\nNetwork connectivity check: using cached PASS (age=110.72s, ttl=300s)\n00:00:00.000KEYWORD Check Network Connectivity CACHED\nRetrieved 25540 jobs from database (fresh data from last 24 hours)\nRetrieved 25540 jobs from DB (modified in last 24 hours). Validating ALL jobs against Solr...\nThis may take some time. Running in background with parallel processing...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/admin/ping/?' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/admin/ping/?' (get) with body '' in 0.855 seconds, with status 200\nSolr connection verified: https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=%2A%3A%2A&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=%2A%3A%2A&rows=1&wt=json' (get) with body '' in 0.306 seconds, with status 200\nFound '3356485' search results.\nSolr collection has data. Sample doc ID: 2524280\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099487&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5916687&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5977350&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5500144&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5330757&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5493254&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A4254177&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5688891&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6098181&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5343530&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A4723325&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5495164&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5030253&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099475&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5865473&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5866407&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099295&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5338485&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099314&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099233&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099487&rows=1&wt=json' (get) with body '' in 0.283 seconds, with status 200\nFound '0' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A%226099487%22&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A%226099487%22&rows=1&wt=json' (get) with body '' in 0.309 seconds, with status 200\nFound '0' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6099487&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5343530&rows=1&wt=json' (get) with body '' in 0.654 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5330751&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5493254&rows=1&wt=json' (get) with body '' in 0.665 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6097606&rows=1&wt=json' (get) with body ''...",
+      "error_details": "tests\\employer\\test_employer_test_cases.py:2452: in test_t2_01_post_a_job_verification_and_verification_with_job_id"
+    },
     {
       "test_name": "test_t2_01_post_a_job_verification_and_verification_with_job_id",
       "status": "PASS",
@@ -563,21 +673,35 @@
       "line_no": 23999,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_01_post_a_job_verification_and_verification_with_job_id",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:42:01 to 2026-01-28T00:45:55",
-      "start_time": "20260128 00:44:40.440",
-      "end_time": "20260128 00:45:55.155",
-      "running_time": "00:00:57.486",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16951
     }
   ],
   "test_t2_02_verification_of_applicants_and_shortlisting_in_js": [
+    {
+      "test_name": "test_t2_02_verification_of_applicants_and_shortlisting_in_js",
+      "status": "FAIL",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:42:43 to 2026-02-05T14:43:10",
+      "start_time": "20260205 14:42:45.355",
+      "end_time": "20260205 14:43:10.703",
+      "running_time": "00:00:07.295",
+      "line_no": 528405,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_02_verification_of_applicants_and_shortlisting_in_js",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:27:53.996482",
+      "start_time": "20260204 11:51:04.283",
+      "end_time": "20260204 11:51:11.164",
+      "running_time": "00:01:06.475",
+      "line_no": 47371,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_02_verification_of_applicants_and_shortlisting_in_js",
       "status": "PASS",
@@ -649,21 +773,35 @@
       "line_no": 24032,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_02_verification_of_applicants_and_shortlisting_in_js",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:44:40 to 2026-01-28T00:47:35",
-      "start_time": "20260128 00:46:20.857",
-      "end_time": "20260128 00:47:35.777",
-      "running_time": "00:00:53.549",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 16980
     }
   ],
   "test_t2_03_verification_of_closing_a_job_and_checking_with_job_id": [
+    {
+      "test_name": "test_t2_03_verification_of_closing_a_job_and_checking_with_job_id",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:40:12 to 2026-02-05T00:44:53",
+      "start_time": "20260205 00:41:26.504",
+      "end_time": "20260205 00:44:53.766",
+      "running_time": "00:02:56.355",
+      "line_no": 525657,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_03_verification_of_closing_a_job_and_checking_with_job_id",
+      "status": "FAIL",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 16:31:46.623",
+      "end_time": "20260204 16:35:07.705",
+      "running_time": "00:01:12.369",
+      "line_no": 215653,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "tests\\employer\\test_employer_test_cases.py:3858: in test_t2_03_verification_of_closing_a_job_and_checking_with_job_id\nfirst_closed_job.wait_for(state=\"visible\", timeout=30000)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:17843: in wait_for\nself._sync(self._impl_obj.wait_for(timeout=timeout, state=state))\n.venv\\lib\\site-packages\\playwright\\_impl\\_locator.py:679: in wait_for\nawait self._frame.wait_for_selector(\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:323: in wait_for_selector\nawait self._channel.send(\"waitForSelector\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:528: in wrap_api_call\nraise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nE   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.\nE   Call log:\nE     - waiting for locator(\"xpath=/html/body/div[1]/div[2]/main/div[2]/div[2]/div/ul/div[1]/div/div/div/div\") to be visible\n\nLocator/XPath hint: xpath=/html/body/div[1]/div[2]/main/div[2]/div[2]/div/ul/div[1]/div/div/div/div\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A4700785&rows=1&wt=json' (get) with body '' in 0.199 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089694&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090232&rows=1&wt=json' (get) with body '' in 0.174 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6091086&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6091280&rows=1&wt=json' (get) with body '' in 0.243 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5185670&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5858864&rows=1&wt=json' (get) with body '' in 0.253 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090754&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089912&rows=1&wt=json' (get) with body '' in 0.177 seconds, with status 200\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089500&rows=1&wt=json' (get) with body '' in 0.175 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089895&rows=1&wt=json' (get) with body ''...\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090531&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090329&rows=1&wt=json' (get) with body '' in 0.180 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089685&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090095&rows=1&wt=json' (get) with body '' in 0.253 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6049022&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090639&rows=1&wt=json' (get) with body '' in 0.254 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089529&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A3082508&rows=1&wt=json' (get) with body '' in 0.165 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090360&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5506149&rows=1&wt=json' (get) with body '' in 0.172 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089506&rows=1&wt=json' (get) with body ''...\nScreenshot captured successfully (attempt 1)\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5189736&rows=1&wt=json' (get) with body '' in 0.174 seconds, with status 200\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5283102&rows=1&wt=json' (get) with body '' in 0.177 seconds, with status 200\nFound '1' search results.\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089507&rows=1&wt=json' (get) with body ''...\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090335&rows=1&wt=json' (get) with body ''...\n17:41:07.428\tINFO\tFailure artifacts saved:\n17:41:07.429\tINFO\t  URL: https://jobsnprofiles.com/myJobs\n17:41:07.429\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_03_verification_of_closing_a_job_and_checking_with_job_id_20260204_174107.png\n17:41:07.429\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_03_verification_of_closing_a_job_and_checking_with_job_id_20260204_174107.html\n17:41:07.429\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_03_verification_of_closing_a_job_and_checking_with_job_id_20260204_174107.url.txt\nError details:\ntests\\employer\\test_employer_test_cases.py:3858: in test_t2_03_verification_of_closing_a_job_and_checking_with_job_id\nfirst_closed_job.wait_for(state=\"visible\", timeout=30000)\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:17843: in wait_for\nself._sync(self._impl_obj.wait_for(timeout=timeout, state=state))\n.venv\\lib\\site-packages\\playwright\\_impl\\_locator.py:679: in wait_for\nawait self._frame.wait_for_selector(\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:323: in wait_for_selector\nawait self._channel.send(\"waitForSelector\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:528: in wrap_api_call\nraise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nE   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.\nE   Call log:\nE     - waiting for locator(\"xpath=/html/body/div[1]/div[2]/main/div[2]/div[2]/div/ul/div[1]/div/div/div/div\") to be visible\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089968&rows=1&wt=json' (get) with body '' in 0.256 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090336&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090766&rows=1&wt=json' (get) with body '' in 0.255 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090067&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090541&rows=1&wt=json' (get) with body '' in 0.170 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089393&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5803926&rows=1&wt=json' (get) with body '' in 0.246 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090199&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089694&rows=1&wt=json' (get) with body '' in 0.197 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090110&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6091086&rows=1&wt=json' (get) with body '' in 0.175 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089904&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089649&rows=1&wt=json' (get) with body '' in 0.253 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090767&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090124&rows=1&wt=json' (get) with body '' in 0.244 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090041&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090489&rows=1&wt=json' (get) with body '' in 0.252 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6092406&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089895&rows=1&wt=json' (get) with body '' in 0.175 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090611&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090531&rows=1&wt=json' (get) with body '' in 0.173 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089592&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089685&rows=1&wt=json' (get) with body '' in 0.183 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090431&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A5185670&rows=1&wt=json' (get) with body '' in 0.242 seconds, with status 200\nFound '1' search results.\nStarting request to 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6091394&rows=1&wt=json' (get) with body ''...\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6089506&rows=1&wt=json' (get) with body '' in 0.163 seconds, with status 200\nFinished 'https://solr.jobsnprofiles.com/solr/jnp_jobs_v6/select/?q=id%3A6090360&rows=1&wt=json' (get) with body '' in 0.165 seconds, with status 200",
+      "error_details": "tests\\employer\\test_employer_test_cases.py:3858: in test_t2_03_verification_of_closing_a_job_and_checking_with_job_id"
+    },
     {
       "test_name": "test_t2_03_verification_of_closing_a_job_and_checking_with_job_id",
       "status": "PASS",
@@ -735,21 +873,35 @@
       "line_no": 24067,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_03_verification_of_closing_a_job_and_checking_with_job_id",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:46:20 to 2026-01-28T00:51:18",
-      "start_time": "20260128 00:48:01.555",
-      "end_time": "20260128 00:51:18.764",
-      "running_time": "00:03:04.372",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17014
     }
   ],
   "test_t2_04_verification_of_ai_search_with_description": [
+    {
+      "test_name": "test_t2_04_verification_of_ai_search_with_description",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:41:26 to 2026-02-05T00:46:17",
+      "start_time": "20260205 00:44:55.091",
+      "end_time": "20260205 00:46:17.677",
+      "running_time": "00:00:42.308",
+      "line_no": 525687,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_04_verification_of_ai_search_with_description",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:27:53.996482",
+      "start_time": "20260204 11:57:43.175",
+      "end_time": "20260204 11:57:59.088",
+      "running_time": "00:04:33.834",
+      "line_no": 47708,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_04_verification_of_ai_search_with_description",
       "status": "PASS",
@@ -821,21 +973,33 @@
       "line_no": 24104,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_04_verification_of_ai_search_with_description",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:48:01 to 2026-01-28T00:53:29",
-      "start_time": "20260128 00:51:44.022",
-      "end_time": "20260128 00:53:29.518",
-      "running_time": "00:01:28.080",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17051
     }
   ],
   "test_t2_06_verification_of_ai_search_without_description_and_saving_resume": [
+    {
+      "test_name": "test_t2_06_verification_of_ai_search_without_description_and_saving_resume",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:44:55 to 2026-02-05T00:48:48",
+      "start_time": "20260205 00:46:18.838",
+      "end_time": "20260205 00:48:48.414",
+      "running_time": "00:02:01.751",
+      "line_no": 525720,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_06_verification_of_ai_search_without_description_and_saving_resume",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:16:49 to 2026-02-04T18:21:21",
+      "start_time": "20260204 18:20:06.516",
+      "end_time": "20260204 18:21:21.267",
+      "running_time": "00:00:54.516",
+      "line_no": 525072,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
     {
       "test_name": "test_t2_06_verification_of_ai_search_without_description_and_saving_resume",
       "status": "PASS",
@@ -907,21 +1071,35 @@
       "line_no": 24138,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_06_verification_of_ai_search_without_description_and_saving_resume",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:51:44 to 2026-01-28T00:54:59",
-      "start_time": "20260128 00:53:54.767",
-      "end_time": "20260128 00:54:59.383",
-      "running_time": "00:00:32.205",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17085
     }
   ],
   "test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts": [
+    {
+      "test_name": "test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts",
+      "status": "FAIL",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:53:02 to 2026-02-05T15:22:55",
+      "start_time": "20260205 15:20:33.163",
+      "end_time": "20260205 15:22:55.343",
+      "running_time": "00:02:22.180",
+      "line_no": 528911,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 16:37:09.306",
+      "end_time": "20260204 16:38:14.559",
+      "running_time": "45.21 seconds",
+      "line_no": 215780,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts",
       "status": "PASS",
@@ -993,21 +1171,35 @@
       "line_no": 24176,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:53:54 to 2026-01-28T00:56:31",
-      "start_time": "20260128 00:55:24.755",
-      "end_time": "20260128 00:56:31.840",
-      "running_time": "00:00:44.517",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17122
     }
   ],
   "test_t2_13_verification_of_resumes_details_matched_with_posted_jobs": [
+    {
+      "test_name": "test_t2_13_verification_of_resumes_details_matched_with_posted_jobs",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:48:49 to 2026-02-05T00:51:41",
+      "start_time": "20260205 00:51:21.985",
+      "end_time": "20260205 00:51:41.429",
+      "running_time": "00:00:01.106",
+      "line_no": 525779,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_13_verification_of_resumes_details_matched_with_posted_jobs",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 16:38:15.777",
+      "end_time": "20260204 16:38:34.670",
+      "running_time": "00:00:00.003",
+      "line_no": 215831,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_13_verification_of_resumes_details_matched_with_posted_jobs",
       "status": "PASS",
@@ -1079,21 +1271,35 @@
       "line_no": 24209,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_13_verification_of_resumes_details_matched_with_posted_jobs",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:55:24 to 2026-01-28T00:57:10",
-      "start_time": "20260128 00:56:56.983",
-      "end_time": "20260128 00:57:10.666",
-      "running_time": "00:00:00.004",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17155
     }
   ],
   "test_t2_14_verification_of_advanced_ai_semantic_search": [
+    {
+      "test_name": "test_t2_14_verification_of_advanced_ai_semantic_search",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T12:51:56 to 2026-02-05T12:52:50",
+      "start_time": "20260205 12:52:12.081",
+      "end_time": "20260205 12:52:50.635",
+      "running_time": "00:00:16.925",
+      "line_no": 527117,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_14_verification_of_advanced_ai_semantic_search",
+      "status": "SKIP",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 12:00:25.991",
+      "end_time": "20260204 12:02:32.680",
+      "running_time": "00:00:00.003",
+      "line_no": 48018,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_14_verification_of_advanced_ai_semantic_search",
       "status": "SKIP",
@@ -1165,21 +1371,33 @@
       "line_no": 24238,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_14_verification_of_advanced_ai_semantic_search",
-      "status": "SKIP",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:56:56 to 2026-01-28T00:58:27",
-      "start_time": "20260128 00:57:36.069",
-      "end_time": "20260128 00:58:27.227",
-      "running_time": "00:00:38.081",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17184
     }
   ],
   "test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title": [
+    {
+      "test_name": "test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:51:42 to 2026-02-05T00:55:09",
+      "start_time": "20260205 00:53:50.810",
+      "end_time": "20260205 00:55:09.612",
+      "running_time": "00:00:58.173",
+      "line_no": 525836,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:20:06 to 2026-02-04T18:25:11",
+      "start_time": "20260204 18:23:49.340",
+      "end_time": "20260204 18:25:11.517",
+      "running_time": "00:01:02.943",
+      "line_no": 525156,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
     {
       "test_name": "test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title",
       "status": "PASS",
@@ -1251,21 +1469,33 @@
       "line_no": 24268,
       "failure_message": "Message: tests\\employer\\test_employer_test_cases.py:4913: in test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title\npage.goto(f\"{EMPLOYER_URL}Login\")\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(",
       "error_details": "Message: tests\\employer\\test_employer_test_cases.py:4913: in test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title\npage.goto(f\"{EMPLOYER_URL}Login\")\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call("
-    },
-    {
-      "test_name": "test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title",
-      "status": "FAIL",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T00:57:36 to 2026-01-28T01:00:23",
-      "start_time": "20260128 00:58:52.643",
-      "end_time": "20260128 01:00:23.272",
-      "running_time": "00:01:15.496",
-      "failure_message": "Message: tests\\employer\\test_employer_test_cases.py:4889: in test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title\npage.goto(f\"{EMPLOYER_URL}myJobs\")\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(",
-      "error_details": "Message: tests\\employer\\test_employer_test_cases.py:4889: in test_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title\npage.goto(f\"{EMPLOYER_URL}myJobs\")\n.venv\\lib\\site-packages\\playwright\\sync_api\\_generated.py:9006: in goto\nself._sync(\n.venv\\lib\\site-packages\\playwright\\_impl\\_page.py:551: in goto\nreturn await self._main_frame.goto(**locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_frame.py:145: in goto\nawait self._channel.send(\"goto\", locals_to_params(locals()))\n.venv\\lib\\site-packages\\playwright\\_impl\\_connection.py:61: in send\nreturn await self._connection.wrap_api_call(",
-      "line_no": 17214
     }
   ],
   "test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id": [
+    {
+      "test_name": "test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id",
+      "status": "SKIP",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:53:50 to 2026-02-05T00:56:18",
+      "start_time": "20260205 00:55:10.752",
+      "end_time": "20260205 00:56:18.592",
+      "running_time": "00:00:46.716",
+      "line_no": 525861,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:23:49 to 2026-02-04T18:52:29",
+      "start_time": "20260204 18:50:59.972",
+      "end_time": "20260204 18:52:29.154",
+      "running_time": "00:01:29.181",
+      "line_no": 525240,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
     {
       "test_name": "test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id",
       "status": "PASS",
@@ -1337,21 +1567,35 @@
       "line_no": 24340,
       "failure_message": "Message: tests\\employer\\test_employer_test_cases.py:5172: in test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id\npytest.fail(f\"No job cards found after searching for job ID: {get_job_id}. The job may not be visible in JS dashboard.\")\nFailed: No job cards found after searching for job ID: #6012814. The job may not be visible in JS dashboard.\nScreenshot captured successfully (attempt 1)\n10:19:40.704\tINFO\tFailure artifacts saved:\n10:19:40.704\tINFO\t  URL: https://jobsnprofiles.com/jobs\n10:19:40.704\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260129_101940.png\n10:19:40.704\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260129_101940.html\n10:19:40.704\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260129_101940.url.txt\nError details:",
       "error_details": "Message: tests\\employer\\test_employer_test_cases.py:5172: in test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id\npytest.fail(f\"No job cards found after searching for job ID: {get_job_id}. The job may not be visible in JS dashboard.\")\nFailed: No job cards found after searching for job ID: #6012814. The job may not be visible in JS dashboard.\nScreenshot captured successfully (attempt 1)\n10:19:40.704\tINFO\tFailure artifacts saved:\n10:19:40.704\tINFO\t  URL: https://jobsnprofiles.com/jobs\n10:19:40.704\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260129_101940.png\n10:19:40.704\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260129_101940.html\n10:19:40.704\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260129_101940.url.txt\nError details:"
-    },
-    {
-      "test_name": "test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id",
-      "status": "FAIL",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T11:27:13 to 2026-01-28T11:44:45",
-      "start_time": "20260128 11:44:27.385",
-      "end_time": "20260128 11:44:45.037",
-      "running_time": "00:00:17.652",
-      "failure_message": "Message: tests\\employer\\test_employer_test_cases.py:5166: in test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id\npytest.fail(f\"No job cards found after searching for job ID: {get_job_id}. The job may not be visible in JS dashboard.\")\nFailed: No job cards found after searching for job ID: #5993377. The job may not be visible in JS dashboard.\n11:28:41.103\tINFO\tFailure artifacts saved:\n11:28:41.103\tINFO\t  URL: https://jobsnprofiles.com/jobs\n11:28:41.105\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260128_112840.png\n11:28:41.105\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260128_112840.html\n11:28:41.105\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260128_112840.url.txt\nError details:\ntests\\employer\\test_employer_test_cases.py:5166: in test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id",
-      "error_details": "Message: tests\\employer\\test_employer_test_cases.py:5166: in test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id\npytest.fail(f\"No job cards found after searching for job ID: {get_job_id}. The job may not be visible in JS dashboard.\")\nFailed: No job cards found after searching for job ID: #5993377. The job may not be visible in JS dashboard.\n11:28:41.103\tINFO\tFailure artifacts saved:\n11:28:41.103\tINFO\t  URL: https://jobsnprofiles.com/jobs\n11:28:41.105\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260128_112840.png\n11:28:41.105\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260128_112840.html\n11:28:41.105\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id_20260128_112840.url.txt\nError details:\ntests\\employer\\test_employer_test_cases.py:5166: in test_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id",
-      "line_no": 17274
     }
   ],
   "test_t2_22_hotlist_duplicate_candidates": [
+    {
+      "test_name": "test_t2_22_hotlist_duplicate_candidates",
+      "status": "FAIL",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T14:35:07 to 2026-02-05T14:38:57",
+      "start_time": "20260205 14:38:15.096",
+      "end_time": "20260205 14:38:57.963",
+      "running_time": "00:00:12.754",
+      "line_no": 528137,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_22_hotlist_duplicate_candidates",
+      "status": "FAIL",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 17:27:01.279",
+      "end_time": "20260204 17:27:33.795",
+      "running_time": "00:39:11.674",
+      "line_no": 298244,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "tests\\employer\\test_employer_test_cases.py:7546: in test_t2_22_hotlist_duplicate_candidates\npytest.fail(f\"TEST FAILED: Found duplicates in {total_companies_with_duplicates} company/companies. Companies with duplicates: {all_duplicate_summary}\")\nE   Failed: TEST FAILED: Found duplicates in 2 company/companies. Companies with duplicates: ['Sooftworld technologies llc (2 duplicate(s))', 'Gait solutions, llc (1 duplicate(s))']\nScreenshot captured successfully (attempt 1)\n16:52:45.191\tINFO\tFailure artifacts saved:\n16:52:45.191\tINFO\t  URL: https://jobsnprofiles.com/employer/hotlist-candidates\n16:52:45.191\tINFO\t  Screenshot: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_22_hotlist_duplicate_candidates_20260204_165244.png\n16:52:45.191\tINFO\t  HTML: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_22_hotlist_duplicate_candidates_20260204_165244.html\n16:52:45.205\tINFO\t  URL file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\failures\\test_t2_22_hotlist_duplicate_candidates_20260204_165244.url.txt\nError details:\ntests\\employer\\test_employer_test_cases.py:7546: in test_t2_22_hotlist_duplicate_candidates\npytest.fail(f\"TEST FAILED: Found duplicates in {total_companies_with_duplicates} company/companies. Companies with duplicates: {all_duplicate_summary}\")\nE   Failed: TEST FAILED: Found duplicates in 2 company/companies. Companies with duplicates: ['Sooftworld technologies llc (2 duplicate(s))', 'Gait solutions, llc (1 duplicate(s))']\nClosing browser instance\nGenerating unified dashboard at session end (Employer tests)...\n✓ Unified dashboard generated successfully: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\index.html\nDashboard update complete. UI will show latest status on next refresh.\n\n====================================================================================================\nFull Name: JnP benchSale\nStart / End / Elapsed: 20260204 16:14:21.548 / 20260204 16:53:33.222 / 00:39:11.674\nStatus: 22 tests total, 17 passed, 4 failed, 1 skipped\n====================================================================================================\n\nTest Statistics\n----------------------------------------------------------------------------------------------------\nTest                                                         Total    Pass     Fail     Skip     Elapsed\n----------------------------------------------------------------------------------------------------\ntest_t1_01_home_page                                         1        1        0        0        00:00:29.094\ntest_t1_02_home_page_verify_jobs_not_from_same_company_consecutively 1        0        1        0        00:01:13.388\ntest_t1_03_home_page_verify_jobs_matched_with_searched_company 1        1        0        0        00:02:55.837\ntest_t1_04_home_page_verify_job_posting_time                 1        1        0        0        00:00:18.571\ntest_t1_05_home_page_verify_book_your_demo                   1        1        0        0        00:00:19.234\ntest_t1_06_home_page_no_repetition_of_jobs_in_similar_jobs   1        1        0        0        00:03:23.393\ntest_t2_01_post_a_job_verification_and_verification_with_job_id 1        1        0        0        00:01:40.339\ntest_t2_02_verification_of_applicants_and_shortlisting_in_js 1        0        1        0        00:04:29.989\ntest_t2_03_verification_of_closing_a_job_and_checking_with_job_id 1        1        0        0        00:00:54.928\ntest_t2_04_verification_of_ai_search_with_description        1        1        0        0        00:03:02.035\ntest_t2_06_verification_of_ai_search_without_description_and_saving_resume 1        1        0        0        00:00:45.378\ntest_t2_12_verification_of_sending_email_to_contacts_in_emp_contacts 1        1        0        0        00:00:35.079\ntest_t2_13_verification_of_resumes_details_matched_with_posted_jobs 1        1        0        0        00:00:45.212\ntest_t2_14_verification_of_advanced_ai_semantic_search       1        0        0        1        00:00:00.003\ntest_t2_15_verification_of_job_posting_displayed_in_js_dashboard_job_title 1        1        0        0        00:00:58.970\ntest_t2_16_verification_of_job_posting_displayed_in_js_dashboard_job_id 1        0        1        0        00:00:52.544\ntest_t2_17_verification_of_hot_list_recruiter_details_daily_update 1        1        0        0        00:00:52.680\ntest_t2_18_verification_of_hotlist_company_candidate_list    1        1        0        0        00:01:46.865\ntest_t2_19_verification_of_hotlist_job_title_search_results  1        1        0        0        00:01:51.623\ntest_t2_20_verification_of_boolean_search_after_ai_search_with_description 1        1        0        0        00:00:49.926\ntest_t2_21_verification_of_boolean_search_with_direct_search_input 1        1        0        0        00:00:20.030\ntest_t2_22_hotlist_duplicate_candidates                      1        0        1        0        00:03:47.542\n----------------------------------------------------------------------------------------------------\nAll Tests                                                    22       17       4        1        00:32:12.662\n----------------------------------------------------------------------------------------------------\n\n================================================================================\nTEST SESSION FINISHED\nSession end time: 2026-02-04 16:53:33\nExit status: 1\nTotal tests executed: 22\n\nRUNTIME SUMMARY:\n--------------------------------------------------------------------------------\nT1.01 Home Page: 29.09 seconds\nT1.03 Home Page- Verify jobs matched with searched company: 175.83 seconds\nT1.04 Home Page- Verify job posting time: 18.57 seconds\nT1.05 Home Page- Verify 'Book Your Demo': 19.23 seconds\nT1.06 Home Page- No repetition of jobs in 'Similar Jobs': 203.39 seconds\nT2.01 Post a Job verification and verification with Job-Id: 100.34 seconds\nT2.03 Verification of closing a job and checking with Job-Id: 54.93 seconds\nT2.04 Verification of AI Search with description: 182.03 seconds\nT2.06 Verification of AI search without description and verification of saving a resume: 45.38 seconds\nT2.12 Verification of sending email to Contacts in EMP-Contacts: 35.08 seconds\nT2.13 Verification of resumes details matched with posted jobs: 45.21 seconds\nT2.15 Verification of job posting displayed in JS dashboard with job title: 58.98 seconds\nT2.17 Verification of Hot list recruiter details daily update: 52.68 seconds\nT2.18 Verification of Hot list company candidate list: 106.86 seconds\nT2.19 Verification of Hot list job title search results: 111.62 seconds\nT2.20 Verification of Boolean search after AI Search with description: 49.93 seconds\nT2.21 Verification of Boolean search with direct search input: 20.03 seconds\n--------------------------------------------------------------------------------\n================================================================================\n\nTest summary written to: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\reports\\test_summary.txt\nHTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\employer.html\nAdmin HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_admin.html\nRecruiter HTML log viewer generated: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\benchsale_recruiter.html\nGenerating unified dashboard at session end...\n✓ Unified dashboard generated successfully: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\index.html\nDashboard update complete. UI will show latest status on next refresh.\n================================================================================\nBenchSale Automation Test Suite - Logging Initialized\nLog file: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\logs\\employer.log\n================================================================================\n====================================================================================================\nSUITE JnP employer\nFull Name: JnP employer\nSource: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\nStart: 20260204 17:27:00.361\n====================================================================================================\n✓ Final test execution: 22 tests (Admin: 0, Recruiter: 0)\nUsing proactor: IocpProactor\nAcquired browser lock (PID: 15892)\nCreating new browser instance (only one will be created across all processes)\n\n====================================================================================================\nTEST test_t1_01_home_page\nFull Name: test_t1_01_home_page\nSource: C:\\Users\\Nityainc\\OneDrive - Nitya Software Solutions Inc\\Desktop\\Automation_testing_pytest\\tests\\employer\\test_employer_test_cases.py\nStart: 20260204 17:27:01.283\n====================================================================================================\nCreating employer1_page fixture for test: test_t1_01_home_page\nCleared all cookies for fresh session (employer1)\nAttempting to maximize employer1 browser window...\nHome page test detected (test_t1_01_home_page). Skipping login, starting from BASE_URL...\n00:00:02.164KEYWORD Job fair pop-up\n================================================================================\nStarted runtime measurement for: T1.01 Home Page\nStart time: 2026-02-04 17:27:07\n================================================================================",
+      "error_details": "tests\\employer\\test_employer_test_cases.py:7546: in test_t2_22_hotlist_duplicate_candidates"
+    },
     {
       "test_name": "test_t2_22_hotlist_duplicate_candidates",
       "status": "PASS",
@@ -1423,21 +1667,35 @@
       "line_no": 24544,
       "failure_message": "",
       "error_details": ""
-    },
-    {
-      "test_name": "test_t2_22_hotlist_duplicate_candidates",
-      "status": "PASS",
-      "date": "2026-01-28",
-      "datetime": "2026-01-28T01:13:11 to 2026-01-28T09:52:26",
-      "start_time": "20260128 09:52:15.582",
-      "end_time": "20260128 09:52:26.863",
-      "running_time": "00:00:11.281",
-      "failure_message": "",
-      "error_details": "",
-      "line_no": 17476
     }
   ],
   "test_t2_17_verification_of_hot_list_recruiter_details_daily_update": [
+    {
+      "test_name": "test_t2_17_verification_of_hot_list_recruiter_details_daily_update",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:55:10 to 2026-02-05T00:58:31",
+      "start_time": "20260205 00:56:19.749",
+      "end_time": "20260205 00:58:31.614",
+      "running_time": "00:01:46.766",
+      "line_no": 525889,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_17_verification_of_hot_list_recruiter_details_daily_update",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 12:23:18.043",
+      "end_time": "20260204 12:24:16.064",
+      "running_time": "52.68 seconds",
+      "line_no": 49155,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_17_verification_of_hot_list_recruiter_details_daily_update",
       "status": "PASS",
@@ -1491,6 +1749,32 @@
     {
       "test_name": "test_t2_18_verification_of_hotlist_company_candidate_list",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:56:19 to 2026-02-05T01:00:57",
+      "start_time": "20260205 00:58:32.780",
+      "end_time": "20260205 01:00:57.205",
+      "running_time": "00:01:58.976",
+      "line_no": 525916,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_18_verification_of_hotlist_company_candidate_list",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 12:26:37.028",
+      "end_time": "20260204 12:26:39.514",
+      "running_time": "111.62 seconds",
+      "line_no": 49367,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
+    {
+      "test_name": "test_t2_18_verification_of_hotlist_company_candidate_list",
+      "status": "PASS",
       "date": "2026-02-03",
       "datetime": "2026-02-03T00:48:23 to 2026-02-03T00:52:36",
       "start_time": "20260203 00:50:26.066",
@@ -1538,6 +1822,32 @@
     }
   ],
   "test_t2_19_verification_of_hotlist_job_title_search_results": [
+    {
+      "test_name": "test_t2_19_verification_of_hotlist_job_title_search_results",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T00:58:32 to 2026-02-05T01:02:21",
+      "start_time": "20260205 01:00:58.356",
+      "end_time": "20260205 01:02:21.012",
+      "running_time": "00:00:50.206",
+      "line_no": 525943,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_19_verification_of_hotlist_job_title_search_results",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 16:46:42.993",
+      "end_time": "20260204 16:47:54.998",
+      "running_time": "00:08:39.402",
+      "line_no": 298126,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_19_verification_of_hotlist_job_title_search_results",
       "status": "PASS",
@@ -1591,6 +1901,32 @@
     {
       "test_name": "test_t2_20_verification_of_boolean_search_after_ai_search_with_description",
       "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T01:00:58 to 2026-02-05T01:03:09",
+      "start_time": "20260205 01:02:22.182",
+      "end_time": "20260205 01:03:09.309",
+      "running_time": "00:00:19.341",
+      "line_no": 525970,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_20_verification_of_boolean_search_after_ai_search_with_description",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 12:35:44.717",
+      "end_time": "20260204 12:36:40.087",
+      "running_time": "20.03 seconds",
+      "line_no": 49715,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
+    {
+      "test_name": "test_t2_20_verification_of_boolean_search_after_ai_search_with_description",
+      "status": "PASS",
       "date": "2026-02-03",
       "datetime": "2026-02-03T00:52:37 to 2026-02-03T00:54:26",
       "start_time": "20260203 00:53:48.030",
@@ -1638,6 +1974,32 @@
     }
   ],
   "test_t2_21_verification_of_boolean_search_with_direct_search_input": [
+    {
+      "test_name": "test_t2_21_verification_of_boolean_search_with_direct_search_input",
+      "status": "PASS",
+      "date": "2026-02-05",
+      "datetime": "2026-02-05T13:00:13 to 2026-02-05T13:03:00",
+      "start_time": "20260205 13:02:06.658",
+      "end_time": "20260205 13:03:00.297",
+      "running_time": "00:00:34.399",
+      "line_no": 527404,
+      "error_jobs_count": 0,
+      "error_jobs": []
+    },
+    {
+      "test_name": "test_t2_21_verification_of_boolean_search_with_direct_search_input",
+      "status": "PASS",
+      "date": "2026-02-04",
+      "datetime": "2026-02-04T18:00:49.957020",
+      "start_time": "20260204 16:48:37.855",
+      "end_time": "20260204 16:52:44.993",
+      "running_time": "00:03:47.542",
+      "line_no": 298219,
+      "error_jobs_count": 0,
+      "error_jobs": [],
+      "failure_message": "",
+      "error_details": ""
+    },
     {
       "test_name": "test_t2_21_verification_of_boolean_search_with_direct_search_input",
       "status": "PASS",
